@@ -1,0 +1,27 @@
+[
+
+    {
+        "ParameterKey": "AccountID",
+        "ParameterValue": "111111222222"
+    },
+    {
+        "ParameterKey": "CrossAccountIAMRole",
+        "ParameterValue": "cross-account-iam-role"
+    },
+    {
+        "ParameterKey": "MetaInstanceProfileRoleName",
+        "ParameterValue": "databricks-meta-instance-profile-role-name"
+    },
+    {
+        "ParameterKey": "DataIAMRole1",
+        "ParameterValue": "databricks-testrole"
+    },
+    {
+        "ParameterKey": "DataIAMRole2",
+        "ParameterValue": "datarole2"
+    },
+    {
+        "ParameterKey": "DataIAMRole3",
+        "ParameterValue": "datarole3"
+    }
+]

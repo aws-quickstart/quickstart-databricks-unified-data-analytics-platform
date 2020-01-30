@@ -1,0 +1,33 @@
+project:
+  name: databricks
+  owner: sshvans@amazon.com
+  package_lambda: false
+  regions:
+  - ap-northeast-1
+  - ap-northeast-2
+  - ap-south-1
+  - ap-southeast-1
+  - ap-southeast-2
+  - ca-central-1
+  - eu-central-1
+  - eu-west-1
+  - eu-west-2
+  - sa-east-1
+  - us-east-1
+  - us-east-2
+  - us-west-1
+  - us-west-2
+  s3_bucket: ''
+tests:
+  cred-pass-test:
+    parameters:
+      AccountID: '111111222222'
+      CrossAccountIAMRole: databricks-cross-account-role
+      DataIAMRole1: databricks-testrole
+      DataIAMRole2: databricks-datarole1
+      DataIAMRole3: databricks-datarole2
+      MetaInstanceProfileRoleName: databricks-meta-instance-profile-role1
+    regions:
+    - us-west-2
+    s3_bucket: ''
+    template: templates/databricks-credential-passthrough.template.yaml
