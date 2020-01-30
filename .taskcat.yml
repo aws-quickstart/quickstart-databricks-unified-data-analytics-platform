@@ -1,5 +1,5 @@
 project:
-  name: databricks
+  name: quickstart-databricks-unified-data-analytics-platform
   owner: sshvans@amazon.com
   package_lambda: false
   regions:
