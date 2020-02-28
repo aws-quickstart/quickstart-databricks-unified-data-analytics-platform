@@ -1,0 +1,431 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  This template creates all the resources needed to setup multiple databricks workspaces in an AWS
+  account (qs-1qgc7pmj6).
+
+Outputs:
+  IAMRoleARN:
+    Description: The ARN of the cross account role.
+    Value: !GetAtt 
+      - accessRole
+      - Arn
+  S3BucketName:
+    Description: The name of the S3 root bucket.
+    Value: !Ref assetsS3Bucket
+  CredentialsId:
+    Description: Credential Id
+    Value: !GetAtt createCredentials.CredentialsId
+  ExternalId:
+    Description: External Id
+    Value: !GetAtt createCredentials.ExternalId
+  StorageConfigId:
+    Description: Storage configuration Id
+    Value: !GetAtt createStorageConfiguration.StorageConfigId
+  WorkspaceStatus:
+    Description: Status of the requested workspace
+    Value: !GetAtt createWorkspace.WorkspaceStatus
+  WorkspaceStatusMessage:
+    Description: Status message of the requested workspace
+    Value: !GetAtt createWorkspace.WorkspaceStatusMsg
+
+Parameters:
+  Prefix:
+    Description: A prefix which will be used to create resources with unique name.
+    MinLength: '3'
+    Type: String
+  AwsRegion:
+    Description: AWS Region where the workspace will be created.
+    MinLength: '7'
+    Type: String
+  AccountId:
+    Description: The Databricks Account Id where you want to create workspaces.
+    MinLength: '8'
+    Type: String
+  IAMRole:
+    Description: The name of the cross account role. Only Alphnumeric characters with a minimum length of 3.
+    AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
+    MinLength: '3'
+    Type: String
+  BucketName:
+    Description: The name of the S3 root bucket which can include numbers, lowercase and uppercase letters as well as hyphens (-). It cannot start or end with a hyphen (-).
+    AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
+    MinLength: '3'
+    Type: String
+  TagName:
+    Description: The unique friendly name as required by your company’s tagging strategy document.
+    MinLength: '8'
+    Type: String
+  Username:
+    Description: Username for REST API call auth.
+    MinLength: '1'
+    Type: String
+  Password:
+    Description: Password for REST API call auth.
+    MinLength: '1'
+    Type: String
+  QSS3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
+    Default: aws-quickstart
+    Type: String
+  QSS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/]*$
+    Default: quickstart-databricks-unified-data-analytics-platform/
+    Type: String
+
+Resources:
+  # IAM Role for lambda function execution
+  functionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/IAMFullAccess
+  
+  # Databricks API calls
+  createCredentials:
+    Type: Custom::CreateCredentials
+    Properties:
+      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
+      action: 'CREATE_CREDS'
+      accountId: !Ref AccountId
+      credentials_name: !Join
+        - '-'
+        - - !Ref Prefix
+          - 'creds'
+          - !GetAtt 'generateRandomStr.RandomString'
+      role_arn: !GetAtt 'functionRole.Arn'
+      username: !Ref 'Username'
+      password: !Ref 'Password'
+  createStorageConfiguration:
+    DependsOn: updateRoleAssumePolicy
+    Type: Custom::CreateStorageConfiguration
+    Properties:
+      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
+      action: 'CREATE_STORAGE_CONFIG'
+      accountId: !Ref AccountId
+      storage_config_name: !Join
+        - '-'
+        - - !Ref Prefix
+          - 'storage'
+          - !GetAtt 'generateRandomStr.RandomString'
+      s3bucket_name: !Ref assetsS3Bucket
+      username: !Ref 'Username'
+      password: !Ref 'Password'
+  createWorkspace:
+    Type: Custom::CreateWorkspace
+    Properties:
+      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
+      action: 'CREATE_WORKSPACE'
+      accountId: !Ref AccountId
+      workspace_name: !Join
+        - '-'
+        - - !Ref Prefix
+          - 'wrkspc'
+          - !GetAtt 'generateRandomStr.RandomString'
+      deployment_name: !Join
+        - '-'
+        - - !Ref Prefix
+          - 'deploy'
+          - !GetAtt 'generateRandomStr.RandomString'
+      aws_region: !Ref AwsRegion
+      credentials_id: !GetAtt createCredentials.CredentialsId
+      storage_config_id: !GetAtt createStorageConfiguration.StorageConfigId
+      username: !Ref 'Username'
+      password: !Ref 'Password'
+  # getWorkspace:
+  #   Type: Custom::GetWorkspace
+  #   Properties:
+  #     ServiceToken: !GetAtt 'databricksApiFunction.Arn'
+  #     action: 'GET_WORKSPACE'
+  #     accountId: !Ref AccountId
+  #     workspace_id: '3669286848378251'
+  #     username: !Ref 'Username'
+  #     password: !Ref 'Password'
+  databricksApiFunction:
+    DependsOn: CopyZips
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Get workspace status
+      Handler: rest_client.handler
+      Runtime: python3.8
+      Role: !GetAtt 'functionRole.Arn'
+      Timeout: 60
+      Code:
+        S3Bucket: !Ref 'LambdaZipsBucket'
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'
+
+  # Update External Id in IAM role assume policy document
+  updateRoleAssumePolicy:
+    Type: Custom::UpdateRoleAssumePolicy
+    Properties:
+      ServiceToken: !GetAtt 'updateIAMRoleFunction.Arn'
+      ExternalId: !GetAtt 'createCredentials.ExternalId'
+      IAMRoleName: !Ref accessRole
+  updateIAMRoleFunction:
+    DependsOn: CopyZips
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Update IAM Role assume policy document
+      Handler: update-iam-role.handler
+      Runtime: python3.8
+      Role: !GetAtt 'functionRole.Arn'
+      Timeout: 60
+      Code:
+        S3Bucket: !Ref 'LambdaZipsBucket'
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'
+  
+  # Generate randome string
+  generateRandomStr:
+    Type: Custom::generateString
+    Properties:
+      ServiceToken: !GetAtt 'generateRandomStringFunction.Arn'
+      Length: 6
+  generateRandomStringFunction:
+    DependsOn: CopyZips
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Generate random string
+      Handler: utilities.handler
+      Runtime: python3.8
+      Role: !GetAtt 'functionRole.Arn'
+      Timeout: 60
+      Code:
+        S3Bucket: !Ref 'LambdaZipsBucket'
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'
+
+  # Assets S3 bucket required by Databricks APIs
+  assetsS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+  bucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      PolicyDocument:
+        Id: MyPolicy
+        Version: 2012-10-17
+        Statement:
+          - Sid: Grant Databricks Access
+            Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::414351767826:root
+            Action:
+              - 's3:GetObject'
+              - 's3:GetObjectVersion'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:ListBucket'
+              - 's3:GetBucketLocation'
+            Resource:
+              - !Sub 'arn:aws:s3:::${assetsS3Bucket}/*'
+              - !Sub 'arn:aws:s3:::${assetsS3Bucket}'
+      Bucket: !Ref assetsS3Bucket
+
+  # Cross account access role
+  accessRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Ref IAMRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'sts:ExternalId': 'REPLACE-ME'
+            Effect: Allow
+            Principal:
+              AWS: !Join 
+                - ''
+                - - 'arn:aws:iam::'
+                  - '414351767826'
+                  - ':root'
+            Sid: ''
+        Version: 2012-10-17
+      Path: /
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Sid: Stmt1403287045000
+                Effect: Allow
+                Action:
+                  - 'ec2:AssociateDhcpOptions'
+                  - 'ec2:AssociateIamInstanceProfile'
+                  - 'ec2:AssociateRouteTable'
+                  - 'ec2:AttachInternetGateway'
+                  - 'ec2:AttachVolume'
+                  - 'ec2:AuthorizeSecurityGroupEgress'
+                  - 'ec2:AuthorizeSecurityGroupIngress'
+                  - 'ec2:CancelSpotInstanceRequests'
+                  - 'ec2:CreateDhcpOptions'
+                  - 'ec2:CreateInternetGateway'
+                  - 'ec2:CreateKeyPair'
+                  - 'ec2:CreatePlacementGroup'
+                  - 'ec2:CreateRoute'
+                  - 'ec2:CreateSecurityGroup'
+                  - 'ec2:CreateSubnet'
+                  - 'ec2:CreateTags'
+                  - 'ec2:CreateVolume'
+                  - 'ec2:CreateVpc'
+                  - 'ec2:CreateVpcPeeringConnection'
+                  - 'ec2:DeleteInternetGateway'
+                  - 'ec2:DeleteKeyPair'
+                  - 'ec2:DeletePlacementGroup'
+                  - 'ec2:DeleteRoute'
+                  - 'ec2:DeleteRouteTable'
+                  - 'ec2:DeleteSecurityGroup'
+                  - 'ec2:DeleteSubnet'
+                  - 'ec2:DeleteTags'
+                  - 'ec2:DeleteVolume'
+                  - 'ec2:DeleteVpc'
+                  - 'ec2:DescribeAvailabilityZones'
+                  - 'ec2:DescribeIamInstanceProfileAssociations'
+                  - 'ec2:DescribeInstanceStatus'
+                  - 'ec2:DescribeInstances'
+                  - 'ec2:DescribePlacementGroups'
+                  - 'ec2:DescribePrefixLists'
+                  - 'ec2:DescribeReservedInstancesOfferings'
+                  - 'ec2:DescribeRouteTables'
+                  - 'ec2:DescribeSecurityGroups'
+                  - 'ec2:DescribeSpotInstanceRequests'
+                  - 'ec2:DescribeSpotPriceHistory'
+                  - 'ec2:DescribeSubnets'
+                  - 'ec2:DescribeVolumes'
+                  - 'ec2:DescribeVpcs'
+                  - 'ec2:DetachInternetGateway'
+                  - 'ec2:DisassociateIamInstanceProfile'
+                  - 'ec2:ModifyVpcAttribute'
+                  - 'ec2:ReplaceIamInstanceProfileAssociation'
+                  - 'ec2:RequestSpotInstances'
+                  - 'ec2:RevokeSecurityGroupEgress'
+                  - 'ec2:RevokeSecurityGroupIngress'
+                  - 'ec2:RunInstances'
+                  - 'ec2:TerminateInstances'
+                Resource:
+                  - '*'
+              - Effect: Allow
+                Action:
+                  - 'iam:CreateServiceLinkedRole'
+                  - 'iam:PutRolePolicy'
+                Resource: >-
+                  arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
+                Condition:
+                  StringLike:
+                    'iam:AWSServiceName': spot.amazonaws.com
+            Version: 2012-10-17
+          PolicyName: databricks-cross-account-iam-role-policy
+      Tags:
+        -
+          Key: Name
+          Value: !Join
+                  - '_'
+                  - - !Ref TagName
+                    - !Sub '${AWS::StackName}-IAMRole'
+  
+  # Resources to stage lambda.zip file
+  LambdaZipsBucket:
+    Type: AWS::S3::Bucket
+  CopyZips:
+    Type: Custom::CopyZips
+    Properties:
+      ServiceToken: !GetAtt 'CopyZipsFunction.Arn'
+      DestBucket: !Ref 'LambdaZipsBucket'
+      SourceBucket: !Ref 'QSS3BucketName'
+      Prefix: !Ref 'QSS3KeyPrefix'
+      Objects:
+        - functions/packages/lambda.zip
+  CopyZipsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Path: /
+      Policies:
+        - PolicyName: lambda-copier
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - !Sub 'arn:aws:s3:::${QSS3BucketName}/${QSS3KeyPrefix}*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub 'arn:aws:s3:::${LambdaZipsBucket}/${QSS3KeyPrefix}*'
+  CopyZipsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Copies objects from a source S3 bucket to a destination
+      Handler: index.handler
+      Runtime: python2.7
+      Role: !GetAtt 'CopyZipsRole.Arn'
+      Timeout: 240
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          import threading
+          import boto3
+          import cfnresponse
+          def copy_objects(source_bucket, dest_bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              for o in objects:
+                  key = prefix + o
+                  copy_source = {
+                      'Bucket': source_bucket,
+                      'Key': key
+                  }
+                  print('copy_source: %s' % copy_source)
+                  print('dest_bucket = %s'%dest_bucket)
+                  print('key = %s' %key)
+                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
+                        Key=key)
+          def delete_objects(bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              objects = {'Objects': [{'Key': prefix + o} for o in objects]}
+              s3.delete_objects(Bucket=bucket, Delete=objects)
+          def timeout(event, context):
+              logging.error('Execution is about to time out, sending failure response to CloudFormation')
+              cfnresponse.send(event, context, cfnresponse.FAILED, {}, None)
+          def handler(event, context):
+              # make sure we send a failure to CloudFormation if the function
+              # is going to timeout
+              timer = threading.Timer((context.get_remaining_time_in_millis()
+                        / 1000.00) - 0.5, timeout, args=[event, context])
+              timer.start()
+              print('Received event: %s' % json.dumps(event))
+              status = cfnresponse.SUCCESS
+              try:
+                  source_bucket = event['ResourceProperties']['SourceBucket']
+                  dest_bucket = event['ResourceProperties']['DestBucket']
+                  prefix = event['ResourceProperties']['Prefix']
+                  objects = event['ResourceProperties']['Objects']
+                  if event['RequestType'] == 'Delete':
+                      delete_objects(dest_bucket, prefix, objects)
+                  else:
+                      copy_objects(source_bucket, dest_bucket, prefix, objects)
+              except Exception as e:
+                  logging.error('Exception: %s' % e, exc_info=True)
+                  status = cfnresponse.FAILED
+              finally:
+                  timer.cancel()
+                  cfnresponse.send(event, context, status, {}, None)
+  
+  
