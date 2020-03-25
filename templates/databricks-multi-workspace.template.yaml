@@ -3,6 +3,48 @@ Description: >-
   This template creates all the resources needed to setup multiple databricks workspaces in an AWS
   account (qs-1qgc7pmj6).
 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Multiple Workspace Configuration Parameters"
+        Parameters:
+          - AccountId 
+          - AWSRegion
+          - IAMRole
+          - BucketName
+          - Username
+          - Password
+      - Label:
+          default: "Additional Configuration Parameters"
+        Paramters:
+          - Prefix
+          - QSS3BucketName
+          - QSS3KeyPrefix
+          - TagName
+    ParameterLabels:
+      AccountID:
+        default: The Databricks Account Id
+      AWSRegion:
+        default: A valid AWS region
+      IAMRole:
+        default: The name of the IAM cross account role name to be created
+      BucketName:
+        default: The name of the S3 root bucket
+      Username:
+        default: Username for REST API call authentication
+      Password:
+        default: The password corresponding the Username 
+      Prefix:
+        default: A prefix used to uniquely create resources name
+      QSS3BucketName:
+        default: QSS3BucketName
+      QSS3KeyPrefix:
+        default: QSS3KeyPrefix   
+      TagName:
+        default: Tag name   
+
+
 Outputs:
   IAMRoleARN:
     Description: The ARN of the cross account role.
@@ -33,12 +75,14 @@ Parameters:
     Description: A prefix which will be used to create resources with unique name.
     MinLength: '3'
     Type: String
-  AwsRegion:
-    Description: AWS Region where the workspace will be created.
+  AWSRegion:
+    Description: A valid AWS Region where the workspace will be created.
     MinLength: '7'
+    AllowedValues:
+       - us-west-02
     Type: String
   AccountId:
-    Description: The Databricks Account Id where you want to create workspaces.
+    Description: The Databricks Account Id for creating workspaces.
     MinLength: '8'
     Type: String
   IAMRole:
@@ -62,8 +106,10 @@ Parameters:
   Password:
     Description: Password for REST API call auth.
     MinLength: '1'
+    NoEcho: 'true'
     Type: String
   QSS3BucketName:
+    Description: The S3 bucket where the Templates and Functions already exists 
     AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
     Default: aws-quickstart
     Type: String
@@ -100,7 +146,7 @@ Resources:
         - - !Ref Prefix
           - 'creds'
           - !GetAtt 'generateRandomStr.RandomString'
-      role_arn: !GetAtt 'functionRole.Arn'
+      role_arn: !GetAtt 'accessRole.Arn'
       username: !Ref 'Username'
       password: !Ref 'Password'
   createStorageConfiguration:
@@ -134,7 +180,7 @@ Resources:
         - - !Ref Prefix
           - 'deploy'
           - !GetAtt 'generateRandomStr.RandomString'
-      aws_region: !Ref AwsRegion
+      aws_region: !Ref AWSRegion
       credentials_id: !GetAtt createCredentials.CredentialsId
       storage_config_id: !GetAtt createStorageConfiguration.StorageConfigId
       username: !Ref 'Username'
