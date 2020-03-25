@@ -79,8 +79,9 @@ Parameters:
     Description: A valid AWS Region where the workspace will be created.
     MinLength: '7'
     AllowedValues:
-       - us-west-02
+       - us-west-2
     Type: String
+    Default: us-west-2
   AccountId:
     Description: The Databricks Account Id for creating workspaces.
     MinLength: '8'

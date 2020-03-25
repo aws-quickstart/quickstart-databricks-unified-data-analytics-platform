@@ -38,6 +38,6 @@ def handler(event, context):
         valid_characters = valid_characters.translate(None,'@/"')
 
     random_string = ''.join(random.choice(valid_characters) for i in range(length))
-    responseData['RandomString'] = random_string
+    responseData['RandomString'] = random_string.lower()
 
     return cfnresponse.send(event, context, status, responseData, None)
