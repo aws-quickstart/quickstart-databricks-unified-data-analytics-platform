@@ -4,6 +4,27 @@ Description: >-
   account (qs-1q8qs7po4).
   account.
 
+Metadata:
+  LICENSE: Apache License Version 2.0
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Databricks supplied ExternalID from the UI"
+        Parameters:
+          - ExternalID
+      - Label:
+          default: "Customer Parameters to be created"
+        Parameters:  
+          - IAMRole
+          - BucketName
+    ParameterLabels:
+      ExternalID:
+        default: The ExternalID supplied by the Databricks AWS Account Settings UI
+      IAMRole:
+        default: The name of the cross account role to create and configure in your Databricks account
+      BucketName:
+        default: The name of the s3 root bucket to create and configure 
+
 Outputs:
   IAMRoleARN:
     Description: The ARN of the cross account role.
@@ -16,21 +37,21 @@ Outputs:
 
 Parameters:
   IAMRole:
-    Description: The name of the cross account role. Only Alphnumeric characters with a minimum length of 3.
+    Description: Only alphnumeric characters with a minimum length of 3.
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
     MinLength: '3'
     Type: String
   ExternalID:
-    Description: The External ID that will be required to assume the role.
+    Description: An alphnumeric value only available on the UI.
     MinLength: '1'
     Type: String
   BucketName:
-    Description: The name of the S3 root bucket which can include numbers, lowercase and uppercase letters as well as hyphens (-). It cannot start or end with a hyphen (-).
+    Description: Must be lowercase and uppercase letters as well as hyphens (-). It cannot start or end with a hyphen (-).
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
     MinLength: '3'
     Type: String
   TagName:
-    Description: The unique friendly name as required by your company’s tagging strategy document.
+    Description: "A label consisting of a user-defined and optional value"
     MinLength: '8'
     Type: String
 
