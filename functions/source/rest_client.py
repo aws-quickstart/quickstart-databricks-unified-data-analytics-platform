@@ -5,6 +5,7 @@ import cfnresponse
 import threading
 import logging
 import json
+import time
 
 def timeout(event, context):
     logging.error('Execution is about to time out, sending failure response to CloudFormation')
@@ -46,8 +47,20 @@ def handler(event, context):
                                 )
                 responseData['StorageConfigId'] = post_result['storage_configuration_id']
             
+            if event['ResourceProperties']['action'] == 'CREATE_NETWORK':
+                post_result = create_network(
+                                    event['ResourceProperties']['accountId'],
+                                    event['ResourceProperties']['network_name'],
+                                    event['ResourceProperties']['vpc_id'],
+                                    event['ResourceProperties']['subnet_ids'],
+                                    event['ResourceProperties']['security_group_ids'],
+                                    event['ResourceProperties']['username'],
+                                    event['ResourceProperties']['password']
+                                )
+                responseData['NetworkId'] = post_result['network_id']
+
             if event['ResourceProperties']['action'] == 'CREATE_WORKSPACE':
-                post_result = create_workspace(
+                post_result = create_workspaces(
                                     event['ResourceProperties']['accountId'],
                                     event['ResourceProperties']['workspace_name'],
                                     event['ResourceProperties']['deployment_name'],
@@ -55,11 +68,18 @@ def handler(event, context):
                                     event['ResourceProperties']['credentials_id'],
                                     event['ResourceProperties']['storage_config_id'],
                                     event['ResourceProperties']['username'],
-                                    event['ResourceProperties']['password']
+                                    event['ResourceProperties']['password'],
+                                    event['ResourceProperties']['network_id'],
+                                    event['ResourceProperties']['no_of_workspaces']
                                 )
-                responseData['WorkspaceId'] = get_wrkspc_result['workspace_id']
-                responseData['WorkspaceStatus'] = get_wrkspc_result['workspace_status']
-                responseData['WorkspaceStatusMsg'] = get_wrkspc_result['workspace_status_message']
+                # Extract id, status and msg from object array, and make comma separated string
+                for i in range(0, len(post_result)):
+                    workspace_ids = workspace_ids + post_result[i]['workspace_id'] + ", "
+                    workspace_statuses = workspace_statuses + post_result[i]['workspace_status'] + ", "
+                    workspace_status_msgs = workspace_status_msgs + post_result[i]['workspace_status_message'] + ", "
+                responseData['WorkspaceId'] = workspace_ids
+                responseData['WorkspaceStatus'] = workspace_statuses
+                responseData['WorkspaceStatusMsg'] = workspace_status_msgs
 
             if event['ResourceProperties']['action'] == 'GET_WORKSPACE':
                 get_wrkspc_result = get_workspace(
@@ -131,8 +151,53 @@ def create_storage_config(account_id, storage_config_name, s3bucket_name, userna
     print('storage_configuration_id - {}'.format(storage_configuration_id))
     return response
 
+# POST - create network
+def create_network(account_id, network_name, vpc_id, subnet_ids, security_group_ids, username, password):
+    # api-endpoint
+    URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/networks"
+
+    # Json data
+    DATA = {
+        "network_name": network_name,
+        "vpc_id": vpc_id,
+        "subnet_ids": subnet_ids,
+        "security_group_ids": security_group_ids
+    }
+
+    response = post_request(URL, DATA, username, password)
+    print(response)
+
+    # parse response
+    network_id = response['network_id']
+    print('network_id - {}'.format(network_id))
+    return response
+
+
+# create workspaces - calls create workspace to create multiple workspaces.
+# Wrapper around create_workspace()
+def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, username, password, network_id, no_of_workspaces):
+    
+    # Response array of objects, where each object contains details about each workspace POST call
+    workspace_details = []
+
+    for i in range(1, int(no_of_workspaces)+1):
+        w_name = workspace_name + "-" + i
+        response = create_workspace(account_id, w_name, deployment_name, aws_region, credentials_id, storage_config_id, username, password, network_id)
+        # parse response
+        workspace_details.append(
+            {
+                "workspace_id" = response['workspace_id']
+                "workspace_status" = response['workspace_status']
+                "workspace_status_message" = response['workspace_status_message']
+            }
+        )
+        # wait for few seconds before calling another create workspace api call
+        time.sleep(3)
+        
+    return workspace_details
+
 # POST - create workspace
-def create_workspace(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, username, password):
+def create_workspace(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, username, password, network_id):
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/workspaces"
     
@@ -144,6 +209,10 @@ def create_workspace(account_id, workspace_name, deployment_name, aws_region, cr
         "credentials_id": credentials_id, 
         "storage_configuration_id": storage_config_id
     }
+
+    # Add networkId to the request object, if one is provided
+    if network_id != '':
+        DATA["network_id"] = network_id
 
     response = post_request(URL, DATA, username, password)
     print(response)
