@@ -212,7 +212,7 @@ def create_workspace(account_id, workspace_name, deployment_name, aws_region, cr
         "aws_region": aws_region, 
         "credentials_id": credentials_id, 
         "storage_configuration_id": storage_config_id,
-        "is_no_public_ip_enabled": true
+        "is_no_public_ip_enabled": True
     }
 
     # Add networkId to the request object, if one is provided
