@@ -22,13 +22,13 @@ Metadata:
           - Password
       - Label:
           default: "Additional Configuration Parameters"
-        Paramters:
+        Parameters:
           - Prefix
           - QSS3BucketName
           - QSS3KeyPrefix
           - TagName
     ParameterLabels:
-      AccountID:
+      AccountId:
         default: The Databricks Account Id
       AWSRegion:
         default: A valid AWS region

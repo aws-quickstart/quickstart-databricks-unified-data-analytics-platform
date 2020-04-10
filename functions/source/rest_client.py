@@ -73,8 +73,11 @@ def handler(event, context):
                                     event['ResourceProperties']['no_of_workspaces']
                                 )
                 # Extract id, status and msg from object array, and make comma separated string
+                workspace_ids = ''
+                workspace_statuses = ''
+                workspace_status_msgs = ''
                 for i in range(0, len(post_result)):
-                    workspace_ids = workspace_ids + post_result[i]['workspace_id'] + ", "
+                    workspace_ids = workspace_ids + str(post_result[i]['workspace_id']) + ", "
                     workspace_statuses = workspace_statuses + post_result[i]['workspace_status'] + ", "
                     workspace_status_msgs = workspace_status_msgs + post_result[i]['workspace_status_message'] + ", "
                 responseData['WorkspaceId'] = workspace_ids
@@ -160,8 +163,8 @@ def create_network(account_id, network_name, vpc_id, subnet_ids, security_group_
     DATA = {
         "network_name": network_name,
         "vpc_id": vpc_id,
-        "subnet_ids": subnet_ids,
-        "security_group_ids": security_group_ids
+        "subnet_ids": [id.strip() for id in subnet_ids.split(",")],
+        "security_group_ids": [id.strip() for id in security_group_ids.split(",")]
     }
 
     response = post_request(URL, DATA, username, password)
@@ -181,14 +184,15 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
     workspace_details = []
 
     for i in range(1, int(no_of_workspaces)+1):
-        w_name = workspace_name + "-" + i
-        response = create_workspace(account_id, w_name, deployment_name, aws_region, credentials_id, storage_config_id, username, password, network_id)
+        w_name = workspace_name + "-" + str(i)
+        d_name = deployment_name + "-" + str(i)
+        response = create_workspace(account_id, w_name, d_name, aws_region, credentials_id, storage_config_id, username, password, network_id)
         # parse response
         workspace_details.append(
             {
-                "workspace_id" = response['workspace_id']
-                "workspace_status" = response['workspace_status']
-                "workspace_status_message" = response['workspace_status_message']
+                "workspace_id": response['workspace_id'],
+                "workspace_status": response['workspace_status'],
+                "workspace_status_message": response['workspace_status_message']
             }
         )
         # wait for few seconds before calling another create workspace api call
@@ -207,7 +211,8 @@ def create_workspace(account_id, workspace_name, deployment_name, aws_region, cr
         "deployment_name": deployment_name, 
         "aws_region": aws_region, 
         "credentials_id": credentials_id, 
-        "storage_configuration_id": storage_config_id
+        "storage_configuration_id": storage_config_id,
+        "is_no_public_ip_enabled": true
     }
 
     # Add networkId to the request object, if one is provided
