@@ -26,7 +26,7 @@ def handler(event, context):
         # Do no do anything if requestType is DELETE
         if event['RequestType'] == 'Create':            
 
-            if event['ResourceProperties']['action'] == 'CREATE_CREDS':
+            if event['ResourceProperties']['action'] == 'CREATE_CREDENTIALS':
                 post_result = create_credentials(
                                     event['ResourceProperties']['accountId'],
                                     event['ResourceProperties']['credentials_name'],
@@ -37,8 +37,8 @@ def handler(event, context):
                 responseData['CredentialsId'] = post_result['credentials_id']
                 responseData['ExternalId'] = post_result['aws_credentials']['sts_role']['external_id']
 
-            if event['ResourceProperties']['action'] == 'CREATE_STORAGE_CONFIG':
-                post_result = create_storage_config(
+            if event['ResourceProperties']['action'] == 'CREATE_STORAGE_CONFIGURATIONS':
+                post_result = create_storage_configurations(
                                     event['ResourceProperties']['accountId'],
                                     event['ResourceProperties']['storage_config_name'],
                                     event['ResourceProperties']['s3bucket_name'],
@@ -47,8 +47,8 @@ def handler(event, context):
                                 )
                 responseData['StorageConfigId'] = post_result['storage_configuration_id']
             
-            if event['ResourceProperties']['action'] == 'CREATE_NETWORK':
-                post_result = create_network(
+            if event['ResourceProperties']['action'] == 'CREATE_NETWORKS':
+                post_result = create_networks(
                                     event['ResourceProperties']['accountId'],
                                     event['ResourceProperties']['network_name'],
                                     event['ResourceProperties']['vpc_id'],
@@ -59,7 +59,7 @@ def handler(event, context):
                                 )
                 responseData['NetworkId'] = post_result['network_id']
 
-            if event['ResourceProperties']['action'] == 'CREATE_WORKSPACE':
+            if event['ResourceProperties']['action'] == 'CREATE_WORKSPACES':
                 post_result = create_workspaces(
                                     event['ResourceProperties']['accountId'],
                                     event['ResourceProperties']['workspace_name'],
@@ -70,22 +70,14 @@ def handler(event, context):
                                     event['ResourceProperties']['username'],
                                     event['ResourceProperties']['password'],
                                     event['ResourceProperties']['network_id'],
-                                    event['ResourceProperties']['no_of_workspaces']
+                                    event['ResourceProperties']['noprivateip']
                                 )
-                # Extract id, status and msg from object array, and make comma separated string
-                workspace_ids = ''
-                workspace_statuses = ''
-                workspace_status_msgs = ''
-                for i in range(0, len(post_result)):
-                    workspace_ids = workspace_ids + str(post_result[i]['workspace_id']) + ", "
-                    workspace_statuses = workspace_statuses + post_result[i]['workspace_status'] + ", "
-                    workspace_status_msgs = workspace_status_msgs + post_result[i]['workspace_status_message'] + ", "
                 responseData['WorkspaceId'] = workspace_ids
                 responseData['WorkspaceStatus'] = workspace_statuses
                 responseData['WorkspaceStatusMsg'] = workspace_status_msgs
 
-            if event['ResourceProperties']['action'] == 'GET_WORKSPACE':
-                get_wrkspc_result = get_workspace(
+            if event['ResourceProperties']['action'] == 'GET_WORKSPACES':
+                get_wrkspc_result = get_workspaces(
                                         event['ResourceProperties']['accountId'],
                                         event['ResourceProperties']['workspace_id'],
                                         event['ResourceProperties']['username'],
@@ -134,7 +126,7 @@ def create_credentials(account_id, credentials_name, role_arn, username, passwor
     return response
 
 # POST - create storage configuration
-def create_storage_config(account_id, storage_config_name, s3bucket_name, username, password):
+def create_storage_configurations(account_id, storage_config_name, s3bucket_name, username, password):
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/storage-configurations"
     
@@ -155,7 +147,7 @@ def create_storage_config(account_id, storage_config_name, s3bucket_name, userna
     return response
 
 # POST - create network
-def create_network(account_id, network_name, vpc_id, subnet_ids, security_group_ids, username, password):
+def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group_ids, username, password):
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/networks"
 
@@ -175,33 +167,8 @@ def create_network(account_id, network_name, vpc_id, subnet_ids, security_group_
     print('network_id - {}'.format(network_id))
     return response
 
-
-# create workspaces - calls create workspace to create multiple workspaces.
-# Wrapper around create_workspace()
-def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, username, password, network_id, no_of_workspaces):
-    
-    # Response array of objects, where each object contains details about each workspace POST call
-    workspace_details = []
-
-    for i in range(1, int(no_of_workspaces)+1):
-        w_name = workspace_name + "-" + str(i)
-        d_name = deployment_name + "-" + str(i)
-        response = create_workspace(account_id, w_name, d_name, aws_region, credentials_id, storage_config_id, username, password, network_id)
-        # parse response
-        workspace_details.append(
-            {
-                "workspace_id": response['workspace_id'],
-                "workspace_status": response['workspace_status'],
-                "workspace_status_message": response['workspace_status_message']
-            }
-        )
-        # wait for few seconds before calling another create workspace api call
-        time.sleep(3)
-        
-    return workspace_details
-
 # POST - create workspace
-def create_workspace(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, username, password, network_id):
+def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, username, password, network_id, noprivateip):
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/workspaces"
     
@@ -211,13 +178,13 @@ def create_workspace(account_id, workspace_name, deployment_name, aws_region, cr
         "deployment_name": deployment_name, 
         "aws_region": aws_region, 
         "credentials_id": credentials_id, 
-        "storage_configuration_id": storage_config_id,
-        "is_no_public_ip_enabled": True
+        "storage_configuration_id": storage_config_id
     }
 
     # Add networkId to the request object, if one is provided
     if network_id != '':
         DATA["network_id"] = network_id
+        DATA["is_no_public_ip_enabled"] = noprivateip
 
     response = post_request(URL, DATA, username, password)
     print(response)
@@ -230,7 +197,7 @@ def create_workspace(account_id, workspace_name, deployment_name, aws_region, cr
     return response
 
 # GET - get workspace
-def get_workspace(account_id, workspace_id, username, password):
+def get_workspaces(account_id, workspace_id, username, password):
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/workspaces/"+workspace_id
 

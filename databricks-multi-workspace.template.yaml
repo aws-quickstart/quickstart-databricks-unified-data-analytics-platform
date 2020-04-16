@@ -64,15 +64,10 @@ Metadata:
 
 
 Outputs:
-  IAMRoleARNBOYVPC:
+  IAMRoleARN:
     Description: The ARN of the cross account role.
     Value: !GetAtt 
-      - accessRoleBYOVPC
-      - Arn
-  IAMRoleARNManagedVPC:
-    Description: The ARN of the cross account role.
-    Value: !GetAtt 
-      - accessRoleManagedVPC
+      - !If [BYOVPC, !Ref accessRoleBYOVPC, !Ref accessRoleManagedVPC]
       - Arn
   S3BucketName:
     Description: The name of the S3 root bucket.
@@ -219,8 +214,7 @@ Resources:
         - '-'
         - - !Ref DeploymentName
           - '-credentials'
-  #    role_arn: !GetAtt 'accessRole.Arn'
-      role_arn: !If [BYOVPC, !GetAtt 'accessRoleBYOVPC.Arn', !GetAtt 'accessRoleManagedVPC.Arn']
+      role_arn: !GetAtt 'accessRole.Arn'
       username: !Ref 'Username'
       password: !Ref 'Password'
   createStorageConfiguration:
@@ -237,10 +231,10 @@ Resources:
       s3bucket_name: !Ref assetsS3Bucket
       username: !Ref 'Username'
       password: !Ref 'Password'
-  createNetworks:
+  createNetwork:
     DependsOn: createStorageConfiguration
     Condition: BYOVPC
-    Type: Custom::createNetworks
+    Type: Custom::CreateNetwork
     Properties:
       ServiceToken: !GetAtt 'databricksApiFunction.Arn'
       action: 'CREATE_NETWORKS'
@@ -270,7 +264,7 @@ Resources:
       storage_config_id: !GetAtt createStorageConfiguration.StorageConfigId
       username: !Ref 'Username'
       password: !Ref 'Password'
-      network_id: !If [CreateNetworks, !GetAtt 'createNetworks.NetworkId', '']
+      network_id: !If [CreateNetwork, !GetAtt createNetwork.NetworkId, '']
       NoPrivateIP: !Ref NoPrivateIP
   # getWorkspace:
   #   Type: Custom::GetWorkspace
@@ -300,8 +294,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt 'updateIAMRoleFunction.Arn'
       ExternalId: !GetAtt 'createCredentials.ExternalId'
-  # IAMRoleName: !Ref accessRole    
-      IAMRoleName: !If [BYOVPC, !Ref accessRoleBYOVPC, !Ref accessRoleManagedVPC]
+      IAMRoleName: !Ref accessRole
   updateIAMRoleFunction:
     DependsOn: CopyZips
     Type: AWS::Lambda::Function
