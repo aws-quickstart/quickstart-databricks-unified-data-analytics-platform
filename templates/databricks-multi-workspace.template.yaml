@@ -100,6 +100,7 @@ Parameters:
     Description: A valid AWS Region where the workspace will be created.
     MinLength: '7'
     AllowedValues:
+       - us-east-1
        - us-west-2
     Type: String
     Default: us-west-2
@@ -234,7 +235,7 @@ Resources:
       accountId: !Ref AccountId
       storage_config_name: !Join
         - '-'
-        - - !Ref DeploymentName
+        - - !Ref 'DeploymentName'
           - 'storage'
       s3bucket_name: !Ref assetsS3Bucket
       username: !Ref 'Username'
@@ -249,7 +250,7 @@ Resources:
       accountId: !Ref AccountId
       network_name: !Join
         - '-'
-        - - !Ref DeploymentName
+        - - !Ref 'DeploymentName'
           - 'network'
       vpc_id: !Ref VPCID
       subnet_ids: !Ref SubnetIDs
@@ -264,9 +265,9 @@ Resources:
       accountId: !Ref AccountId
       workspace_name: !Join
         - '-'
-        - - !Ref DeploymentName
+        - - !Ref 'DeploymentName'
           - 'workspace'
-      deployment_name: DeploymentName
+      deployment_name: !Ref 'DeploymentName'
       aws_region: !Ref AWSRegion
       credentials_id: !GetAtt createCredentials.CredentialsId
       storage_config_id: !GetAtt createStorageConfiguration.StorageConfigId
@@ -507,7 +508,7 @@ Resources:
                   - 'ec2:AssociateIamInstanceProfile'
                   - 'ec2:DisassociateIamInstanceProfile'
                   - 'ec2:ReplaceIamInstanceProfileAssociation'
-                Resource: 
+                Resource:
                   - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:instance/* 
                 Condition:
                   StringLike:
@@ -591,16 +592,6 @@ Resources:
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'  
-              - Sid: EC2DeleteVolumeByTag
-                Effect: Allow
-                Action:
-                  - 'iam:CreateServiceLinkedRole'
-                  - 'iam:PutRolePolicy'
-                Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:volume/* 
-                Condition:
-                  StringEquals:
-                    'ec2:ResourceTag/Vendor': 'Databricks'
               - Effect: Allow
                 Action:
                   - 'iam:CreateServiceLinkedRole'
