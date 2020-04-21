@@ -70,12 +70,12 @@ def handler(event, context):
                                     event['ResourceProperties']['username'],
                                     event['ResourceProperties']['password'],
                                     event['ResourceProperties']['network_id'],
-                                    event['ResourceProperties']['noprivateip']
+                                    event['ResourceProperties']['no_private_ip']
                                 )
-                responseData['WorkspaceId'] = workspace_ids
-                responseData['WorkspaceStatus'] = workspace_statuses
-                responseData['WorkspaceStatusMsg'] = workspace_status_msgs
-
+                responseData['WorkspaceId'] = post_result['workspace_id']
+                responseData['WorkspaceStatus'] = post_result['workspace_status']
+                responseData['WorkspaceStatusMsg'] = post_result['workspace_status_message']
+   
             if event['ResourceProperties']['action'] == 'GET_WORKSPACES':
                 get_wrkspc_result = get_workspaces(
                                         event['ResourceProperties']['accountId'],
@@ -168,7 +168,7 @@ def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group
     return response
 
 # POST - create workspace
-def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, username, password, network_id, noprivateip):
+def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, username, password, network_id, no_private_ip):
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/workspaces"
     
@@ -184,7 +184,7 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
     # Add networkId to the request object, if one is provided
     if network_id != '':
         DATA["network_id"] = network_id
-        DATA["is_no_public_ip_enabled"] = noprivateip
+        DATA["is_no_public_ip_enabled"] = no_private_ip
 
     response = post_request(URL, DATA, username, password)
     print(response)
