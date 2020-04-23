@@ -274,16 +274,8 @@ Resources:
       username: !Ref 'Username'
       password: !Ref 'Password'
       network_id: !If [BYOVPC, !GetAtt 'createNetworks.NetworkId', '']
-      no_private_ip: !Ref NoPrivateIP
-  # getWorkspace:
-  #   Type: Custom::GetWorkspace
-  #   Properties:
-  #     ServiceToken: !GetAtt 'databricksApiFunction.Arn'
-  #     action: 'GET_WORKSPACES'
-  #     accountId: !Ref AccountId
-  #     workspace_id: '3669286848378251'
-  #     username: !Ref 'Username'
-  #     password: !Ref 'Password'
+      no_private_ip: !Ref NoPrivateIP   
+
   databricksApiFunction:
     DependsOn: CopyZips
     Type: AWS::Lambda::Function
@@ -302,8 +294,7 @@ Resources:
     Type: Custom::UpdateRoleAssumePolicy
     Properties:
       ServiceToken: !GetAtt 'updateIAMRoleFunction.Arn'
-      ExternalId: !GetAtt 'createCredentials.ExternalId'
-  # IAMRoleName: !Ref accessRole    
+      ExternalId: !GetAtt 'createCredentials.ExternalId'  
       IAMRoleName: !If [BYOVPC, !Ref accessRoleBYOVPC, !Ref accessRoleManagedVPC]
   updateIAMRoleFunction:
     DependsOn: CopyZips
@@ -600,7 +591,19 @@ Resources:
                   - arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
                 Condition:
                   StringLike:
-                    'iam:AWSServiceName': spot.amazonaws.com                                         
+                    'iam:AWSServiceName': spot.amazonaws.com 
+              - Sid: VpcNonresourceSpecificActions
+                Effect: Allow
+                Action:
+                  - 'ec2:AuthorizeSecurityGroupEgress',
+		  - 'ec2:AuthorizeSecurityGroupIngress',
+		  - 'ec2:RevokeSecurityGroupEgress',
+		  - 'ec2:RevokeSecurityGroupIngress'
+                Resource:
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:security-group/${SecurityGroupIDs}, 
+                Condition:
+                  StringEquals:
+                    'ec2:vpc' : !Sub 'arn:aws:ec2:${AWSRegion}:${AccountId}:vpc/${VPCID}'                                              
             Version: 2012-10-17
           PolicyName: databricks-cross-account-iam-role-policy
       Tags:
