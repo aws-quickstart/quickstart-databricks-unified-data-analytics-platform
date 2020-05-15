@@ -12,8 +12,7 @@ def timeout(event, context):
     cfnresponse.send(event, context, cfnresponse.FAILED, {}, None)
 
 def handler(event, context):
-    # make sure we send a failure to CloudFormation if the function
-    # is going to timeout
+    # make sure we send a failure to CloudFormation if the function is going to timeout
     timer = threading.Timer((context.get_remaining_time_in_millis()
             / 1000.00) - 0.5, timeout, args=[event, context])
     timer.start()
@@ -25,6 +24,16 @@ def handler(event, context):
     try:
         # Do no do anything if requestType is DELETE
         if event['RequestType'] == 'Create':            
+
+            if event['ResourceProperties']['action'] == 'CREATE_CUSTOMER_MANAGED_KEY':
+                post_result = create_customer_managed_key(
+                                    event['ResourceProperties']['key_arn'],
+                                    event['ResourceProperties']['key_alias'],
+                                    event['ResourceProperties']['key_region'],
+                                    event['ResourceProperties']['username'],
+                                    event['ResourceProperties']['password']
+                                )
+                responseData['CustomerManagedKeyId'] = post_result['customer_managed_key_id'] 
 
             if event['ResourceProperties']['action'] == 'CREATE_CREDENTIALS':
                 post_result = create_credentials(
@@ -75,16 +84,6 @@ def handler(event, context):
                 responseData['WorkspaceId'] = post_result['workspace_id']
                 responseData['WorkspaceStatus'] = post_result['workspace_status']
                 responseData['WorkspaceStatusMsg'] = post_result['workspace_status_message']
-   
-            if event['ResourceProperties']['action'] == 'GET_WORKSPACES':
-                get_wrkspc_result = get_workspaces(
-                                        event['ResourceProperties']['accountId'],
-                                        event['ResourceProperties']['workspace_id'],
-                                        event['ResourceProperties']['username'],
-                                        event['ResourceProperties']['password']
-                                    )
-                responseData['WorkspaceStatus'] = get_wrkspc_result['workspace_status']
-                responseData['WorkspaceStatusMsg'] = get_wrkspc_result['workspace_status_message']
         
         else:
             logging.debug('RequestType - {}'.format(event['RequestType']))
@@ -99,6 +98,29 @@ def handler(event, context):
     finally:
         timer.cancel()
         cfnresponse.send(event, context, status, responseData, None)
+
+# POST - create customer managed key 
+def create_customer_managed_key(key_arn, key_alias, key_region, username, password):
+
+    # api-endpoint
+    URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/credentials"
+    
+    # Json data
+    DATA = {
+        "aws_key_info": {
+            "key_arn": key_arn,
+            "key_alias": key_alias,
+            "key_region": key_region
+        }
+    }
+
+    response = post_request(URL, DATA, username, password)
+    print(response)
+    
+    # parse response
+    customer_managed_key_id = response['customer_managed_key_id']
+    print('customer_managed_key_id - {}'.format(customer_managed_key_id))
+    return response
 
 # POST - create credentials
 def create_credentials(account_id, credentials_name, role_arn, username, password):
@@ -187,6 +209,10 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
         DATA["is_no_public_ip_enabled"] = no_private_ip
 
     response = post_request(URL, DATA, username, password)
+
+    # wait for 30 seconds for provisioning the workspace 
+    time.sleep(30)
+
     print(response)
     
     # parse response
@@ -195,21 +221,7 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
     workspace_status_message = response['workspace_status_message']
     print('workspace_id - {}, status - {}, message - {}'.format(workspace_id, workspace_status, workspace_status_message))
     return response
-
-# GET - get workspace
-def get_workspaces(account_id, workspace_id, username, password):
-    # api-endpoint
-    URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/workspaces/"+workspace_id
-
-    response = get_request(URL, username, password)
-    print(response)
-
-    # parse response
-    workspace_status = response['workspace_status']
-    workspace_status_message = response['workspace_status_message']
-    print('workspace status - {}, msg - {}'.format(workspace_status, workspace_status_message))
-    return response
-    
+  
 
 # POST request function
 def post_request(url, json_data, username, password):
