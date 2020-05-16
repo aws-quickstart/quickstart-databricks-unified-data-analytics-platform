@@ -203,16 +203,16 @@ Conditions:
  
 
 Rules:
-  Rule01:
-# Ensure that SubnetIds and SecurityGroupIds are provided, if user provides a VPC Id  
+  CustomerManagedVPC:
+# Ensure that the SubnetIds and SecurityGroupIds are provided, if the user provides a customer managed VPC Id  
     RuleCondition: !Not [!Equals [!Ref VPCID, '']]
     Assertions:
     - Assert: !Not [ !Equals [ '', !Ref SubnetIDs ] ]
       AssertDescription: SubnetIDs is required when VPCID is provided.
     - Assert: !Not [ !Equals [ '', !Ref SecurityGroupIDs ] ]
       AssertDescription: SecurityGroupIDs is required when VPCID is provided. 
-  Rule02:    
-# Ensure that KeyAlias and KeyRegion are provided, if user provides a KeyArn      
+  CustomerManagedKMS:    
+# Ensure that the KeyAlias and KeyRegion are provided, if user provides a customer managed KMS   
     RuleCondition: !Not [!Equals [!Ref KeyArn, '']]
     Assertions:    
     - Assert: !Not [ !Equals [ '', !Ref KeyAlias ] ]
@@ -549,20 +549,6 @@ Resources:
               - !Sub 'arn:aws:s3:::${assetsS3Bucket}'
       Bucket: !Ref assetsS3Bucket                  
 
-  # Configure notebook encryption with customer-managed KMS, if provided
-    createCustomerManagedKey:
-    Condition: IsKMSKeyProvided
-    Type: Custom::CreateCustomerManagedKey
-    Properties:
-      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
-      action: 'CREATE_CUSTOMER_MANAGED_KEY'
-      KeyArn: !Ref KeyArn
-      KeyAlias: !Ref KeyAlias
-      KeyRegion: !Ref KeyRegion
-      username: !Ref 'Username'
-      password: !Ref 'Password'
-      customer_managed_key_id: !GetAtt createCustomerManagedKey.CustomerManagedKeyId 
-
   # Databricks API for workspace credentials
   createCredentials:
     Type: Custom::CreateCredentials
@@ -653,6 +639,34 @@ Resources:
       network_id: !If [CustomerManagedVPC, !GetAtt 'createNetworks.NetworkId', '']
       no_private_ip: !Ref NoPrivateIP   
   
+  # Configure notebook encryption with customer-managed KMS, if provided
+  createCustomerManagedKey:
+    Condition: IsKMSKeyProvided
+    DependsOn: createWorkspace
+    Type: Custom::CreateCustomerManagedKey
+    Properties:
+      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
+      action: 'CREATE_CUSTOMER_MANAGED_KEY'
+      KeyArn: !Ref KeyArn
+      KeyAlias: !Ref KeyAlias
+      KeyRegion: !Ref KeyRegion
+      username: !Ref 'Username'
+      password: !Ref 'Password'
+      customer_managed_key_id: !GetAtt createCustomerManagedKey.CustomerManagedKeyId 
+
+  databricksApiFunction:
+    DependsOn: CopyZips
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Get workspace status
+      Handler: rest_client.handler
+      Runtime: python3.8
+      Role: !GetAtt 'functionRole.Arn'
+      Timeout: 60
+      Code:
+        S3Bucket: !Ref 'LambdaZipsBucket'
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'
+
   # Resources to stage lambda.zip file
   LambdaZipsBucket:
     Type: AWS::S3::Bucket
