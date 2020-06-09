@@ -1,15 +1,15 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  This template creates all the resources needed to setup multiple databricks workspaces in an AWS
-  account (qs-1qgc7pmj6).
-
+  This template creates all the resources needed to setup a Databricks workspace in an AWS account.
+  
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
           default: "Multiple Workspace Configuration Parameters"
         Parameters:
-          - AccountId 
+          - e2AccountId
+          - AWSAccountId 
           - AWSRegion
           - IAMRole
           - BucketName
@@ -28,7 +28,7 @@ Metadata:
           - VPCID
           - SubnetIDs
           - SecurityGroupIDs
-          - NoPrivateIP
+          - NoPublicIP
       - Label:
           default: "AWS QuickStart Configuration Parameters"
         Parameters:
@@ -36,10 +36,12 @@ Metadata:
           - QSS3KeyPrefix
           - TagName
     ParameterLabels:
-      AccountId:
-        default: The Databricks Account Id
+      e2AccountId:
+        default: The Databricks e2 Workspace Account Id
+      AWSAccountId:
+        default: The Customer’s AWS Account ID required for building the IAM role
       AWSRegion:
-        default: A valid and supported AWS region
+        default: A valid and supported AWS region where the customer's Databricks workspace will be deployed
       IAMRole:
         default: The name of the IAM cross account role name to be created
       BucketName:
@@ -51,18 +53,18 @@ Metadata:
       Password:
         default: The password corresponding the Username 
       KeyArn:
-        default: The AWS KMS customer managed key arn  
+        default: The KMS customer managed Key ARN.   
       KeyAlias:
-        default: The AWS KMS customer managed alias name
+        default: The KMS customer managed alias name.
       KeyRegion:
-        default: The AWS region where the key was created   
+        default: The AWS region where the KMS Key was created.   
       VPCID:
         default: The customer managed VPC Id - format is vpc-xxxxxxxxxxxxxxxx
       SubnetIDs:
         default: The Subnet IDs - format is subnet-xxxxxxxxxxxxxxxxx
       SecurityGroupIDs:
         default: The Security group IDs - format is sg-xxxxxxxxxxxxxxxxx
-      NoPrivateIP:
+      NoPublicIP:
         default: Disable Public IP
       QSS3BucketName:
         default: QSS3BucketName
@@ -90,6 +92,7 @@ Outputs:
   CustomerManagedKeyId:
     Description: Id of the created customer managed key object  
     Value: !GetAtt createCustomerManagedKey.CustomerManagedKeyId
+    Condition: IsKMSKeyProvided
   CredentialsId:
     Description: Credential Id
     Value: !GetAtt createCredentials.CredentialsId
@@ -104,10 +107,16 @@ Outputs:
     Value: !GetAtt createWorkspace.WorkspaceStatus
 
 Parameters:
-  AccountId:
-    Description: The Databricks Account Id for creating workspaces.
-    MinLength: '8'
+  e2AccountId:
+    Description: The Databricks Account Id in the following format aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.
+    MinLength: '32'
     Type: String
+    Default: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee 
+  AWSAccountId:
+    Description: The Customer's Account Id in the following format 111111111111.
+    MinLength: '12'
+    Type: String
+    Default: 111111111111
   AWSRegion:
     Description: A valid AWS Region where the workspace will be created.
     MinLength: '9'
@@ -123,12 +132,12 @@ Parameters:
     MinLength: '8'
     Type: String
   BucketName:
-    Description: The name of the S3 root bucket which can include numbers, lowercase and uppercase letters as well as hyphens (-). It cannot start or end with a hyphen (-). Minimum length of 8 characters.
+    Description: The name of the S3 root bucket. Only Alphnumeric characters with a minimum length of 8.
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
     MinLength: '8'
     Type: String
   DeploymentName:
-    Description: The workspace name which can include lowercase and uppercase letters as well as hyphens (-). It cannot start or end with a hyphen (-). Minimum length of 8 characters.
+    Description: Your workspace url will consists of <DeploynameName>.cloud.databricks.com. Only Alphnumeric characters with a minimum length of 8.
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
     MinLength: '8'
     Type: String  
@@ -146,18 +155,13 @@ Parameters:
     Default: ''
     Type: String
   KeyAlias:
-    Description: KMS customer managed Key Alias
+    Description: Leave blank if the Key ARN is NOT specified.
     Default: ''
     Type: String 
   KeyRegion:
-    Description: The region where the KMS key was created. 
-    MinLength: '9'
-    AllowedValues:
-       - us-east-1
-       - us-west-1
-       - us-west-2
+    Description: Leave blank if the Key ARN is NOT specified. 
+    Default: ''
     Type: String
-    Default: us-west-2
   VPCID:
     Description: Existing Virtual Private Cloud (VPC) Id where to create the new workspace. If not supplied, the new workspace will be created in a VPC created by Databricks.
     Type: String  
@@ -168,15 +172,15 @@ Parameters:
     Default: ''
   SubnetIDs:
     Description: The list of SubnetIds in your Virtual Private Cloud (VPC) seperated by a comma(,). Minimum of 2 SuubnetIDs is required.
-    Type: CommaDelimitedList
+    Type: String 
     Default: ''
-  NoPrivateIP:
+  NoPublicIP:
+    Description: Disable Public IP for cluster worker nodes.
     Type: String
     AllowedValues:
-      - 'True'
-      - 'False'
-    Default: 'False'
-    Description: No Private IP enabled  
+      - 'true'
+      - 'false'
+    Default: 'false'  
   QSS3BucketName:
     Description: The S3 bucket where the Templates and Functions exists in the git repository
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
@@ -207,17 +211,17 @@ Rules:
 # Ensure that the SubnetIds and SecurityGroupIds are provided, if the user provides a customer managed VPC Id  
     RuleCondition: !Not [!Equals [!Ref VPCID, '']]
     Assertions:
-    - Assert: !Not [ !Equals [ '', !Ref SubnetIDs ] ]
+    - Assert: !Not [!Equals ['', !Ref SubnetIDs]]
       AssertDescription: SubnetIDs is required when VPCID is provided.
-    - Assert: !Not [ !Equals [ '', !Ref SecurityGroupIDs ] ]
+    - Assert: !Not [!Equals ['', !Ref SecurityGroupIDs]]
       AssertDescription: SecurityGroupIDs is required when VPCID is provided. 
   CustomerManagedKMS:    
 # Ensure that the KeyAlias and KeyRegion are provided, if user provides a customer managed KMS   
     RuleCondition: !Not [!Equals [!Ref KeyArn, '']]
     Assertions:    
-    - Assert: !Not [ !Equals [ '', !Ref KeyAlias ] ]
+    - Assert: !Not [!Equals ['', !Ref KeyAlias ]]
       AssertDescription: KeyAlias is required when the KeyArn is provided.
-    - Assert: !Not [ !Equals [ '', !Ref KeyRegion ] ]
+    - Assert: !Not [!Equals ['', !Ref KeyRegion ]]
       AssertDescription: KeyRegion is required when the KeyArn is provided.  
     
 Resources:
@@ -407,17 +411,17 @@ Resources:
                   - 'ec2:DisassociateIamInstanceProfile'
                   - 'ec2:ReplaceIamInstanceProfileAssociation'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:instance/* 
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:instance/* 
                 Condition:
-                  StringLike:
+                  StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'
               - Sid: AllowEc2RunInstancePerTag
                 Effect: Allow
                 Action:
                   - 'ec2:RunInstances'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:volume/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:instance/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:volume/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:instance/*
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks' 
@@ -426,7 +430,7 @@ Resources:
                 Action:
                   - 'ec2:RunInstances'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:image/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:image/*
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'
@@ -435,40 +439,40 @@ Resources:
                 Action:
                   - 'ec2:RunInstances'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:network-interface/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:subnet/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:security-group/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:network-interface/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:subnet/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:security-group/*
                 Condition:
                   StringEquals:
-                    'ec2:vpc' : !Sub 'arn:aws:ec2:${AWSRegion}:${AccountId}:vpc/${VPCID}'
+                    'ec2:vpc' : !Sub 'arn:aws:ec2:${AWSRegion}:${AWSAccountId}:vpc/${VPCID}'
               - Sid: AllowEc2RunInstanceOtherResources
                 Effect: Allow
                 Action:
                   - 'ec2:RunInstances'
                 NotResource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:instance/* 
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:network-interface/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:subnet/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:security-group/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:volume/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:instance/*     
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:image/* 
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:network-interface/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:subnet/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:security-group/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:volume/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:instance/*     
               - Sid: EC2TerminateInstancesTag
                 Effect: Allow
                 Action:
                   - 'ec2:TerminateInstances'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:instance/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:instance/*
                 Condition:
                   StringEquals:
-                    'ec2:ResourceTag/Vendor': 'Databricks' 
+                    'ec2:ResourceTag/Vendor': 'Databricks'         
               - Sid: EC2AttachDetachVolumeTag
                 Effect: Allow
                 Action:
                   - 'ec2:AttachVolume'
                   - 'ec2:DetachVolume'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:instance/* 
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:volume/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:instance/* 
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:volume/*
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'  
@@ -477,7 +481,7 @@ Resources:
                 Action:
                   - 'ec2:CreateVolume'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:volume/* 
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:volume/* 
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'   
@@ -486,7 +490,7 @@ Resources:
                 Action:
                   - 'ec2:DeleteVolume'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:volume/* 
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:volume/* 
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'  
@@ -507,10 +511,10 @@ Resources:
                   - 'ec2:RevokeSecurityGroupEgress'
                   - 'ec2:RevokeSecurityGroupIngress'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AccountId}:security-group/${SecurityGroupIDs}, 
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:security-group/${SecurityGroupIDs}
                 Condition:
                   StringEquals:
-                    'ec2:vpc' : !Sub 'arn:aws:ec2:${AWSRegion}:${AccountId}:vpc/${VPCID}'                                              
+                    'ec2:vpc' : !Sub 'arn:aws:ec2:${AWSRegion}:${AWSAccountId}:vpc/${VPCID}'                                              
             Version: 2012-10-17
           PolicyName: databricks-cross-account-iam-role-policy
       Tags:
@@ -549,13 +553,27 @@ Resources:
               - !Sub 'arn:aws:s3:::${assetsS3Bucket}'
       Bucket: !Ref assetsS3Bucket                  
 
+  # Configure notebook encryption with customer-managed KMS, if provided
+  createCustomerManagedKey:
+    Condition: IsKMSKeyProvided
+    Type: Custom::CreateCustomerManagedKey
+    Properties:
+      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
+      action: 'CREATE_CUSTOMER_MANAGED_KEY'
+      accountId: !Ref e2AccountId
+      key_arn: !Ref KeyArn
+      key_alias: !Ref KeyAlias
+      key_region: !Ref KeyRegion
+      username: !Ref 'Username'
+      password: !Ref 'Password'
+
   # Databricks API for workspace credentials
   createCredentials:
     Type: Custom::CreateCredentials
     Properties:
       ServiceToken: !GetAtt 'databricksApiFunction.Arn'
       action: 'CREATE_CREDENTIALS'
-      accountId: !Ref AccountId
+      accountId: !Ref e2AccountId
       credentials_name: !Join
         - '-'
         - - !Ref DeploymentName
@@ -591,7 +609,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt 'databricksApiFunction.Arn'
       action: 'CREATE_STORAGE_CONFIGURATIONS'
-      accountId: !Ref AccountId
+      accountId: !Ref e2AccountId
       storage_config_name: !Join
         - '-'
         - - !Ref 'DeploymentName'
@@ -608,7 +626,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt 'databricksApiFunction.Arn'
       action: 'CREATE_NETWORKS'
-      accountId: !Ref AccountId
+      accountId: !Ref e2AccountId
       network_name: !Join
         - '-'
         - - !Ref 'DeploymentName'
@@ -625,7 +643,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt 'databricksApiFunction.Arn'
       action: 'CREATE_WORKSPACES'
-      accountId: !Ref AccountId
+      accountId: !Ref e2AccountId
       workspace_name: !Join
         - '-'
         - - !Ref 'DeploymentName'
@@ -637,23 +655,8 @@ Resources:
       username: !Ref 'Username'
       password: !Ref 'Password'
       network_id: !If [CustomerManagedVPC, !GetAtt 'createNetworks.NetworkId', '']
-      no_private_ip: !Ref NoPrivateIP   
+      no_public_ip: !Ref NoPublicIP   
   
-  # Configure notebook encryption with customer-managed KMS, if provided
-  createCustomerManagedKey:
-    Condition: IsKMSKeyProvided
-    DependsOn: createWorkspace
-    Type: Custom::CreateCustomerManagedKey
-    Properties:
-      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
-      action: 'CREATE_CUSTOMER_MANAGED_KEY'
-      KeyArn: !Ref KeyArn
-      KeyAlias: !Ref KeyAlias
-      KeyRegion: !Ref KeyRegion
-      username: !Ref 'Username'
-      password: !Ref 'Password'
-      customer_managed_key_id: !GetAtt createCustomerManagedKey.CustomerManagedKeyId 
-
   databricksApiFunction:
     DependsOn: CopyZips
     Type: AWS::Lambda::Function

@@ -27,6 +27,7 @@ def handler(event, context):
 
             if event['ResourceProperties']['action'] == 'CREATE_CUSTOMER_MANAGED_KEY':
                 post_result = create_customer_managed_key(
+                                    event['ResourceProperties']['accountId'],
                                     event['ResourceProperties']['key_arn'],
                                     event['ResourceProperties']['key_alias'],
                                     event['ResourceProperties']['key_region'],
@@ -79,7 +80,7 @@ def handler(event, context):
                                     event['ResourceProperties']['username'],
                                     event['ResourceProperties']['password'],
                                     event['ResourceProperties']['network_id'],
-                                    event['ResourceProperties']['no_private_ip']
+                                    event['ResourceProperties']['no_public_ip']
                                 )
                 responseData['WorkspaceId'] = post_result['workspace_id']
                 responseData['WorkspaceStatus'] = post_result['workspace_status']
@@ -100,10 +101,10 @@ def handler(event, context):
         cfnresponse.send(event, context, status, responseData, None)
 
 # POST - create customer managed key 
-def create_customer_managed_key(key_arn, key_alias, key_region, username, password):
+def create_customer_managed_key(account_id, key_arn, key_alias, key_region, username, password):
 
     # api-endpoint
-    URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/credentials"
+    URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/customer-managed-keys"
     
     # Json data
     DATA = {
@@ -190,7 +191,7 @@ def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group
     return response
 
 # POST - create workspace
-def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, username, password, network_id, no_private_ip):
+def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, username, password, network_id, no_public_ip):
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/workspaces"
     
@@ -203,16 +204,18 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
         "storage_configuration_id": storage_config_id
     }
 
-    # Add networkId to the request object, if one is provided
+    NETWORKDATA = {
+        "network_id": network_id,
+        "is_no_public_ip_enabled": no_public_ip
+    }
+
+    # Add network_id & is_no_public_i_enabled to the request object when the netword_id is provided
     if network_id != '':
-        DATA["network_id"] = network_id
-        DATA["is_no_public_ip_enabled"] = no_private_ip
+        DATA.update(NETWORKDATA)
 
     response = post_request(URL, DATA, username, password)
-
-    # wait for 30 seconds for provisioning the workspace 
-    time.sleep(30)
-
+    # wait for 40 seconds for provisioning the workspace 
+    time.sleep(40)
     print(response)
     
     # parse response
@@ -222,6 +225,19 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
     print('workspace_id - {}, status - {}, message - {}'.format(workspace_id, workspace_status, workspace_status_message))
     return response
   
+# GET - get workspace
+def get_workspace(account_id, workspace_id, username, password):
+    # api-endpoint
+    URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/workspaces/"+workspace_id
+
+    response = get_request(URL, username, password)
+    print(response)
+
+    # parse response
+    workspace_status = response['workspace_status']
+    workspace_status_message = response['workspace_status_message']
+    print('workspace status - {}, msg - {}'.format(workspace_status, workspace_status_message))
+    return response
 
 # POST request function
 def post_request(url, json_data, username, password):
