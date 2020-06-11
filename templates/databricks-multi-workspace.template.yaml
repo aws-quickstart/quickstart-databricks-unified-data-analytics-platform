@@ -259,7 +259,7 @@ Resources:
           - Action: 'sts:AssumeRole'
             Condition:
               StringEquals:
-                'sts:ExternalId': 'REPLACE-ME'
+                !Sub 'sts:ExternalId:${e2AccountId}'
             Effect: Allow
             Principal:
               AWS: !Join 
@@ -360,7 +360,7 @@ Resources:
           - Action: 'sts:AssumeRole'
             Condition:
               StringEquals:
-                'sts:ExternalId': 'REPLACE-ME'
+                !Sub 'sts:ExternalId:${e2AccountId}'
             Effect: Allow
             Principal:
               AWS: !Join 
@@ -424,7 +424,7 @@ Resources:
                   - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:instance/*
                 Condition:
                   StringEquals:
-                    'ec2:ResourceTag/Vendor': 'Databricks' 
+                    'aws:RequestTag/Vendor': 'Databricks' 
               - Sid: AllowEc2RunInstanceImagePerTag
                 Effect: Allow
                 Action:
@@ -433,7 +433,7 @@ Resources:
                   - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:image/*
                 Condition:
                   StringEquals:
-                    'ec2:ResourceTag/Vendor': 'Databricks'
+                    'aws:ResourceTag/Vendor': 'Databricks'
               - Sid: AllowEc2RunInstancePerVPCid
                 Effect: Allow
                 Action:
@@ -484,7 +484,7 @@ Resources:
                   - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:volume/* 
                 Condition:
                   StringEquals:
-                    'ec2:ResourceTag/Vendor': 'Databricks'   
+                    'aws:RequestTag/Vendor': 'Databricks'   
               - Sid: EC2DeleteVolumeByTag
                 Effect: Allow
                 Action:
@@ -581,26 +581,6 @@ Resources:
       role_arn: !If [CustomerManagedVPC, !GetAtt 'accessRoleCustomerManagedVPC.Arn', !GetAtt 'accessRoleDBManagedVPC.Arn']
       username: !Ref 'Username'
       password: !Ref 'Password'
-
-  # Update IAM role External Id returned from the credential API
-  updateRoleAssumePolicy:
-    Type: Custom::UpdateRoleAssumePolicy
-    Properties:
-      ServiceToken: !GetAtt 'updateIAMRoleFunction.Arn'
-      ExternalId: !GetAtt 'createCredentials.ExternalId'  
-      IAMRoleName: !If [CustomerManagedVPC, !Ref accessRoleCustomerManagedVPC, !Ref accessRoleDBManagedVPC]
-  updateIAMRoleFunction:
-    DependsOn: CopyZips
-    Type: AWS::Lambda::Function
-    Properties:
-      Description: Update IAM Role assume policy document
-      Handler: update-iam-role.handler
-      Runtime: python3.8
-      Role: !GetAtt 'functionRole.Arn'
-      Timeout: 60
-      Code:
-        S3Bucket: !Ref 'LambdaZipsBucket'
-        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'
 
   # Databricks API for workspace storage configuration    
   createStorageConfiguration:
