@@ -8,7 +8,8 @@ Metadata:
       - Label:
           default: "Multiple Workspace Configuration Parameters"
         Parameters:
-          - e2AccountId
+          - TagName
+          - MWSaccountId
           - AWSAccountId 
           - AWSRegion
           - IAMRole
@@ -34,10 +35,9 @@ Metadata:
         Parameters:
           - QSS3BucketName
           - QSS3KeyPrefix
-          - TagName
     ParameterLabels:
-      e2AccountId:
-        default: The Databricks e2 Workspace Account Id
+      MWSaccountId:
+        default: The Databricks Multi-workspace Master Account ID
       AWSAccountId:
         default: The Customer’s AWS Account ID required for building the IAM role
       AWSRegion:
@@ -107,7 +107,7 @@ Outputs:
     Value: !GetAtt createWorkspace.WorkspaceStatus
 
 Parameters:
-  e2AccountId:
+  MWSaccountId:
     Description: The Databricks Account Id in the following format aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.
     MinLength: '32'
     Type: String
@@ -137,7 +137,7 @@ Parameters:
     MinLength: '8'
     Type: String
   DeploymentName:
-    Description: Your workspace url will consists of <DeploynameName>.cloud.databricks.com. Only Alphnumeric characters with a minimum length of 8.
+    Description: Your workspace url will consists of <DeploymentName>.cloud.databricks.com. Only Alphnumeric characters with a minimum length of 8.
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
     MinLength: '8'
     Type: String  
@@ -228,12 +228,13 @@ Rules:
 
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # This rule must be UNCOMMNETED if it is entended to clone the git repo to make modifications prior to promote the changes
-  AWSQuickStartGitParametersSettings:
-    Assertions:    
-    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
-      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
-    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
-      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
+
+#  AWSQuickStartGitParametersSettings:
+#    Assertions:    
+#    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
+#      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
+#    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
+#      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
         
 Resources:
   # Cross account access role for Databricks created and managed VPC
@@ -247,7 +248,7 @@ Resources:
           - Action: 'sts:AssumeRole'
             Condition:
               StringEquals: 
-                'sts:ExternalId': !Sub '${e2AccountId}'
+                'sts:ExternalId': !Sub '${MWSaccountId}'
             Effect: Allow
             Principal:
               AWS: !Join 
@@ -348,7 +349,7 @@ Resources:
           - Action: 'sts:AssumeRole'
             Condition:
                StringEquals: 
-                'sts:ExternalId': !Sub '${e2AccountId}'
+                'sts:ExternalId': !Sub '${MWSaccountId}'
             Effect: Allow
             Principal:
               AWS: !Join 
@@ -548,7 +549,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt 'databricksApiFunction.Arn'
       action: 'CREATE_CUSTOMER_MANAGED_KEY'
-      accountId: !Ref e2AccountId
+      accountId: !Ref MWSaccountId
       key_arn: !Ref KeyArn
       key_alias: !Ref KeyAlias
       key_region: !Ref KeyRegion
@@ -561,7 +562,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt 'databricksApiFunction.Arn'
       action: 'CREATE_CREDENTIALS'
-      accountId: !Ref e2AccountId
+      accountId: !Ref MWSaccountId
       credentials_name: !Join
         - '-'
         - - !Ref DeploymentName
@@ -576,7 +577,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt 'databricksApiFunction.Arn'
       action: 'CREATE_STORAGE_CONFIGURATIONS'
-      accountId: !Ref e2AccountId
+      accountId: !Ref MWSaccountId
       storage_config_name: !Join
         - '-'
         - - !Ref 'DeploymentName'
@@ -593,7 +594,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt 'databricksApiFunction.Arn'
       action: 'CREATE_NETWORKS'
-      accountId: !Ref e2AccountId
+      accountId: !Ref MWSaccountId
       network_name: !Join
         - '-'
         - - !Ref 'DeploymentName'
@@ -610,7 +611,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt 'databricksApiFunction.Arn'
       action: 'CREATE_WORKSPACES'
-      accountId: !Ref e2AccountId
+      accountId: !Ref MWSaccountId
       workspace_name: !Join
         - '-'
         - - !Ref 'DeploymentName'
@@ -650,15 +651,15 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-        - arn:aws:iam::aws:policy/IAMFullAccess
-      Policies:
-        - PolicyName: kmsUpdateRole
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action: 'kms:*'
-                Resource: '*'         
+  #      - arn:aws:iam::aws:policy/IAMFullAccess
+  #    Policies:
+  #      - PolicyName: kmsUpdateRole
+  #        PolicyDocument:
+  #          Version: 2012-10-17
+  #          Statement:
+  #            - Effect: Allow
+  #              Action: 'kms:*'
+  #              Resource: '*'         
 
   # Resources to stage lambda.zip file
   LambdaZipsBucket:
