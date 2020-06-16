@@ -187,12 +187,12 @@ Parameters:
     Default: aws-quickstart
     Type: String
   QSS3KeyPrefix:
-    Description: The S3 bucket folder where the Templates and Functions exists.
+    Description: The S3 bucket folder Prefix where the AWS QuickStart Templates and Functions exist
     AllowedPattern: '^[0-9a-zA-Z-/]*$'
     Default: quickstart-databricks-unified-data-analytics-platform/
     Type: String
   TagName:
-    Description: For all AWS objects created
+    Description: A TagName to be used for all AWS objects created
     MinLength: '8'
     Type: String
   
@@ -207,47 +207,35 @@ Conditions:
  
 
 Rules:
-  CustomerManagedVPC:
+  
 # Ensure that the SubnetIds and SecurityGroupIds are provided, if the user provides a customer managed VPC Id  
+  CustomerManagedVPC:
     RuleCondition: !Not [!Equals [!Ref VPCID, '']]
     Assertions:
     - Assert: !Not [!Equals ['', !Ref SubnetIDs]]
-      AssertDescription: SubnetIDs is required when VPCID is provided.
+      AssertDescription: SubnetIDs is required when VPCID is provided
     - Assert: !Not [!Equals ['', !Ref SecurityGroupIDs]]
-      AssertDescription: SecurityGroupIDs is required when VPCID is provided. 
-  CustomerManagedKMS:    
+      AssertDescription: SecurityGroupIDs is required when VPCID is provided
+      
 # Ensure that the KeyAlias and KeyRegion are provided, if user provides a customer managed KMS   
+  CustomerManagedKMS:
     RuleCondition: !Not [!Equals [!Ref KeyArn, '']]
     Assertions:    
     - Assert: !Not [!Equals ['', !Ref KeyAlias ]]
-      AssertDescription: KeyAlias is required when the KeyArn is provided.
+      AssertDescription: KeyAlias is required when the KeyArn is provided
     - Assert: !Not [!Equals ['', !Ref KeyRegion ]]
-      AssertDescription: KeyRegion is required when the KeyArn is provided.  
-    
-Resources:
-  # IAM Role for lambda function execution
-  functionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-        - arn:aws:iam::aws:policy/IAMFullAccess
-      Policies:
-        - PolicyName: kmsUpdateRole
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action: 'kms:*'
-                Resource: '*'
+      AssertDescription: KeyRegion is required when the KeyArn is provided
 
+# Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
+# This rule must be UNCOMMNETED if it is entended to clone the git repo to make modifications prior to promote the changes
+  AWSQuickStartGitParametersSettings:
+    Assertions:    
+    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
+      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
+    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
+      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
+        
+Resources:
   # Cross account access role for Databricks created and managed VPC
   accessRoleDBManagedVPC:
     Type: 'AWS::IAM::Role'
@@ -258,8 +246,8 @@ Resources:
         Statement:
           - Action: 'sts:AssumeRole'
             Condition:
-              StringEquals:
-                !Sub 'sts:ExternalId:${e2AccountId}'
+              StringEquals: 
+                'sts:ExternalId': !Sub '${e2AccountId}'
             Effect: Allow
             Principal:
               AWS: !Join 
@@ -359,8 +347,8 @@ Resources:
         Statement:
           - Action: 'sts:AssumeRole'
             Condition:
-              StringEquals:
-                !Sub 'sts:ExternalId:${e2AccountId}'
+               StringEquals: 
+                'sts:ExternalId': !Sub '${e2AccountId}'
             Effect: Allow
             Principal:
               AWS: !Join 
@@ -553,7 +541,7 @@ Resources:
               - !Sub 'arn:aws:s3:::${assetsS3Bucket}'
       Bucket: !Ref assetsS3Bucket                  
 
-  # Configure notebook encryption with customer-managed KMS, if provided
+  # Databricks API for configuring notebook encryption with a customer-managed KMS, if provided
   createCustomerManagedKey:
     Condition: IsKMSKeyProvided
     Type: Custom::CreateCustomerManagedKey
@@ -584,7 +572,6 @@ Resources:
 
   # Databricks API for workspace storage configuration    
   createStorageConfiguration:
-    DependsOn: updateRoleAssumePolicy
     Type: Custom::CreateStorageConfigurations
     Properties:
       ServiceToken: !GetAtt 'databricksApiFunction.Arn'
@@ -645,10 +632,33 @@ Resources:
       Handler: rest_client.handler
       Runtime: python3.8
       Role: !GetAtt 'functionRole.Arn'
-      Timeout: 60
+      Timeout: 120
       Code:
         S3Bucket: !Ref 'LambdaZipsBucket'
-        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'   
+
+  # IAM Role for lambda function execution
+  functionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/IAMFullAccess
+      Policies:
+        - PolicyName: kmsUpdateRole
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 'kms:*'
+                Resource: '*'         
 
   # Resources to stage lambda.zip file
   LambdaZipsBucket:
