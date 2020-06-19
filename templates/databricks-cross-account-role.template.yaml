@@ -1,15 +1,14 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  This template creates a cross account role for databricks customers in an AWS
-  account (qs-1q8qs7po4).
-  account.
+  This template creates an AWS cross-account IAM role in the customer
+  account so that Databricks can access related resources in the customer account. (qs-1q8qs7po4).
 
 Metadata:
   LICENSE: Apache License Version 2.0
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: "Databricks supplied ExternalID from the UI"
+          default: "ExternalID value provided by the Databricks UI during account setup."
         Parameters:
           - ExternalID
       - Label:
@@ -19,15 +18,15 @@ Metadata:
           - BucketName
     ParameterLabels:
       ExternalID:
-        default: The ExternalID supplied by the Databricks AWS Account Settings UI
+        default: "The ExternalID value from the Databricks web application in Account Settings."
       IAMRole:
-        default: The name of the cross account role to create and configure in your Databricks account
+        default: The name of a new cross-account role in your AWS account
       BucketName:
-        default: The name of the s3 root bucket to create and configure 
+        default: The name of a new S3 root bucket in your AWS account
 
 Outputs:
   IAMRoleARN:
-    Description: The ARN of the cross account role.
+    Description: The ARN of the cross-account role.
     Value: !GetAtt 
       - accessRole
       - Arn
@@ -37,16 +36,16 @@ Outputs:
 
 Parameters:
   IAMRole:
-    Description: Only alphnumeric characters with a minimum length of 3.
+    Description: Only alphanumeric characters and hyphens. Minimum length 3.
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
     MinLength: '3'
     Type: String
   ExternalID:
-    Description: An alphnumeric value only available on the UI.
+    Description: "The alphanumeric ExternalID value from the Databricks web application in Account Settings."
     MinLength: '1'
     Type: String
   BucketName:
-    Description: Must be lowercase and uppercase letters as well as hyphens (-). It cannot start or end with a hyphen (-).
+    Description: Only alphanumeric characters and hyphens, but cannot start or end with a hyphen.
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
     MinLength: '3'
     Type: String
