@@ -209,13 +209,13 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
         "is_no_public_ip_enabled": no_public_ip
     }
 
-    # Add network_id & is_no_public_i_enabled to the request object when the netword_id is provided
+    # Add network_id & is_no_public_is_enabled to the request object when the netword_id is provided
     if network_id != '':
         DATA.update(NETWORKDATA)
 
     response = post_request(URL, DATA, username, password)
-    # wait for 40 seconds for provisioning the workspace 
-    time.sleep(40)
+    # wait for 10 seconds for provisioning the workspace 
+    time.sleep(10)
     print(response)
     
     # parse response

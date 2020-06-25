@@ -31,7 +31,7 @@ Metadata:
           - SecurityGroupIDs
           - NoPublicIP
       - Label:
-          default: "Only for testing template changes"
+          default: "Only for testing template changes. Follow the deployment guide for more infomration."
         Parameters:
           - QSS3BucketName
           - QSS3KeyPrefix
@@ -182,7 +182,7 @@ Parameters:
     AllowedValues:
       - 'true'
       - 'false'
-    Default: 'false'  
+    Default: 'true'  
   QSS3BucketName:
     Description: Do not set unless testing/modifying this template. The name of the S3 bucket where the templates and functions exist in the git repository
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
