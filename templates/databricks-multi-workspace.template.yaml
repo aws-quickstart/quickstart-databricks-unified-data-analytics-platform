@@ -91,20 +91,27 @@ Outputs:
     Value: !Ref assetsS3Bucket
   CustomerManagedKeyId:
     Description: ID of the created customer managed key object  
-    Value: !GetAtt createCustomerManagedKey.CustomerManagedKeyId
     Condition: IsKMSKeyProvided
+    Value: !GetAtt createCustomerManagedKey.CustomerManagedKeyId
   CredentialsId:
     Description: Credential ID
     Value: !GetAtt createCredentials.CredentialsId
   ExternalId:
     Description: Databricks External ID
     Value: !GetAtt createCredentials.ExternalId
+  NetworkId:
+    Description: Databricks Network ID
+    Condition: CustomerManagedVPC
+    Value: !GetAtt createNetworks.NetworkId 
   StorageConfigId:
     Description: Storage configuration ID
     Value: !GetAtt createStorageConfiguration.StorageConfigId
   WorkspaceStatus:
     Description: Status of the requested workspace
     Value: !GetAtt createWorkspace.WorkspaceStatus
+  WorkspaceStatusMessage:
+    Description: Detaied status description of the requested workspace
+    Value: !GetAtt createWorkspace.WorkspaceStatusMsg  
 
 Parameters:
   MWSAccountId:
@@ -145,7 +152,9 @@ Parameters:
   Username:
     Description: 
       "Your multi-workspace account email address, which is used for REST API authentication as your username. This is case sensitive. Use the same capitalization as when you sent it to your Databricks representative."
-    MinLength: '1'
+    AllowedPattern: '^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$'
+    ConstraintDescription: "Must be a valid email format"
+    MinLength: '8'
     Type: String
   Password:
     Description: Your multi-workspace account password, which is used for REST API authentication. This is case sensitive. Minimum length of 8 characters.
@@ -180,9 +189,10 @@ Parameters:
     Description: Disable Public IP for cluster worker nodes.
     Type: String
     AllowedValues:
+      - ''
       - 'true'
       - 'false'
-    Default: 'true'  
+    Default: ''  
   QSS3BucketName:
     Description: Do not set unless testing/modifying this template. The name of the S3 bucket where the templates and functions exist in the git repository
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
@@ -233,12 +243,12 @@ Rules:
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # This rule must be UNCOMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
 
-#  AWSQuickStartGitParametersSettings:
-#    Assertions:    
-#    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
-#      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
-#    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
-#      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
+  AWSQuickStartGitParametersSettings:
+    Assertions:    
+    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
+      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
+    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
+      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
         
 Resources:
   # Cross account access role for Databricks created and managed VPC
@@ -287,7 +297,6 @@ Resources:
                   - 'ec2:CreateTags'
                   - 'ec2:CreateVolume'
                   - 'ec2:CreateVpc'
-                  - 'ec2:CreateVpcPeeringConnection'
                   - 'ec2:DeleteInternetGateway'
                   - 'ec2:DeleteKeyPair'
                   - 'ec2:DeletePlacementGroup'
@@ -302,6 +311,7 @@ Resources:
                   - 'ec2:DescribeIamInstanceProfileAssociations'
                   - 'ec2:DescribeInstanceStatus'
                   - 'ec2:DescribeInstances'
+                  - 'ec2:DetachInternetGateway'
                   - 'ec2:DescribePlacementGroups'
                   - 'ec2:DescribePrefixLists'
                   - 'ec2:DescribeReservedInstancesOfferings'
@@ -370,7 +380,9 @@ Resources:
               - Sid: NonResourceBasedPermissions
                 Effect: Allow
                 Action:
+                  - 'ec2:CancelSpotInstanceRequests'
                   - 'ec2:DescribeAvailabilityZones'
+                  - 'ec2:DescribeIamInstanceProfileAssociations'
                   - 'ec2:DescribeInstanceStatus'
                   - 'ec2:DescribeInstances'
                   - 'ec2:DescribeInternetGateways'
@@ -394,7 +406,6 @@ Resources:
                   - 'ec2:CreateTags'
                   - 'ec2:DeleteTags'
                   - 'ec2:RequestSpotInstances'
-                  - 'ec2:CancelSpotInstanceRequests'
                 Resource:
                   - '*'
               - Sid: InstancePoolsSupport
@@ -557,8 +568,11 @@ Resources:
       key_arn: !Ref KeyArn
       key_alias: !Ref KeyAlias
       key_region: !Ref KeyRegion
-      username: !Ref 'Username'
-      password: !Ref 'Password'
+      encodedbase64: 
+        Fn::Base64: !Join
+          - ':'
+          - - !Ref 'Username'
+            - !Ref 'Password'
 
   # Databricks API for workspace credentials
   createCredentials:
@@ -572,8 +586,11 @@ Resources:
         - - !Ref DeploymentName
           - 'credentials'
       role_arn: !If [CustomerManagedVPC, !GetAtt 'accessRoleCustomerManagedVPC.Arn', !GetAtt 'accessRoleDBManagedVPC.Arn']
-      username: !Ref 'Username'
-      password: !Ref 'Password'
+      encodedbase64: 
+        Fn::Base64: !Join
+          - ':'
+          - - !Ref 'Username'
+            - !Ref 'Password'
 
   # Databricks API for workspace storage configuration    
   createStorageConfiguration:
@@ -587,8 +604,11 @@ Resources:
         - - !Ref 'DeploymentName'
           - 'storage'
       s3bucket_name: !Ref assetsS3Bucket
-      username: !Ref 'Username'
-      password: !Ref 'Password'
+      encodedbase64: 
+        Fn::Base64: !Join
+          - ':'
+          - - !Ref 'Username'
+            - !Ref 'Password'
 
   # Databricks API for customer managed VPC    
   createNetworks:
@@ -606,8 +626,11 @@ Resources:
       vpc_id: !Ref VPCID
       subnet_ids: !Ref SubnetIDs
       security_group_ids: !Ref SecurityGroupIDs
-      username: !Ref 'Username'
-      password: !Ref 'Password'
+      encodedbase64: 
+        Fn::Base64: !Join
+          - ':'
+          - - !Ref 'Username'
+            - !Ref 'Password'
 
   # Databricks API for workspace creation    
   createWorkspace:
@@ -624,8 +647,11 @@ Resources:
       aws_region: !Ref AWSRegion
       credentials_id: !GetAtt createCredentials.CredentialsId
       storage_config_id: !GetAtt createStorageConfiguration.StorageConfigId
-      username: !Ref 'Username'
-      password: !Ref 'Password'
+      encodedbase64: 
+        Fn::Base64: !Join
+          - ':'
+          - - !Ref 'Username'
+            - !Ref 'Password'
       network_id: !If [CustomerManagedVPC, !GetAtt 'createNetworks.NetworkId', '']
       no_public_ip: !Ref NoPublicIP   
   
@@ -654,16 +680,7 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-  #      - arn:aws:iam::aws:policy/IAMFullAccess
-  #    Policies:
-  #      - PolicyName: kmsUpdateRole
-  #        PolicyDocument:
-  #          Version: 2012-10-17
-  #          Statement:
-  #            - Effect: Allow
-  #              Action: 'kms:*'
-  #              Resource: '*'         
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole       
 
   # Resources to stage lambda.zip file
   LambdaZipsBucket:
