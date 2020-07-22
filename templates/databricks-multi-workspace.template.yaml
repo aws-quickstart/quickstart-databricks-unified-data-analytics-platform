@@ -12,11 +12,16 @@ Metadata:
           - MWSAccountId
           - AWSAccountId 
           - AWSRegion
-          - IAMRole
-          - BucketName
           - DeploymentName
           - Username
           - Password
+      - Label:
+          default: "Required IAM role and S3 Bucket parameters"  
+        Parameters:
+          - IAMArnOrRoleQuestion
+          - IAMArn
+          - IAMRole
+          - BucketName    
       - Label:
           default: "Optional: For customer-managed key for notebooks (Enterprise Tier)"
         Parameters:
@@ -42,16 +47,20 @@ Metadata:
         default: Your AWS Account ID
       AWSRegion:
         default: AWS region for your new Databricks workspace.
-      IAMRole:
-        default: Name for new AWS IAM cross-account role
-      BucketName:
-        default: Name for new root AWS S3 bucket
       DeploymentName:
         default: Name for new workspace deployment (your workspace subdomain)
       Username:
         default: Your multi-workspace master account email address
       Password:
         default: Your multi-workspace master account password
+      IAMArnOrRoleQuestion:
+        default: Are you providing an existing IAM Role arn? 
+      IAMArn:
+        default: The already existing AWS IAM arn cross-account role to be used  
+      IAMRole:
+        default: Name for new AWS IAM cross-account role
+      BucketName:
+        default: Name for new root AWS S3 bucket  
       KeyArn:
         default: AWS KMS Key ARN for your customer-managed key in KMS
       KeyAlias:
@@ -110,7 +119,7 @@ Outputs:
     Description: Status of the requested workspace
     Value: !GetAtt createWorkspace.WorkspaceStatus
   WorkspaceStatusMessage:
-    Description: Detaied status description of the requested workspace
+    Description: Detailed status description of the requested workspace
     Value: !GetAtt createWorkspace.WorkspaceStatusMsg  
 
 Parameters:
@@ -133,16 +142,6 @@ Parameters:
        - us-west-2
     Type: String
     Default: us-west-2
-  IAMRole:
-    Description: The name for your new new cross-account role. Only alphanumeric characters. Minimum length 8.
-    AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
-    MinLength: '8'
-    Type: String
-  BucketName:
-    Description: The name for your new S3 root bucket. Only alphanumeric characters. Minimum length 8.
-    AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
-    MinLength: '8'
-    Type: String
   DeploymentName:
     Description: 
       "This value defines your workspace's name and also the subdomain for your workspace URL. The workspace URL is <deployment-name>.cloud.databricks.com. Alphanumeric characters with a minimum length 8. To conform to subdomain rules, hyphens are also allowed but not as first or last character. The deployment name must be unique across all non-deleted workspaces across all AWS regions."
@@ -161,6 +160,25 @@ Parameters:
     MinLength: '8'
     NoEcho: 'true'
     Type: String
+  IAMArnOrRoleQuestion:
+    AllowedValues:
+       - 'Yes'
+       - 'No'
+    Type: String
+    Default: 'Yes'
+  IAMArn: 
+    Description: "Specify an existing IAM role arn if you have answered YES. For additional guidance in creating an IAM role, see https://docs.databricks.com/administration-guide/multiworkspace/iam-role.html"
+    Type: String 
+    Default: ''
+  IAMRole:
+    Description: The name for your new new cross-account role, if you answered NO. Only alphanumeric characters. Minimum length 8.
+    Type: String
+    Default: ''
+  BucketName:
+    Description: The name for your new S3 root bucket. Only alphanumeric characters. Minimum length 8.
+    AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
+    MinLength: '8'
+    Type: String  
   KeyArn:
     Description: Set only if using the feature customer-managed key for notebooks. This field specifies the KMS Key ARN to use encrypt and decrypt the workspace notebooks in the control plane. To set up your KMS key, see https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html.
     Default: ''

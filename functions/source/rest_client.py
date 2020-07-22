@@ -22,6 +22,7 @@ def handler(event, context):
     responseData = {}
 
     try:
+        version = '1.0.0'
         # Do no do anything if requestType is DELETE
         if event['RequestType'] == 'Create':            
 
@@ -237,7 +238,7 @@ def get_workspace(account_id, workspace_id, encodedbase64):
 # POST request function
 def post_request(url, json_data, encodedbase64):
     # sending post request and saving the response as response object
-    resp = requests.post(url, json=json_data, headers={"Authorization": "Basic %s" % encodedbase64})
+    resp = requests.post(url, json=json_data, headers={"Authorization": "Basic %s" % encodedbase64, "User-Agent": "databricks-CloudFormation-provider/ %s" % version})
     
     # extracting data in json format 
     data = resp.json() 
@@ -251,7 +252,7 @@ def post_request(url, json_data, encodedbase64):
 # GET request function
 def get_request(url, encodedbase64):
     # sending get request and saving the response as response object 
-    resp = requests.get(url = url, headers={"Authorization": "Basic %s" % encodedbase64}) 
+    resp = requests.get(url = url, headers={"Authorization": "Basic %s" % encodedbase64, "User-Agent": "databricks-CloudFormation-provider/ %s" % version}) 
     
     # extracting data in json format 
     data = resp.json() 
