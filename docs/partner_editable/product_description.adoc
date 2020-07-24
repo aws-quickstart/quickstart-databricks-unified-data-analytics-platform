@@ -2,4 +2,10 @@
 // Briefly describe the software. Use consistent and clear branding. 
 // Include the benefits of using the software on AWS, and provide details on usage scenarios.
 
-<Describe how the software works on AWS.>
+Databricks is structured to enable secure cross-functional team collaboration while keeping a significant amount of backend services managed by Databricks so you can stay focused on your data science, data analytics, and data engineering tasks. Although architectures may vary depending on custom configurations, Databricks operates out of a control plane and a data plane.
+
+The *control plane* includes the backend services that Databricks manages in its AWS account. 
+
+The *data plane* is managed by your AWS account and is where your data resides. This is also where data is processed. It is important to note that you can ingest data from external data sources, such as events data, streaming data, IoT data, and more. You can connect to external data sources outside of your AWS account for storage as well, using Databricks connectors.
+
+Your data always resides in your AWS account in the data plane, not the control plane, so you always maintain full control and ownership of your data without lock-in.
