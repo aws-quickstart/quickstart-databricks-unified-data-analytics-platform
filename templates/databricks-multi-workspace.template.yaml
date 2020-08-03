@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  This template creates resources for a Databricks workspace in your AWS account using the Multi-workspace API (Public Preview). The Multi-workspace API is required if you want to use the following optional features in preview: customer-managed VPCs and customer-managed keys for notebooks. Contact your Databricks representative to determine availability of these features for your subscription and deployment type.
+  This template creates resources for a Databricks workspace in your AWS account using the Multi-workspace API (Public Preview). The Multi-workspace API is required if you want to use the following optional features in preview: customer-managed VPCs and customer-managed keys for notebooks. Contact your Databricks representative to determine availability of these features for your subscription and deployment type. (qs-1r0odiedc)
   
 Metadata:
   AWS::CloudFormation::Interface:
