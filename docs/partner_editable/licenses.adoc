@@ -15,5 +15,3 @@ Determine if your workspace will enable the following features, which may requir
 * https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html[Customer-managed VPC^] — (Public Preview) Provide your own Amazon Virtual Public Cloud (VPC).
 * https://docs.databricks.com/security/secure-cluster-connectivity.html[Secure cluster connectivity^] — (Public Preview) Network architecture with no VPC open ports and no Databricks runtime worker public IP addresses. In some APIs, this is referred to as No Public IP or NPIP.
 * https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html[Customer-managed keys for notebooks^] — (Private Preview) Provide KMS keys to encrypt notebooks in the Databricks-managed control plane.
-
-You are responsible for the cost of the AWS services used while running this Quick Start reference deployment. There is no additional cost for using the Quick Start. 

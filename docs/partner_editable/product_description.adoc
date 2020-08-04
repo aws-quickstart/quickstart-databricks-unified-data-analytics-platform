@@ -18,17 +18,17 @@ This section describes the overall network architecture and details about contro
 
 The Databricks Unified Analytics Platform follows industry standard best practices for securing cloud applications.
 
+[#networkflow]
+.AWS Network Flow
+[link=images/network-flow.png]
+image::../images/network-flow.png[Network Flow,width=439,height=648]
+
 * *Restricted port access to control plane*
 ** Port 443 is the main port open for data connections to the control plane. Connections on that port are protected by TLS connections. The TLS certificate is stored in Hashicorp Vault in the control plane. The TLS certificate is installed as a Kubernetes secret.
 ** Port 80 is open only for redirects to HTTPS on port 443.
 ** A security group protects individual control plane hosts from the external Internet with the exception of inbound ports mentioned above to the load balancer which dispatches web application and API requests to the appropriate internal services.
 ** Port 3306 is open for access to the table metastore, though on a separate IP address and may be deployed in a separate peered VPC. The customer can optionally deploy their own table metastore, in which case they would not use the provided table metastore. See https://docs.google.com/document/d/1GBAlynQHCsNVvLRb39ytXTkHaJCP4nGOmdlX0HPZ5M8/edit#heading=h.bi1cbha01g5h[Table metastore^].
 * *IP access limits for web application and REST API* - Optionally limit access to the Databricks Web Application and the REST API by requiring specific IP addresses or ranges. For example, specify the IP addresses for the customer corporate intranet and VPN. This reduces risk from several types of attacks. This feature requires the Enterprise tier.
-
-[#networkflow]
-.AWS Network Flow
-[link=images/network-flow.png]
-image::../images/network-flow.png[Network Flow,width=439,height=648]
 
 === Databricks AWS data plane
 

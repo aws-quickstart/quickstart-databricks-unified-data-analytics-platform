@@ -1,6 +1,6 @@
 This Quick Start allows 2 deployment options to choose from - Databricks managed VPC and Customer managed VPC deployment. 
 
-Following diagram shows all the components deployed by the Quick Start. Some resources may not be created depending upon the choosen deployment option.
+Following diagram shows all the components deployed by the Quick Start. Some resources will be created depending upon the chosen deployment option, when launching the CloudFormation template.
 
 [#architecture1]
 .Quick Start architecture Databricks on AWS
@@ -11,11 +11,11 @@ As shown in Figure 1, this deployment sets up the following:
 
 * A highly available architecture that spans multiple Availability Zones.
 * A VPC configured with public subnets according to AWS best practices, to provide you with your own virtual network on AWS.**
-* A unique cross-account service IAM role in your AWS account so that Databricks can deploy clusters in the appropriate VPC for the new workspace.
-* An S3 bucket in your account required to store objects like cluster logs, notebook revisions, and job results.
+* A cross-account IAM role, so that Databricks can deploy clusters in the appropriate VPC for the new workspace.
+* An S3 bucket required to store objects like cluster logs, notebook revisions, and job results.
 * A Databricks workspace.
 * A customer-managed AWS KMS key to encrypt notebooks in the control plane.*
-* Enable secure cluster connectivity.
+* Security groups to enable secure cluster connectivity.
 
 *The components marked by asterisks are created when KMS Key Id is provided.
 

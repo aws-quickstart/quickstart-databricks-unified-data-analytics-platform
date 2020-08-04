@@ -4,9 +4,9 @@
 
 // _Describe any setup required in the AWS account prior to template launch_
 
-// ==== Prepare your {partner-company-name} account
+==== Prepare your {partner-company-name} account
 
-// _Describe any setup required in the partner portal/account prior to template launch_
+You need a https://docs.databricks.com/getting-started/try-databricks.html#free-trial[Databricks multi-workspace account^], to launch this Quick Start.
 
 // ==== Prepare for the deployment
 
