@@ -1,4 +1,4 @@
-:quickstart-project-name: quickstart-databricks-uified-data-analytics-platform
+:quickstart-project-name: quickstart-databricks-unified-data-analytics-platform
 :partner-product-name: Databricks
 :partner-company-name: Databricks
 :doc-month: August
