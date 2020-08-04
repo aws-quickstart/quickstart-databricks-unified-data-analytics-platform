@@ -17,17 +17,13 @@ project:
   - us-east-2
   - us-west-1
   - us-west-2
-  s3_bucket: ''
 tests:
-  cred-pass-test:
+  xacctest:
     parameters:
-      AccountID: '111111222222'
-      CrossAccountIAMRole: databricks-cross-account-role
-      DataIAMRole1: databricks-testrole
-      DataIAMRole2: databricks-datarole1
-      DataIAMRole3: databricks-datarole2
-      MetaInstanceProfileRoleName: databricks-meta-instance-profile-role1
+      ExternalID: 'databricks'
+      IAMRole: databricks-cross-account-role
+      BucketName: test-dbrks-bkt
+      TagName: 'Name=databricks'
     regions:
     - us-west-2
-    s3_bucket: ''
-    template: templates/databricks-credential-passthrough.template.yaml
+    template: templates/databricks-cross-account-role.template.yaml
