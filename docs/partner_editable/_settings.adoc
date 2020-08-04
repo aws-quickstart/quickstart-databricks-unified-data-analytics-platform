@@ -5,7 +5,7 @@
 :doc-year: 2020
 :partner-contributors: Denis Dubeau, Manager - {partner-company-name}
 :quickstart-contributors: Shivansh Singh, Partner SA, AWS
-:deployment_time: 30 minutes / 1 hour
+:deployment_time: 15 minutes
 :default_deployment_region: us-east-1
 // Uncomment these two attributes if you are leveraging
 // - an AWS Marketplace listing.

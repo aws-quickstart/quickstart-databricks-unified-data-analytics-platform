@@ -22,7 +22,7 @@ The Databricks Unified Analytics Platform follows industry standard best practic
 ** Port 443 is the main port open for data connections to the control plane. Connections on that port are protected by TLS connections. The TLS certificate is stored in Hashicorp Vault in the control plane. The TLS certificate is installed as a Kubernetes secret.
 ** Port 80 is open only for redirects to HTTPS on port 443.
 ** A security group protects individual control plane hosts from the external Internet with the exception of inbound ports mentioned above to the load balancer which dispatches web application and API requests to the appropriate internal services.
-** Port 3306 is open for access to the table metastore, though on a separate IP address and may be deployed in a separate peered VPC. The customer can optionally deploy their own table metastore, in which case they would not use the provided table metastore. See “https://docs.google.com/document/d/1GBAlynQHCsNVvLRb39ytXTkHaJCP4nGOmdlX0HPZ5M8/edit#heading=h.bi1cbha01g5h[Table metastore^]”.
+** Port 3306 is open for access to the table metastore, though on a separate IP address and may be deployed in a separate peered VPC. The customer can optionally deploy their own table metastore, in which case they would not use the provided table metastore. See https://docs.google.com/document/d/1GBAlynQHCsNVvLRb39ytXTkHaJCP4nGOmdlX0HPZ5M8/edit#heading=h.bi1cbha01g5h[Table metastore^].
 * *IP access limits for web application and REST API* - Optionally limit access to the Databricks Web Application and the REST API by requiring specific IP addresses or ranges. For example, specify the IP addresses for the customer corporate intranet and VPN. This reduces risk from several types of attacks. This feature requires the Enterprise tier.
 
 [#networkflow]
@@ -48,7 +48,7 @@ The Databricks workspace uses this bucket to store some input or output data as 
 
 * *Databricks-managed directories (inaccessible to customers using DBFS)* — Some data is stored or read by Databricks in hidden directories and cannot be accessed directly by customer notebooks at a DBFS path or through the AWS admin interface. For example, Spark driver log initial storage and job output.
 * *DBFS Root Storage (accessible to customers using DBFS)* — Other areas of storage can be accessed by customer notebooks at a DBFS path. For example, the FileStore area of DBFS Root Storage is where uploaded data files and code libraries are stored when imported using the web application. There are other DBFS paths that are available for customer usage.
-  
++
 *IMPORTANT*: The DBFS Root storage is available for non-production customer data such as simple uploads for testing. DBFS Root Storage is not intended as a storage location for production customer data. Instead, for storage of production customer data, use additional customer-managed data sources of many types. Customers can optionally use Databricks APIs to create additional DBFS mount points for additional S3 buckets.
 
 The data plane uses the AWS Security Token Service (STS) to manage DBFS credentials to S3.

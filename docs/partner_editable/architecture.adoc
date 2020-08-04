@@ -1,13 +1,9 @@
-This Quick Start will create a new workspace using the Multi-workspace API that is published on server accounts.cloud.databricks.com. You can choose a Databricks managed VPC or a Customer managed VPC deployment.
+This Quick Start allows 2 deployment options to choose from - Databricks managed VPC and Customer managed VPC deployment. 
 
-This Quick Start allows 2 deployment options to choose from - Databricks managed VPC  and Customer managed VPC deployment. Following describes these 2 deployment architecutres.
-
-=== Databricks managed VPC
-
-In this deployment option, Databricks will create a VPC in your AWS Account.
+Following diagram shows all the components deployed by the Quick Start. Some resources may not be created depending upon the choosen deployment option.
 
 [#architecture1]
-.Quick Start architecture for Databricks managed VPC on AWS
+.Quick Start architecture Databricks on AWS
 [link=images/architecture_databricks_managed.png]
 image::../images/architecture_diagram.png[Architecture1,width=648,height=439]
 
