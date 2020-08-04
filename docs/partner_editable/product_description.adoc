@@ -9,3 +9,44 @@ The *control plane* includes the backend services that Databricks manages in its
 The *data plane* is managed by your AWS account and is where your data resides. This is also where data is processed. It is important to note that you can ingest data from external data sources, such as events data, streaming data, IoT data, and more. You can connect to external data sources outside of your AWS account for storage as well, using Databricks connectors.
 
 Your data always resides in your AWS account in the data plane, not the control plane, so you always maintain full control and ownership of your data without lock-in.
+
+=== Databricks AWS control plane
+
+This section describes the overall network architecture and details about control plane security.
+
+==== Network access
+
+The Databricks Unified Analytics Platform follows industry standard best practices for securing cloud applications.
+
+* *Restricted port access to control plane*
+ * Port 443 is the main port open for data connections to the control plane. Connections on that port are protected by TLS connections. The TLS certificate is stored in Hashicorp Vault in the control plane. The TLS certificate is installed as a Kubernetes secret.
+ * Port 80 is open only for redirects to HTTPS on port 443.
+ * A security group protects individual control plane hosts from the external Internet with the exception of inbound ports mentioned above to the load balancer which dispatches web application and API requests to the appropriate internal services.
+ * Port 3306 is open for access to the table metastore, though on a separate IP address and may be deployed in a separate peered VPC. The customer can optionally deploy their own table metastore, in which case they would not use the provided table metastore. See “https://docs.google.com/document/d/1GBAlynQHCsNVvLRb39ytXTkHaJCP4nGOmdlX0HPZ5M8/edit#heading=h.bi1cbha01g5h[Table metastore^]”.
+* *IP access limits for web application and REST API* - Optionally limit access to the Databricks Web Application and the REST API by requiring specific IP addresses or ranges. For example, specify the IP addresses for the customer corporate intranet and VPN. This reduces risk from several types of attacks. This feature requires the Enterprise tier.
+
+[#networkflow]
+.AWS Network Flow
+[link=images/network-flow.png]
+image::../images/network-flow.png[Network Flow,width=439,height=648]
+
+=== Databricks AWS data plane
+
+Spark clusters and their data stores are deployed in a customer-controlled AWS account. A Databricks customer deployment is generally isolated at the AWS account level, but a customer can choose to deploy multiple workspaces in a single AWS account. No other Databricks customers have access to the customer’s data plane in AWS. 
+
+By default, clusters are created in a single AWS VPC (Virtual Private Cloud) that Databricks creates and configures. This means that the Databricks platform requires AWS permissions in the control plane to create a new VPC in the customer account for the data plane. This includes creating new security groups and configuring subnets.
+
+If customers use the customer-managed VPC feature, customers can specify their own AWS VPC in the customer account, and Databricks launches clusters in that VPC. This feature requires the Premium or higher tier.
+
+=== S3 Bucket in customer account
+
+During workspace creation, an S3 bucket will be created in the customer account and provide Databricks access to the managed S3 bucket with a cross-account IAM Role. IAM roles allow customers to access data from Databricks clusters without having to embed AWS keys in notebooks.
+
+*IMPORTANT*: Customer is responsible for backing up, securing access to, and encrypting customer data in the S3 bucket. Databricks is not responsible for backups of this data or any other customer data, and thus cannot give a copy of this data to customers if requested.
+
+The Databricks workspace uses this bucket to store some input or output data as outlined below accesses this data in two ways:
+* *Databricks-managed directories (inaccessible to customers using DBFS)* — Some data is stored or read by Databricks in hidden directories and cannot be accessed directly by customer notebooks at a DBFS path or through the AWS admin interface. For example, Spark driver log initial storage and job output.
+* *DBFS Root Storage (accessible to customers using DBFS)* — Other areas of storage can be accessed by customer notebooks at a DBFS path. For example, the FileStore area of DBFS Root Storage is where uploaded data files and code libraries are stored when imported using the web application. There are other DBFS paths that are available for customer usage.
+  *IMPORTANT*: The DBFS Root storage is available for non-production customer data such as simple uploads for testing. DBFS Root Storage is not intended as a storage location for production customer data. Instead, for storage of production customer data, use additional customer-managed data sources of many types. Customers can optionally use Databricks APIs to create additional DBFS mount points for additional S3 buckets.
+
+The data plane uses the AWS Security Token Service (STS) to manage DBFS credentials to S3.

@@ -3,6 +3,7 @@
 For Databricks cost estimates, see the Databricks https://databricks.com/product/aws-pricing[pricing^] page for product tier and features.
 
 This Quick Start requires a license for {partner-product-name} on AWS. To use the Quick Start in your environment, sign up for a 14 day trial at https://docs.databricks.com/getting-started/try-databricks.html#free-trial[Databricks Platform Free Trial^]. To launch the Quick Start, you’ll need the following:
+
 * An AWS Account.
 * A Databricks Multi-workspace master account ID.
 * A Databricks Multi-workspace master username and password.

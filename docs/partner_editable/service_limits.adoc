@@ -3,7 +3,7 @@
 |Resource |This deployment uses
 
 // Space needed to maintain table headers
-|VPCs |<n>
+|VPCs |1
 |Elastic IP addresses |<n>
 |AWS Identity and Access Management (IAM) security groups |<n>
 |IAM roles |<n>

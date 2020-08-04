@@ -1,9 +1,9 @@
 :quickstart-project-name: quickstart-databricks-uified-data-analytics-platform
 :partner-product-name: Databricks
 :partner-company-name: Databricks
-:doc-month: July
+:doc-month: August
 :doc-year: 2020
-:partner-contributors: Denis Dubeau - {partner-company-name}
+:partner-contributors: Denis Dubeau, Manager - {partner-company-name}
 :quickstart-contributors: Shivansh Singh, Partner SA, AWS
 :deployment_time: 30 minutes / 1 hour
 :default_deployment_region: us-east-1

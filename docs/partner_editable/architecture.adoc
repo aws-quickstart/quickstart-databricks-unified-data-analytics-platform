@@ -1,30 +1,25 @@
-Deploying this Quick Start for a new virtual private cloud (VPC) with
-*default parameters* builds the following _{partner-product-name}_ environment in the
-AWS Cloud.
+This Quick Start will create a new workspace using the Multi-workspace API that is published on server accounts.cloud.databricks.com. You can choose a Databricks managed VPC or a Customer managed VPC deployment.
 
-// Replace this example diagram with your own. Send us your source PowerPoint file. Be sure to follow our guidelines here : http://(we should include these points on our contributors giude)
+This Quick Start allows 2 deployment options to choose from - Databricks managed VPC  and Customer managed VPC deployment. Following describes these 2 deployment architecutres.
+
+=== Databricks managed VPC
+
+In this deployment option, Databricks will create a VPC in your AWS Account.
+
 [#architecture1]
-.Quick Start architecture for _{partner-product-name}_ on AWS
-[link=images/architecture_diagram.png]
-image::../images/architecture_diagram.png[Architecture,width=648,height=439]
+.Quick Start architecture for Databricks managed VPC on AWS
+[link=images/architecture_databricks_managed.png]
+image::../images/architecture_diagram.png[Architecture1,width=648,height=439]
 
-As shown in Figure 1, the Quick Start sets up the following:
+As shown in Figure 1, this deployment sets up the following:
 
-* A highly available architecture that spans two Availability Zones.*
-* A VPC configured with public and private subnets, according to AWS
-best practices, to provide you with your own virtual network on AWS.*
+* A highly available architecture that spans multiple Availability Zones.
+* A VPC configured with public subnets according to AWS best practices, to provide you with your own virtual network on AWS.**
+* A unique cross-account service IAM role in your AWS account so that Databricks can deploy clusters in the appropriate VPC for the new workspace.
+* An S3 bucket in your account required to store objects like cluster logs, notebook revisions, and job results.
+* A Databricks workspace.
+* A customer-managed AWS KMS key to encrypt notebooks in the control plane.*
+* Enable secure cluster connectivity.
 
-In the public subnets:
-
-* Managed network address translation (NAT) gateways to allow outbound
-internet access for resources in the private subnets.*
-* A Linux bastion host in an Auto Scaling group to allow inbound Secure
-Shell (SSH) access to EC2 instances in public and private subnets.*
-
-In the private subnets:
-// Add bullet points for any additional components that are included in the deployment. Make sure that the additional components are also represented in the architecture diagram.
-* <describe any additional components>.
-
-*The template that deploys the Quick Start into an existing VPC skips
-the components marked by asterisks and prompts you for your existing VPC
-configuration.
+*The components marked by asterisks are created when KMS Key Id is provided.
+**The components marked by double asterisks are created when VPCID isn't provided.
