@@ -22,4 +22,5 @@ As shown in Figure 1, this deployment sets up the following:
 * Enable secure cluster connectivity.
 
 *The components marked by asterisks are created when KMS Key Id is provided.
+
 **The components marked by double asterisks are created when VPCID isn't provided.
