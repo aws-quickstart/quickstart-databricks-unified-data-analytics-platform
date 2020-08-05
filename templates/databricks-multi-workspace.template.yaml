@@ -168,12 +168,13 @@ Parameters:
        - 'No'
     Type: String
     Default: 'Yes'
+    Description: Select No, if you want to create a new IAM role for cross-account access. Otherwise, leave it to default value Yes and provide an IAM ARN below.
   IAMArn: 
     Description: "Specify an existing IAM role arn if you have answered YES. For additional guidance in creating an IAM role, see https://docs.databricks.com/administration-guide/multiworkspace/iam-role.html"
     Type: String 
     Default: ''
   IAMRole:
-    Description: The name for your new new cross-account role, if you answered NO. Only alphanumeric characters. Minimum length 8.
+    Description: The name for your new cross-account role, if you answered NO. Only alphanumeric characters. Minimum length 8.
     Type: String
     Default: ''
   BucketName:
