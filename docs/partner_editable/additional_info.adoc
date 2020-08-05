@@ -1,3 +1,12 @@
+[start=10]
+. Above screenshot shows the outputs when deploying Multi-workspace configured with a Databricks managed VPC with an optional customer-managed key for Notebooks.
+
+. Below screenshot shows the outputs when deploying Multi-workspace configured with a customer-managed VPC with an optional customer-managed key for Notebooks.
+
+[#cfn_outputs]
+.{partner-product-name} Multi-workspace with customer-managed VPC outputs after successful deployment
+image::../images/databricks-cmanaged-outputs.png[cfn_outputs,width=648,height=439]
+
 // Add steps as necessary for accessing the software, post-configuration, and testing. Don’t include full usage instructions for your software, but add links to your product documentation for that information.
 //Should any sections not be applicable, remove them
 
