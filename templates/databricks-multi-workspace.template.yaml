@@ -44,43 +44,43 @@ Metadata:
           - QSS3KeyPrefix
     ParameterLabels:
       MWSAccountId:
-        default: The Databricks multi-workspace master account ID
+        default: Databricks multi-workspace master account ID
       AWSAccountId:
         default: Your AWS Account ID
       AWSRegion:
         default: AWS region for your new Databricks workspace.
       DeploymentName:
-        default: Name for new workspace deployment (your workspace subdomain)
+        default: New workspace deployment name (your workspace subdomain)
       Username:
-        default: Your multi-workspace master account email address
+        default: Mlti-workspace master account email address
       Password:
-        default: Your multi-workspace master account password
+        default: Multi-workspace master account password
       IAMArnOrRoleQuestion:
         default: Are you providing an existing IAM Role arn? 
       IAMArn:
-        default: The already existing AWS IAM arn cross-account role to be used  
+        default: Already existing AWS IAM arn cross-account role
       IAMRole:
-        default: Name for new AWS IAM cross-account role
+        default: AWS IAM cross-account role name
       BucketName:
-        default: Name for new root AWS S3 bucket  
+        default: Root AWS S3 bucket name  
       KeyArn:
-        default: AWS KMS Key ARN for your customer-managed key in KMS
+        default: AWS KMS Key ARN for your customer-managed key
       KeyAlias:
-        default: AWS KMS alias name for your customer-managed key in KMS
+        default: AWS KMS alias name for your customer-managed key
       KeyRegion:
-        default: AWS region for your customer-managed key in KMS
+        default: AWS region for your customer-managed key
       VPCID:
-        default: ID for your VPC
+        default: VPC ID
       SubnetIDs:
-        default: At least two AWS subnet IDs in your VPC. Format is subnet-xxxxxxxxxxxxxxxxx. These subnets cannot be shared with any other resources, including other Databricks workspaces or other non-Databricks resources.
+        default: Subnet IDs
       SecurityGroupIDs:
-        default: The security group IDs
+        default: Security group IDs
       NoPublicIP:
         default: Disable Public IP
       QSS3BucketName:
         default: QSS3BucketName
       QSS3KeyPrefix:
-        default: QSS3KeyPrefix   
+        default: QSS3KeyPrefix
       TagValue:
         default: Tag value to use for all new AWS objects
 
