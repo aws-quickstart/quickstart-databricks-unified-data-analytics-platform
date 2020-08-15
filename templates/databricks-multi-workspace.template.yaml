@@ -8,7 +8,7 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: "Required parameters"
+          default: "Multi-workspace environment configuration"
         Parameters:
           - TagValue
           - MWSAccountId
@@ -18,27 +18,27 @@ Metadata:
           - Username
           - Password
       - Label:
-          default: "Required IAM role and S3 Bucket parameters"  
+          default: "Required IAM role and S3 Bucket configuration"  
         Parameters:
           - IAMArnOrRoleQuestion
           - IAMArn
           - IAMRole
           - BucketName    
       - Label:
-          default: "Optional: For customer-managed key for notebooks (Enterprise Tier)"
+          default: "(Optional) Customer-managed key configuration for notebooks (Enterprise Tier)"
         Parameters:
           - KeyArn
           - KeyAlias  
           - KeyRegion
       - Label:
-          default: "Optional: For customer-managed VPC (Premium Tier)"
+          default: "(Optional) Customer-managed VPC configuration (Premium Tier)"
         Parameters:
           - VPCID
           - SubnetIDs
           - SecurityGroupIDs
           - NoPublicIP
       - Label:
-          default: "Only for testing template changes. Follow the deployment guide for more infomration."
+          default: "Quick Start Configuration"
         Parameters:
           - QSS3BucketName
           - QSS3KeyPrefix
@@ -46,43 +46,43 @@ Metadata:
       MWSAccountId:
         default: Databricks multi-workspace master account ID
       AWSAccountId:
-        default: Your AWS Account ID
+        default: AWS Account ID
       AWSRegion:
-        default: AWS region for your new Databricks workspace.
+        default: AWS region of the Databricks workspace.
       DeploymentName:
         default: New workspace deployment name (your workspace subdomain)
       Username:
-        default: Mlti-workspace master account email address
+        default: Multi-workspace master account email address
       Password:
         default: Multi-workspace master account password
       IAMArnOrRoleQuestion:
         default: Are you providing an existing IAM Role arn? 
       IAMArn:
-        default: Already existing AWS IAM arn cross-account role
+        default: Existing AWS cross-account IAM role arn
       IAMRole:
         default: AWS IAM cross-account role name
       BucketName:
         default: Root AWS S3 bucket name  
       KeyArn:
-        default: AWS KMS Key ARN for your customer-managed key
+        default: AWS KMS Key ARN for customer-managed key
       KeyAlias:
-        default: AWS KMS alias name for your customer-managed key
+        default: AWS KMS alias name for customer-managed key
       KeyRegion:
-        default: AWS region for your customer-managed key
+        default: AWS region for customer-managed key
       VPCID:
         default: VPC ID
       SubnetIDs:
-        default: Subnet IDs
+        default: Private Subnet IDs
       SecurityGroupIDs:
         default: Security group IDs
       NoPublicIP:
         default: Disable Public IP
       QSS3BucketName:
-        default: QSS3BucketName
+        default: Quick Start S3 bucket name
       QSS3KeyPrefix:
-        default: QSS3KeyPrefix
+        default: Quick Start S3 key prefix
       TagValue:
-        default: Tag value to use for all new AWS objects
+        default: Tag value used for all AWS resources
 
 Outputs:
   CustomerManagedVPCIAMRoleARN:
@@ -168,7 +168,7 @@ Parameters:
        - 'No'
     Type: String
     Default: 'Yes'
-    Description: Select No, if you want to create a new IAM role for cross-account access. Otherwise, leave it to default value Yes and provide an IAM ARN below.
+    Description: Choose No if you want to create a new IAM role for cross-account access. Otherwise, leave it to default value 'Yes' and provide an IAM ARN below.
   IAMArn: 
     Description: "Specify an existing IAM role arn if you have answered YES. For additional guidance in creating an IAM role, see https://docs.databricks.com/administration-guide/multiworkspace/iam-role.html"
     Type: String 
@@ -203,11 +203,11 @@ Parameters:
     Type: String
     Default: ''
   SubnetIDs:
-    Description: A list of at least two subnet IDs for subnets in your Virtual Private Cloud (VPC) separated by commas. These subnets CANNOT be shared with other workspaces nor any other non-Databricks resources. Each subnet must have a netmask between /17 and /25. Subnets must be private. Subnets must have outbound access to the public network using a NAT gateway and internet gateway, or other similar customer-managed appliance infrastructure. The NAT gateway must be set up in its own subnet that routes quad-zero (0.0.0.0/0) traffic to an internet gateway or other customer-managed appliance infrastructure. For additional guidance, see https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. Leave empty if you didn't specify VPCID.
+    Description: A list of at least two Private subnet IDs in your Virtual Private Cloud (VPC) separated by commas. These subnets CANNOT be shared with other workspaces nor any other non-Databricks resources. Each subnet must have a netmask between /17 and /25. Subnets must be private. Subnets must have outbound access to the public network using a NAT gateway and internet gateway, or other similar customer-managed appliance infrastructure. The NAT gateway must be set up in its own subnet that routes quad-zero (0.0.0.0/0) traffic to an internet gateway or other customer-managed appliance infrastructure. For additional guidance, see https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. Leave empty if you didn't specify VPCID.
     Type: String 
     Default: ''
   NoPublicIP:
-    Description: Disable Public IP for cluster worker nodes.
+    Description: Choose 'true' to disable Public IP for cluster worker nodes. Choose 'false' to enable Public IP for cluster worker nodes. Leave default value, for no public IP for cluster worker nodes.
     Type: String
     AllowedValues:
       - ''
@@ -215,12 +215,14 @@ Parameters:
       - 'false'
     Default: ''  
   QSS3BucketName:
-    Description: Do not set unless testing/modifying this template. The name of the S3 bucket where the templates and functions exist in the git repository
+    Description: Do not set unless testing/modifying this template. S3 bucket name for the Quick Start assets. Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-)
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
     Default: aws-quickstart
     Type: String
+    ConstraintDescription: "Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-)."
   QSS3KeyPrefix:
-    Description: Do not set unless testing/modifying this template. The S3 bucket folder prefix for the AWS QuickStart Templates and Functions.
+    Description: Do not set unless testing/modifying this template. S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).
+    ConstraintDescription: "Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/)."
     AllowedPattern: '^[0-9a-zA-Z-/]*$'
     Default: quickstart-databricks-unified-data-analytics-platform/
     Type: String
