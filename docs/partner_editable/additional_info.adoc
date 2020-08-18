@@ -3,7 +3,7 @@
 
 . Below screenshot shows the outputs when deploying Multi-workspace configured with a customer-managed VPC with an optional customer-managed key for Notebooks.
 
-[#cfn_outputs]
+[#cfn_outputs_cmvpc]
 .{partner-product-name} Multi-workspace with customer-managed VPC outputs after successful deployment
 image::../images/databricks-cmanaged-outputs.png[cfn_outputs,width=648,height=439]
 

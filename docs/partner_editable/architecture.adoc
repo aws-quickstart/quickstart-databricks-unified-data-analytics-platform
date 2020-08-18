@@ -7,7 +7,7 @@ Following diagram shows all the components deployed by the Quick Start. Some res
 [link=images/architecture_databricks_managed.png]
 image::../images/architecture_diagram.png[Architecture1,width=648,height=439]
 
-As shown in Figure 1, this deployment sets up the following:
+As shown in <<architecture1>>, this deployment sets up the following:
 
 * A highly available architecture that spans multiple Availability Zones.
 * A VPC configured with public subnets according to AWS best practices, to provide you with your own virtual network on AWS.**
