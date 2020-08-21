@@ -1,6 +1,7 @@
-This Quick Start allows 2 deployment options to choose from - Databricks managed VPC and Customer managed VPC deployment. 
+:xrefstyle: short
+This Quick Start offers two types of deployment: Databricks-managed VPC and customer-managed VPC. 
 
-Following diagram shows all the components deployed by the Quick Start. Some resources will be created depending upon the chosen deployment option, when launching the CloudFormation template.
+Following diagram shows all the components deployed by the Quick Start. Some resources will be created depending upon the chosen deployment option when launching the CloudFormation template.
 
 [#architecture1]
 .Quick Start architecture Databricks on AWS
@@ -17,6 +18,8 @@ As shown in <<architecture1>>, this deployment sets up the following:
 * A customer-managed AWS KMS key to encrypt notebooks in the control plane.*
 * Security groups to enable secure cluster connectivity.
 
-*The components marked by asterisks are created when KMS Key Id is provided.
+*The components marked by asterisks are created when an AWS KMS key ID is provided.
 
 **The components marked by double asterisks are created when VPCID isn't provided.
+
+//TODO Please update this bullet list to include (1) a bullet "In the public subnets:" with subbullets, (2) a bullet "In the private subnet:" with subbullets, (3) every element that's labeled in the diagram mentioned in the list with the same wording ("Customer VPC," "Databricks VPC," "Databricks workspace instances," "web app," "image," "DB instance," "IAM," "CloudWatch," etc.). See the Partner Quick Start Template and Style Guide (Word doc) for guidance. 
