@@ -4,8 +4,8 @@
 
 // Space needed to maintain table headers
 |VPCs |1
-|S3 Bucket |2
-|AWS Identity and Access Management (IAM) security groups |1
+|S3 bucket |2
+|IAM security groups |1
 |IAM roles |4
 |EC2 instances |10
 |===

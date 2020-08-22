@@ -1,7 +1,8 @@
 :xrefstyle: short
-This Quick Start offers two types of deployment: Databricks-managed VPC and customer-managed VPC. 
+This Quick Start provides two deployment options: Databricks-managed VPC and customer-managed VPC. 
+//TODO Later we identify the two deployment options as new VPC vs. existing VPC. Still later we identify three options. And yet there's only one "deploy" link. How do we align these descriptions for clarity?"
 
-Following diagram shows all the components deployed by the Quick Start. Some resources will be created depending upon the chosen deployment option when launching the CloudFormation template.
+<<architecture1>> shows all the components the Quick Start may deploy. Resources are created according to the deployment option you choose when launching the CloudFormation template.
 
 [#architecture1]
 .Quick Start architecture Databricks on AWS
