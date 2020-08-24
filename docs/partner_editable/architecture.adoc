@@ -8,10 +8,6 @@
 [link=images/architecture_databricks_managed.png]
 image::../images/architecture_diagram.png[Architecture1,width=648,height=439]
 
-//TODO Shivansh, Please attach the source—.pptx?— file to the SIM for this diagram.
-
-//TODO Shivansh, In architecture diagrams, we typically leave out the internet gateway because it's understood. Can we remove it here?
-
 As shown in <<architecture1>>, this deployment sets up the following:
 
 * A highly available architecture that spans multiple Availability Zones.
