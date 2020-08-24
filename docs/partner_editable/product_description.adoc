@@ -26,14 +26,14 @@ image::../images/network-flow.png[Network Flow,width=439,height=648]
 
 The AWS network flow with Databricks, as shown in <<networkflow>>, includes the following:
 
-* *Restricted port access to the control plane*
+* *Restricted port access to the control plane.*
 ** Port 443 is the main port open for data connections to the control plane. Connections on that port are protected by TLS connections. The TLS certificate is stored in Hashicorp Vault in the control plane. The TLS certificate is installed as a Kubernetes secret.
 ** Port 80 is open only for redirects to HTTPS on port 443.
 ** A security group protects individual control-plane hosts from the external internet with the exception of inbound ports mentioned above to the load balancer, which dispatches web application and API requests to the appropriate internal services.
 ** Port 3306 is open for access to the table metastore (on a separate IP address) and may be deployed in a separate peered virtual private cloud (VPC). Customers may deploy their own table metastores, in which case they would not use the provided table metastore. See https://docs.google.com/document/d/1GBAlynQHCsNVvLRb39ytXTkHaJCP4nGOmdlX0HPZ5M8/edit#heading=h.bi1cbha01g5h[Table metastore^].
 
-//TODO This link brings up a message "You need access. Ask for access, or switch to an account with access." Will this work for customers? 
-* *IP access limits for web application and REST API (optional)*—You can limit access to the Databricks web application and REST API by requiring specific IP addresses or ranges. For example, specify the IP addresses for the customer corporate intranet and VPN. This reduces risk from several types of attacks. This feature requires the Enterprise tier.
+//TODO Shivansh, This link brings up a message "You need access. Ask for access, or switch to an account with access." Will this work for customers? 
+* *IP access limits for web application and REST API (optional).* You can limit access to the Databricks web application and REST API by requiring specific IP addresses or ranges. For example, specify the IP addresses for the customer corporate intranet and VPN. This reduces risk from several types of attacks. This feature requires the Enterprise tier.
 
 === Databricks AWS data plane
 
@@ -51,8 +51,8 @@ IMPORTANT: The customer is responsible for backing up, securing access to, and e
 
 The Databricks workspace uses this bucket to store some input or output data. It accesses this data in two ways:
 
-* *Databricks-managed directories*—These directories are inaccessible to customers using Databricks File System (DBFS). Some data—for example, Spark driver log initial storage and job output—is stored or read by Databricks in hidden directories. This data cannot be accessed directly by customer notebooks at a DBFS path or through the AWS admin interface. 
-* *DBFS root storage*—This is accessible to customers using DBFS. Other areas of storage can be accessed by customer notebooks at a DBFS path. For example, the FileStore area of DBFS root storage is where uploaded data files and code libraries are stored when imported using the web application. Other DBFS paths are available for customer usage.
+* *Databricks-managed directories.* These directories are inaccessible to customers using Databricks File System (DBFS). Some data—for example, Spark driver log initial storage and job output—is stored or read by Databricks in hidden directories. This data cannot be accessed directly by customer notebooks at a DBFS path or through the AWS admin interface. 
+* *DBFS root storage.* This is accessible to customers using DBFS. Other areas of storage can be accessed by customer notebooks at a DBFS path. For example, the FileStore area of DBFS root storage is where uploaded data files and code libraries are stored when imported using the web application. Other DBFS paths are available for customer usage.
 
 IMPORTANT: The DBFS root storage is available for nonproduction customer data, such as simple uploads for testing. DBFS Root Storage is not intended as a storage location for production customer data. Instead, for storage of production customer data, use additional customer-managed data sources of many types. Customers can optionally use Databricks APIs to create additional DBFS mount points for additional S3 buckets.
 

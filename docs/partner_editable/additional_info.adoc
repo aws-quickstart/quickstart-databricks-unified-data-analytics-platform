@@ -1,9 +1,10 @@
 [start=10]
-. Above screenshot shows the outputs when deploying multiple workspaces configured with a Databricks-managed VPC with an optional customer-managed key for notebooks.
-//TODO "'Above screenshot shows...' needs to be a link: 'Figure x shows...'"
+//TODO Shivansh, Instead of typing in the next step number (10) above, how can we automate the continuation (prev+1) to avoid errors when the previous numbers change?
 
-. Below screenshot shows the outputs when deploying multiple workspaces configured with a customer-managed VPC with an optional customer-managed key for notebooks.
-//TODO "'Below screenshot shows...' needs to be a link: 'Figure x shows...'"
+//TODO Shivansh, Do we need to add `:xrefstyle: short` at the top of this file to make the cross-references say "Figure x" (instead of displaying the whole figure caption)? Or does it suffice that `:xrefstyle: short` appears in an earlier file? The preview seems to indicate that we don't need to repeat it in this file.
+. <<cfn_outputs>> shows the outputs when deploying multiple workspaces configured with a Databricks-managed VPC with an optional customer-managed key for notebooks.
+
+. <<cfn_outputs_cmvpc>> shows the outputs when deploying multiple workspaces configured with a customer-managed VPC with an optional customer-managed key for notebooks.
 
 [#cfn_outputs_cmvpc]
 .{partner-product-name} multi-workspace environment with customer-managed VPC outputs after successful deployment
@@ -15,11 +16,12 @@ image::../images/databricks-cmanaged-outputs.png[cfn_outputs,width=648,height=43
 //== Test the deployment
 // If steps are required to test the deployment, add them here. If not, remove the heading
 
-== Post deployment steps
-// If Post-deployment steps are required, add them here. If not, remove the heading
-Upon a CREATE_COMPLETE CloudFormation Stack, check the WorkspaceStatus output key value to ensure that it is RUNNING. Then, navigate to the workspace deployment name URL <deployment-name>.cloud.databricks.com and log in to the web application with your multi-workspace master account username and password.
+== Postdeployment steps
+// If postdeployment steps are required, add them here. If not, remove the heading
 
-For any other WorkspaceStatus value other than RUNNING, See https://docs.databricks.com/administration-guide/multiworkspace/new-workspace-aws.html#troubleshoot-a-workspace-that-failed-to-deploy[Troubleshoot a workspace that failed to deploy^] for how to handle unsuccessful status values.
+. When the status is *CREATE_COMPLETE* for the CloudFormation stack, check the `WorkspaceStatus` output key value. It should be RUNNING. If it's any other value, see https://docs.databricks.com/administration-guide/multiworkspace/new-workspace-aws.html#troubleshoot-a-workspace-that-failed-to-deploy[Troubleshoot a workspace that failed to deploy^].
+
+. Navigate to the workspace deployment name URL (_<deployment-name>_.cloud.databricks.com), and log in to the web application with your multi-workspace master account username and password.
 
 //== Best practices for using {partner-product-name} on AWS
 // Provide post-deployment best practices for using the technology on AWS, including considerations such as migrating data, backups, ensuring high performance, high availability, etc. Link to software documentation for detailed information.
