@@ -1,11 +1,20 @@
 [start=10]
+<<<<<<< HEAD
 //TODO Shivansh, Instead of typing in the next step number (10) above, how can we automate the continuation (prev+1) to avoid errors when the previous numbers change?
 
 //TODO Shivansh, Do we need to add `:xrefstyle: short` at the top of this file to make the cross-references say "Figure x" (instead of displaying the whole figure caption)? Or does it suffice that `:xrefstyle: short` appears in an earlier file? The preview seems to indicate that we don't need to repeat it in this file.
 . <<cfn_outputs>> shows the outputs when deploying multiple workspaces configured with a Databricks-managed VPC with an optional customer-managed key for notebooks.
 
 . <<cfn_outputs_cmvpc>> shows the outputs when deploying multiple workspaces configured with a customer-managed VPC with an optional customer-managed key for notebooks.
+=======
+. <<cfn_outputs>> shows the outputs when deploying multiple workspaces configured with a Databricks-managed VPC with an optional customer-managed key for notebooks.
+//TODO "'Above screenshot shows...' needs to be a link: 'Figure x shows...'"
 
+. <<cfn_outputs_cmvpc>> shows the outputs when deploying multiple workspaces configured with a customer-managed VPC with an optional customer-managed key for notebooks.
+//TODO "'Below screenshot shows...' needs to be a link: 'Figure x shows...'"
+>>>>>>> pr11
+
+:xrefstyle: short
 [#cfn_outputs_cmvpc]
 .{partner-product-name} multi-workspace environment with customer-managed VPC outputs after successful deployment
 image::../images/databricks-cmanaged-outputs.png[cfn_outputs,width=648,height=439]
