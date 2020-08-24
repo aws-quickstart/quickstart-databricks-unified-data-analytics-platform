@@ -9,6 +9,8 @@
 
 WARNING: When you set *Rollback on failure* to *Disabled*, you continue to incur AWS charges for this stack. Please make sure to delete the stack when you finish troubleshooting.
 
+//TODO Shivansh, In the first reference to *Rollback on failure*, we say *No.* In the second we say *Disabled* ... shouldn't it be the same in both places? (Please fix in the boilerplate file also.)
+
 For additional information, see https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/troubleshooting.html[Troubleshooting AWS CloudFormation^] on the AWS website.
 
 *Q.* I encountered a size limitation error when I deployed the AWS CloudFormation templates.

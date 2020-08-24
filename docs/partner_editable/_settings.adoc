@@ -3,8 +3,8 @@
 :partner-company-name: Databricks
 :doc-month: August
 :doc-year: 2020
-:partner-contributors: Denis Dubeau, Manager - {partner-company-name}
-:quickstart-contributors: Shivansh Singh, Partner SA, AWS
+:partner-contributors: Denis Dubeau, {partner-company-name}
+:quickstart-contributors: Shivansh Singh, AWS Quick Start team
 :deployment_time: 15 minutes
 :default_deployment_region: us-east-1
 // Uncomment these two attributes if you are leveraging

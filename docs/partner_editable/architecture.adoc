@@ -1,11 +1,17 @@
-This Quick Start allows 2 deployment options to choose from - Databricks managed VPC and Customer managed VPC deployment. 
+:xrefstyle: short
+This Quick Start provides two deployment options: Databricks-managed VPC and customer-managed VPC. 
+//TODO Shivansh, Later we identify the two deployment options as new VPC vs. existing VPC. Still later we identify three options. And yet there's only one "deploy" link. How shall we align these descriptions for clarity?"
 
-Following diagram shows all the components deployed by the Quick Start. Some resources will be created depending upon the chosen deployment option, when launching the CloudFormation template.
+<<architecture1>> shows all the components the Quick Start may deploy. Resources are created according to the deployment option you choose when launching the CloudFormation template.
 
 [#architecture1]
 .Quick Start architecture Databricks on AWS
 [link=images/architecture_databricks_managed.png]
 image::../images/architecture_diagram.png[Architecture1,width=648,height=439]
+
+//TODO Shivansh, Please attach the source—.pptx?— file to the SIM for this diagram.
+
+//TODO Shivansh, In architecture diagrams, we typically leave out the internet gateway because it's understood. Can we remove it here?
 
 As shown in <<architecture1>>, this deployment sets up the following:
 
@@ -17,6 +23,16 @@ As shown in <<architecture1>>, this deployment sets up the following:
 * A customer-managed AWS KMS key to encrypt notebooks in the control plane.*
 * Security groups to enable secure cluster connectivity.
 
-*The components marked by asterisks are created when KMS Key Id is provided.
+*The components marked by asterisks are created when an AWS KMS key ID is provided.
 
 **The components marked by double asterisks are created when VPCID isn't provided.
+
+////
+TODO Shivansh, Please update this bullet list to include the following, per our deployment-guide template (Word doc — Partner Quick Start Template and Style Guide):
+ 
+ (1) Add a bullet "In the public subnets:" with subbullets.
+ 
+ (2) Add a bullet "In the private subnet:" with subbullets.
+ 
+ (3) Mention every element that's labeled in the diagram in the list, too. Use the same words as in the labels ("Customer VPC," "Databricks VPC," "Databricks workspace instances," "web app," "image," "DB instance," "IAM," "CloudWatch," etc.).
+////

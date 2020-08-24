@@ -2,8 +2,8 @@
 
 This Quick Start provides three deployment options:
 
-* Create multi-workspace environment configured with a Databricks managed VPC.
-* Create multi-workspace environment configured with a Databricks managed VPC, with and optional customer-managed key for Notebooks. 
-* Create multi-workspace environment configured with an optional customer-managed key for Notebooks and optional existing customer-managed VPC.
+* Create a multi-workspace environment configured with a Databricks-managed VPC.
+* Create a multi-workspace environment configured with a Databricks-managed VPC with an optional customer-managed key for notebooks. 
+* Create a multi-workspace environment configured with an optional customer-managed key for notebooks and optional existing customer-managed VPC.
 
 The Quick Start provides different parameters in master template for these options.
