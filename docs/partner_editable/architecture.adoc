@@ -25,13 +25,3 @@ As shown in <<architecture1>>, this deployment sets up the following:
 *The components marked by asterisks are created when an AWS KMS key ID is provided.
 
 **The components marked by double asterisks are created when VPCID isn't provided.
-
-////
-TODO Shivansh, Please update this bullet list to include the following, per our deployment-guide template (Word doc — Partner Quick Start Template and Style Guide):
- 
- (1) Add a bullet "In the public subnets:" with subbullets.
- 
- (2) Add a bullet "In the private subnet:" with subbullets.
- 
- (3) Mention every element that's labeled in the diagram in the list, too. Use the same words as in the labels ("Customer VPC," "Databricks VPC," "Databricks workspace instances," "web app," "image," "DB instance," "IAM," "CloudWatch," etc.).
-////
