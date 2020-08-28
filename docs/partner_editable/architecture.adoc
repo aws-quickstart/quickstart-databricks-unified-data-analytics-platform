@@ -6,7 +6,7 @@
 [#architecture1]
 .Quick Start architecture for Databricks on AWS
 [link=images/architecture_databricks_managed.png]
-image::../images/architecture_diagram.png[Architecture1,width=648,height=439]
+image::../images/architecture_diagram.png[Architecture1,width=100%,height=100%]
 
 As shown in <<architecture1>>, this deployment sets up the following in the customer's AWS account:
 

@@ -22,7 +22,7 @@ The Databricks Unified Analytics Platform follows best practices for securing ne
 [#networkflow]
 .AWS network flow with Databricks
 [link=images/network-flow.png]
-image::../images/network-flow.png[Network Flow,width=439,height=648]
+image::../images/network-flow.png[Network Flow,width=100%,height=100%]
 
 The AWS network flow with Databricks, as shown in <<networkflow>>, includes the following:
 
