@@ -23,6 +23,5 @@ As shown in <<architecture1>>, this deployment sets up the following in the cust
 *The components marked by asterisks are created when an AWS KMS key ID is provided.
 
 **The components marked by double asterisks are created when no VPCID is provided.
-//TODO Shivansh, Somewhere in this bullet list or right after it, describe the Databricks managed VPC and its relationship to the customer managed VPC. 
 
-//TODO Also, if we're going to show the Secure Sockets Layer (SSL) padlock icon, clarify why it's there. Otherwise, if that icon goes without saying, remove it. BTW, it's curious that we don't mention SSL anywhere else in the guide. We do mention TLS, though. Wikipedia calls SSL the "deprecated predecessor" of TLS. So maybe this icon represents TLS now? Either way, if we show the icon, please mention it.
+Databricks managed VPC in Databricks AWS Account can securly connect to Customer-managed VPC in customer's AWS Account.

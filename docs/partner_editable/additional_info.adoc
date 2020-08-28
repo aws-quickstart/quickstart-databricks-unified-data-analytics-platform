@@ -3,8 +3,6 @@
 
 <<cfn_outputs_cmvpc>> shows the outputs when deploying multiple workspaces configured with a customer managed VPC with an optional customer managed key for notebooks.
 
-//TODO Shivansh, I removed the step numbers from the previous two lines since they contain no actions. Is there an action people need to take in either case? If so, feel free to reinstate the numbers, and make the first word of each numbered step an imperative verb.
-
 :xrefstyle: short
 [#cfn_outputs_cmvpc]
 .{partner-product-name} multi-workspace environment with customer managed VPC outputs after successful deployment
