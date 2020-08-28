@@ -1,27 +1,28 @@
 :xrefstyle: short
 
-<<architecture1>> shows all the components the Quick Start may deploy. Resources are created according to the deployment option you choose when launching the CloudFormation template.
+<<architecture1>> shows all the components the Quick Start may deploy. Resources are created according to the deployment option you choose when launching the AWS CloudFormation template.
 
 :xrefstyle: short
 [#architecture1]
-.Quick Start architecture Databricks on AWS
+.Quick Start architecture for Databricks on AWS
 [link=images/architecture_databricks_managed.png]
 image::../images/architecture_diagram.png[Architecture1,width=648,height=439]
 
-As shown in <<architecture1>>, this deployment sets up the following:
+As shown in <<architecture1>>, this deployment sets up the following in the customer's AWS account:
 
 * A highly available architecture that spans multiple Availability Zones.
-
-* In customer's AWS Account:
-** A VPC configured with public subnets according to AWS best practices, to provide you with your own virtual network on AWS.**
-** In the public subnets:
-*** Databricks workspace instances.
-*** Security groups to enable secure cluster connectivity.
-** An S3 bucket required to store objects like cluster logs, notebook revisions, and job results.
-** Amazon CloudWatch logs for the Databricks workspace instance logs.
-** A customer-managed AWS KMS key to encrypt notebooks in the control plane.*
-** A cross-account IAM role, so that Databricks can deploy clusters in the appropriate VPC for the new workspace.
+* A customer managed VPC configured with public subnets, according to AWS best practices, to provide you with your own virtual network on AWS.**
+* In the public subnets:
+** Databricks workspace instances.
+** Security groups to enable secure cluster connectivity.
+* An S3 bucket to store objects such as cluster logs, notebook revisions, and job results.
+* Amazon CloudWatch Logs for the Databricks workspace instance logs.
+* A customer managed AWS KMS key to encrypt notebooks in the control plane.*
+* A cross-account IAM role to enable Databricks to deploy clusters in the appropriate VPC for the new workspaces.
 
 *The components marked by asterisks are created when an AWS KMS key ID is provided.
 
-**The components marked by double asterisks are created when VPCID isn't provided.
+**The components marked by double asterisks are created when no VPCID is provided.
+//TODO Shivansh, Somewhere in this bullet list or right after it, describe the Databricks managed VPC and its relationship to the customer managed VPC. 
+
+//TODO Also, if we're going to show the Secure Sockets Layer (SSL) padlock icon, clarify why it's there. Otherwise, if that icon goes without saying, remove it. BTW, it's curious that we don't mention SSL anywhere else in the guide. We do mention TLS, though. Wikipedia calls SSL the "deprecated predecessor" of TLS. So maybe this icon represents TLS now? Either way, if we show the icon, please mention it.
