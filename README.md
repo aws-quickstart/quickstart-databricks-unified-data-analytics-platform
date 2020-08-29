@@ -1,6 +1,6 @@
-# Databricks on the AWS Cloud—Quick Start
+## Databricks on the AWS Cloud—Quick Start
 
-For architectural details, step-by-step instructions, and customization options, see the [deployment guide](https://aws-quickstart.github.io/quickstart-databricks-unified-data-analytics-platform/).
+For architectural details, step-by-step instructions, and customization options, see the [deployment guide](https://fwd.aws/zwDg6).
 
 To post feedback, submit feature ideas, or report bugs, use the **Issues** section of this GitHub repo. 
 
