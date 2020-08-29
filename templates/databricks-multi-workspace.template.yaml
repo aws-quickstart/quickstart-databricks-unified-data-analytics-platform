@@ -4,7 +4,7 @@ Description: >-
   
 Metadata:
   QuickStartDocumentation:
-    EntrypointName: "Launch multi-workspace environment"
+    EntrypointName: "Parameters for launching a multi-workspace environment"
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
