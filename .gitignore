@@ -1,2 +1,4 @@
 taskcat_outputs*
 .DS_Store
+index.html
+docs/generated/parameters/*

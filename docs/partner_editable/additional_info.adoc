@@ -1,10 +1,11 @@
 [start=10]
-. Above screenshot shows the outputs when deploying Multi-workspace configured with a Databricks managed VPC with an optional customer-managed key for Notebooks.
+<<cfn_outputs>> shows the outputs when deploying multiple workspaces configured with a Databricks managed VPC with an optional customer managed key for notebooks.
 
-. Below screenshot shows the outputs when deploying Multi-workspace configured with a customer-managed VPC with an optional customer-managed key for Notebooks.
+<<cfn_outputs_cmvpc>> shows the outputs when deploying multiple workspaces configured with a customer managed VPC with an optional customer managed key for notebooks.
 
+:xrefstyle: short
 [#cfn_outputs_cmvpc]
-.{partner-product-name} Multi-workspace with customer-managed VPC outputs after successful deployment
+.{partner-product-name} multi-workspace environment with customer managed VPC outputs after successful deployment
 image::../images/databricks-cmanaged-outputs.png[cfn_outputs,width=648,height=439]
 
 // Add steps as necessary for accessing the software, post-configuration, and testing. Don’t include full usage instructions for your software, but add links to your product documentation for that information.
@@ -13,11 +14,14 @@ image::../images/databricks-cmanaged-outputs.png[cfn_outputs,width=648,height=43
 //== Test the deployment
 // If steps are required to test the deployment, add them here. If not, remove the heading
 
-== Post deployment steps
-// If Post-deployment steps are required, add them here. If not, remove the heading
-Upon a CREATE_COMPLETE CloudFormation Stack, check the WorkspaceStatus output key value to ensure that it is RUNNING. Then, navigate to the workspace deployment name URL <deployment-name>.cloud.databricks.com and log in to the web application with your multi-workspace master account username and password.
+== Postdeployment steps
+// If postdeployment steps are required, add them here. If not, remove the heading
 
-For any other WorkspaceStatus value other than RUNNING, See https://docs.databricks.com/administration-guide/multiworkspace/new-workspace-aws.html#troubleshoot-a-workspace-that-failed-to-deploy[Troubleshoot a workspace that failed to deploy^] for how to handle unsuccessful status values.
+. When the status is *CREATE_COMPLETE* for the AWS CloudFormation stack, check the `WorkspaceStatus` output key value. It should be RUNNING. If it's any other value, see https://docs.databricks.com/administration-guide/multiworkspace/new-workspace-aws.html#troubleshoot-a-workspace-that-failed-to-deploy[Troubleshoot a workspace that failed to deploy^].
+
+. Navigate to the workspace deployment name URL (_<deployment-name>_.cloud.databricks.com), and log in to the web application with your multi-workspace master account user name and password.
+
+//TODO Shivansh, can we say "main" instead of "master" in the preceding line? If so, please update all references in the .yaml templates to say "main" too.
 
 //== Best practices for using {partner-product-name} on AWS
 // Provide post-deployment best practices for using the technology on AWS, including considerations such as migrating data, backups, ensuring high performance, high availability, etc. Link to software documentation for detailed information.
