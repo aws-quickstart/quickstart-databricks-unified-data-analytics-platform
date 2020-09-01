@@ -20,8 +20,8 @@ As shown in <<architecture1>>, this deployment sets up the following in the cust
 * A customer managed AWS KMS key to encrypt notebooks in the control plane.*
 * A cross-account IAM role to enable Databricks to deploy clusters in the appropriate VPC for the new workspaces.
 
+The Databricks managed VPC in the Databricks AWS account can securely connect to the VPC in your AWS account.
+
 *The components marked by asterisks are created when an AWS KMS key ID is provided.
 
 **The components marked by double asterisks are created when no VPCID is provided.
-
-Databricks managed VPC in Databricks AWS Account can securly connect to Customer-managed VPC in customer's AWS Account.
