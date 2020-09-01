@@ -1,5 +1,5 @@
 // There are generally two deployment options. If additional are required, add them here
 
-This Quick Start provides following deployment option:
+This Quick Start provides the following deployment option:
 
 * Create a new multi-workspace environment in an AWS account
