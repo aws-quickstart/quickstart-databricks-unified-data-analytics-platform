@@ -8,7 +8,7 @@
 [link=images/architecture_databricks_managed.png]
 image::../images/architecture_diagram.png[Architecture1,width=100%,height=100%]
 
-As shown in <<architecture1>>, this deployment sets up the following in the customer's AWS account:
+As shown in <<architecture1>>, this deployment sets up the following in your AWS account:
 
 * A highly available architecture that spans multiple Availability Zones.
 * A customer managed VPC configured with public subnets, according to AWS best practices, to provide you with your own virtual network on AWS.**
