@@ -24,4 +24,4 @@ As shown in <<architecture1>>, this deployment sets up the following in the cust
 
 **The components marked by double asterisks are created when no VPCID is provided.
 
-Databricks managed VPC in Databricks AWS Account can securly connect to Customer-managed VPC in customer's AWS Account.
+The Databricks managed VPC in the Databricks AWS account can securely connect to the VPC in your AWS account.
