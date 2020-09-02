@@ -1,4 +1,5 @@
 taskcat_outputs*
 .DS_Store
 index.html
+index.adoc
 docs/generated/parameters/*
