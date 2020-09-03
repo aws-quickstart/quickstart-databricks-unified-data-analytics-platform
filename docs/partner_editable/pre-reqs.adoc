@@ -6,7 +6,7 @@
 
 ==== Prepare your {partner-company-name} account
 
-You need a https://docs.databricks.com/getting-started/try-databricks.html#free-trial[Databricks multi-workspace account^] to launch this Quick Start.
+You need a https://docs.databricks.com/getting-started/try-databricks.html#free-trial[Databricks multiworkspace account^] to launch this Quick Start.
 
 // ==== Prepare for the deployment
 

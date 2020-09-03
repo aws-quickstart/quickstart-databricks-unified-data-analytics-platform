@@ -1,12 +1,12 @@
 // Include details about the license and how they can sign up. If no license is required, clarify that. 
 
-For Databricks cost estimates, see the Databricks https://databricks.com/product/aws-pricing[pricing^] page for product tier and features.
+For Databricks cost estimates, see the Databricks https://databricks.com/product/aws-pricing[pricing^] page for product tiers and features.
 
-This Quick Start requires a license for {partner-product-name} on AWS. To use the Quick Start in your environment, sign up for a 14-day https://docs.databricks.com/getting-started/try-databricks.html#free-trial[Databricks platform free trial^]. To launch the Quick Start, you need the following:
+This Quick Start requires a license for {partner-product-name}. To use the Quick Start in your environment, sign up for a 14-day https://docs.databricks.com/getting-started/try-databricks.html#free-trial[Databricks platform free trial^]. To launch the Quick Start, you need the following:
 
 * An AWS account.
-* A Databricks multi-workspace master account ID.
-* A Databricks multi-workspace master user name and password.
+* A Databricks multiworkspace master account ID.
+* A Databricks multiworkspace master user name and password.
 * A unique nonexistent cross-account IAM role name.
 * A unique nonexistent S3 bucket name.
 
@@ -16,4 +16,4 @@ Determine whether your workspace will enable the following features, which may r
 
 * https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html[Customer-managed VPC^] (public preview). Provide your own Amazon VPC.
 * https://docs.databricks.com/security/secure-cluster-connectivity.html[Secure-cluster connectivity^] (public preview). Network architecture with no VPC open ports and no Databricks runtime worker public IP addresses. In some APIs, this is referred to as No Public IP or NPIP.
-* https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html[Customer managed keys for notebooks^] (private preview). Provide AWS Key Management Service (AWS KMS) keys to encrypt notebooks in the Databricks managed control plane.
+* https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html[Customer-managed keys for notebooks^] (private preview). Provide AWS Key Management Service (AWS KMS) keys to encrypt notebooks in the Databricks-managed control plane.

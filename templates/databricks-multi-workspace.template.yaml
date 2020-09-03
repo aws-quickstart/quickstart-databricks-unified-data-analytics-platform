@@ -1,14 +1,17 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  This template creates resources for a Databricks workspace in your AWS account using the Multi-workspace API (public preview). The Multi-workspace API is required if you want to use the following optional features in preview: customer managed VPCs and customer managed keys for notebooks. Contact your Databricks representative to determine the availability of these features for your subscription and deployment type. (qs-1r0odiedc)
+  This template creates resources for a Databricks workspace in your AWS account using the Databricks API (public preview). The Databricks API is required if you want to use the following optional features in preview: customer-managed VPCs and customer-managed keys for notebooks. Contact your Databricks representative to determine the availability of these features for your subscription and deployment type. (qs-1r0odiedc)
   
 Metadata:
+  LintSpellExclude:
+    - Multiworkspace
+    - multiworkspace
   QuickStartDocumentation:
-    EntrypointName: "Parameters for launching a multi-workspace environment"
+    EntrypointName: "Parameters for launching a multiworkspace environment"
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: "Multi-workspace environment configuration"
+          default: "Multiworkspace environment configuration"
         Parameters:
           - TagValue
           - MWSAccountId
@@ -25,13 +28,13 @@ Metadata:
           - IAMRole
           - BucketName    
       - Label:
-          default: "Customer managed key configuration for notebooks (Enterprise tier, optional)"
+          default: "Customer-managed key configuration for notebooks (Enterprise tier, optional)"
         Parameters:
           - KeyArn
           - KeyAlias  
           - KeyRegion
       - Label:
-          default: "Customer managed VPC configuration (Premium tier, optional)"
+          default: "Customer-managed VPC configuration (Premium tier, optional)"
         Parameters:
           - VPCID
           - SubnetIDs
@@ -44,7 +47,7 @@ Metadata:
           - QSS3KeyPrefix
     ParameterLabels:
       MWSAccountId:
-        default: Databricks multi-workspace master account ID
+        default: Databricks multiworkspace master account ID
       AWSAccountId:
         default: AWS account ID
       AWSRegion:
@@ -52,9 +55,9 @@ Metadata:
       DeploymentName:
         default: New workspace deployment name (your workspace subdomain)
       Username:
-        default: Multi-workspace master account email address
+        default: Multiworkspace master account email address
       Password:
-        default: Multi-workspace master account password
+        default: Multiworkspace master account password
       IAMArnOrRoleQuestion:
         default: Are you providing an existing IAM role ARN? 
       IAMArn:
@@ -64,11 +67,11 @@ Metadata:
       BucketName:
         default: Root S3 bucket name  
       KeyArn:
-        default: AWS KMS key ARN for customer managed key
+        default: AWS KMS key ARN for customer-managed key
       KeyAlias:
-        default: AWS KMS alias name for customer managed key
+        default: AWS KMS alias name for customer-managed key
       KeyRegion:
-        default: AWS Region for customer managed key
+        default: AWS Region for customer-managed key
       VPCID:
         default: VPC ID
       SubnetIDs:
@@ -86,7 +89,7 @@ Metadata:
 
 Outputs:
   CustomerManagedVPCIAMRoleARN:
-    Description: Customer managed cross-account role ARN
+    Description: Customer-managed cross-account role ARN
     Condition: CustomerManagedVPC
     Value: !GetAtt 
       - accessRoleCustomerManagedVPC
@@ -101,7 +104,7 @@ Outputs:
     Description: Name of the S3 root bucket
     Value: !Ref assetsS3Bucket
   CustomerManagedKeyId:
-    Description: ID of the created customer managed key object  
+    Description: ID of the created customer-managed key object  
     Condition: IsKMSKeyProvided
     Value: !GetAtt createCustomerManagedKey.CustomerManagedKeyId
   CredentialsId:
@@ -126,7 +129,7 @@ Outputs:
 
 Parameters:
   MWSAccountId:
-    Description: Your Databricks multi-workspace master account ID. See your Multi-workspace API welcome email for this ID. Protect this ID like a credential. The format is aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee. 
+    Description: Your Databricks workspace master account ID. See your API welcome email for this ID. Protect this ID like a credential. The format is aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee. 
     MinLength: '32'
     Type: String
     Default: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee 
@@ -136,7 +139,7 @@ Parameters:
     Type: String
     Default: 111111111111
   AWSRegion:
-    Description: AWS Region where the workspace will be created. Only some Regions are supported. To use customer managed keys to encrypt notebooks, specify either Region us-east-1 or us-west-2.
+    Description: AWS Region where the workspace will be created. Only some Regions are supported. To use customer-managed keys to encrypt notebooks, specify either Region us-east-1 or us-west-2.
     MinLength: '9'
     AllowedValues:
        - us-east-1
@@ -152,13 +155,13 @@ Parameters:
     Type: String  
   Username:
     Description: 
-      "Your multi-workspace account email address, which is used for REST API authentication as your user name. This is case-sensitive. Use the same capitalization as when you sent it to your Databricks representative."
+      "Your multiworkspace account email address, which is used for REST API authentication as your user name. This is case-sensitive. Use the same capitalization as when you sent it to your Databricks representative."
     AllowedPattern: '^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$'
     ConstraintDescription: "Must be a valid email format."
     MinLength: '8'
     Type: String
   Password:
-    Description: Your multi-workspace account password, which is used for REST API authentication. This is case-sensitive. Minimum length is 8 characters.
+    Description: Your multiworkspace account password, which is used for REST API authentication. This is case-sensitive. Minimum length is 8 characters.
     MinLength: '8'
     NoEcho: 'true'
     Type: String
@@ -183,7 +186,7 @@ Parameters:
     MinLength: '8'
     Type: String  
   KeyArn:
-    Description: AWS KMS key ARN to encrypt and decrypt the workspace notebooks in the control plane. Set only if using the feature customer managed key for notebooks. To set up your AWS KMS key, see https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html.
+    Description: AWS KMS key ARN to encrypt and decrypt the workspace notebooks in the control plane. Set only if using the feature customer-managed key for notebooks. To set up your AWS KMS key, see https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html.
     Default: ''
     Type: String
   KeyAlias:
@@ -195,7 +198,7 @@ Parameters:
     Default: ''
     Type: String
   VPCID:
-    Description: ID for your VPC in which to create the new workspace. Set only if using the customer managed VPC feature. Format is vpc-xxxxxxxxxxxxxxxx. For additional guidance, see https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. If unspecified, Databricks creates the new workspace in a new VPC that Databricks creates. 
+    Description: ID for your VPC in which to create the new workspace. Set only if using the customer-managed VPC feature. Format is vpc-xxxxxxxxxxxxxxxx. For additional guidance, see https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. If unspecified, Databricks creates the new workspace in a new VPC that Databricks creates. 
     Type: String  
     Default: ''  
   SecurityGroupIDs:
@@ -203,7 +206,7 @@ Parameters:
     Type: String
     Default: ''
   SubnetIDs:
-    Description: List of at least two private subnet IDs in your VPC, separated by commas. These subnets cannot be shared with other workspaces nor any other non-Databricks resources. Each subnet must have a netmask between /17 and /25. Subnets must be private. Subnets must have outbound access to the public network using a NAT gateway and internet gateway or similar customer managed appliance infrastructure. The NAT gateway must be set up in its own subnet that routes quad-zero (0.0.0.0/0) traffic to an internet gateway or similar customer managed appliance infrastructure. See https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. Keep blank if you didn't specify VPCID.
+    Description: List of at least two private subnet IDs in your VPC, separated by commas. These subnets cannot be shared with other workspaces nor any other non-Databricks resources. Each subnet must have a netmask between /17 and /25. Subnets must be private. Subnets must have outbound access to the public network using a NAT gateway and internet gateway or similar customer-managed appliance infrastructure. The NAT gateway must be set up in its own subnet that routes quad-zero (0.0.0.0/0) traffic to an internet gateway or similar customer-managed appliance infrastructure. See https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. Keep blank if you didn't specify VPCID.
     Type: String 
     Default: ''
   NoPublicIP:
@@ -245,7 +248,7 @@ Conditions:
 
 Rules:
   
-# Ensure that the SubnetIds and SecurityGroupIds are provided, if the user provides a customer managed VPC ID  
+# Ensure that the SubnetIds and SecurityGroupIds are provided, if the user provides a customer-managed VPC ID  
   CustomerManagedVPC:
     RuleCondition: !Not [!Equals [!Ref VPCID, '']]
     Assertions:
@@ -254,7 +257,7 @@ Rules:
     - Assert: !Not [!Equals ['', !Ref SecurityGroupIDs]]
       AssertDescription: SecurityGroupIDs is required when VPCID is provided.
       
-# Ensure that the KeyAlias and KeyRegion are provided, if user provides a customer managed AWS KMS   
+# Ensure that the KeyAlias and KeyRegion are provided, if user provides a customer-managed AWS KMS   
   CustomerManagedKMS:
     RuleCondition: !Not [!Equals [!Ref KeyArn, '']]
     Assertions:    
@@ -274,7 +277,7 @@ Rules:
       AssertDescription: The QSS3KeyPrefix must be set to quickstart-databricks-unified-data-analytics-platform/.
         
 Resources:
-  # Cross account access role for Databricks created and managed VPC
+  # Cross-account access role for Databricks-created and -managed VPC
   accessRoleDBManagedVPC:
     Type: 'AWS::IAM::Role'
     Condition: CreateDBManagedVPC
@@ -375,7 +378,7 @@ Resources:
                   - - !Ref TagValue
                     - !Sub '${AWS::StackName}-IAMRole'
   
-  # Cross account access role for customer managed VPC
+  # Cross-account access role for customer-managed VPC
   accessRoleCustomerManagedVPC:
     Type: 'AWS::IAM::Role'
     Condition: CustomerManagedVPC
@@ -580,7 +583,7 @@ Resources:
               - !Sub 'arn:aws:s3:::${assetsS3Bucket}'
       Bucket: !Ref assetsS3Bucket                  
 
-  # Databricks API for configuring notebook encryption with a customer managed AWS KMS, if provided
+  # Databricks API for configuring notebook encryption with a customer-managed AWS KMS, if provided
   createCustomerManagedKey:
     Condition: IsKMSKeyProvided
     Type: Custom::CreateCustomerManagedKey
@@ -633,7 +636,7 @@ Resources:
           - - !Ref 'Username'
             - !Ref 'Password'
 
-  # Databricks API for customer managed VPC    
+  # Databricks API for customer-managed VPC    
   createNetworks:
     DependsOn: createStorageConfiguration
     Condition: CustomerManagedVPC
