@@ -3,7 +3,7 @@
 // Include the benefits of using the software on AWS, and provide details on usage scenarios.
 :xrefstyle: short
 
-The Databricks platform enables secure, cross-functional team collaboration. You can stay focused on your data science, data analytics, and data engineering tasks while Databricks manages many of the backend services. 
+Using the Databricks platform, cross-functional teams can collaborate securely. You can stay focused on your data science, data analytics, and data engineering tasks while Databricks manages many of the backend services. 
 
 All Databricks architectures have two planes:
 
@@ -17,7 +17,7 @@ This section describes the overall network architecture and details about contro
 
 ==== Network access
 
-The Databricks Unified Analytics Platform follows best practices for securing network access to cloud applications. 
+The Databricks platform follows best practices for securing network access to cloud applications. 
 
 [#networkflow]
 .AWS network flow with Databricks
@@ -36,11 +36,11 @@ The AWS network flow with Databricks, as shown in <<networkflow>>, includes the 
 
 === Databricks AWS data plane
 
-Apache Spark clusters and their data stores are deployed in a customer-controlled AWS account. A Databricks customer deployment is generally isolated at the AWS-account level, but a customer can deploy multiple workspaces in a single AWS account. No other Databricks customers have access to the customer’s data plane in AWS. 
+Apache Spark clusters and their data stores are deployed in a customer-controlled AWS account. A Databricks customer deployment is generally isolated at the AWS-account level, but you can deploy multiple workspaces in a single AWS account. No other Databricks customers have access to your data plane in AWS. 
 
-By default, clusters are created in a single VPC that Databricks creates and configures. This means that the Databricks platform requires AWS permissions in the control plane to create a new VPC in the customer account for the data plane. This includes creating new security groups and configuring subnets.
+By default, clusters are created in a single VPC that Databricks creates and configures. This means that the Databricks platform requires AWS permissions in the control plane to create a new VPC in your account for the data plane. This includes creating new security groups and configuring subnets.
 
-If customers use the customer managed VPC feature, customers can specify their own VPC in the customer account, and Databricks launches clusters in that VPC. This feature requires the Premium or higher tier.
+If you use the customer-managed VPC feature, you can specify your own VPC in your customer account, and Databricks launches clusters in that VPC. This feature requires the Premium or higher tier.
 
 === S3 bucket in the customer account
 
@@ -50,19 +50,19 @@ IMPORTANT: The customer is responsible for backing up, securing access to, and e
 
 The Databricks workspace uses this bucket to store some input or output data. It accesses this data in two ways:
 
-* *Databricks managed directories.* These directories are inaccessible to customers using Databricks File System (DBFS). Some data—for example, Spark driver log initial storage and job output—is stored or read by Databricks in hidden directories. This data cannot be accessed directly by customer notebooks at a DBFS path or through the AWS admin interface. 
+* *Databricks-managed directories.* These directories are inaccessible to customers using Databricks File System (DBFS). Some data—for example, Spark driver log initial storage and job output—is stored or read by Databricks in hidden directories. This data cannot be accessed directly by customer notebooks at a DBFS path or through the AWS admin interface. 
 * *DBFS root storage.* This is accessible to customers using DBFS. Other areas of storage can be accessed by customer notebooks at a DBFS path. For example, the FileStore area of DBFS root storage is where uploaded data files and code libraries are stored when imported using the web application. Other DBFS paths are available for customer usage.
 
-IMPORTANT: The DBFS root storage is available for nonproduction customer data, such as simple uploads for testing. DBFS root storage is not intended as a storage location for production customer data. Instead, for storage of production customer data, use additional customer managed data sources of many types. Customers can optionally use Databricks API operations to create additional DBFS mount points for additional S3 buckets.
+IMPORTANT: The DBFS root storage is available for nonproduction customer data, such as simple uploads for testing. DBFS root storage is not intended as a storage location for production customer data. Instead, for storage of production customer data, use additional customer-managed data sources of many types. Customers can optionally use Databricks API operations to create additional DBFS mount points for additional S3 buckets.
 
 The data plane uses the AWS Security Token Service (AWS STS) to manage DBFS credentials to Amazon S3.
 
-=== Multi-workspace environment configurations
+=== Multiworkspace environment configurations
 
 This Quick Start provides the following three configuration options:
 
-* Create a multi-workspace environment configured with a Databricks managed VPC.
-* Create a multi-workspace environment configured with a Databricks managed VPC with an optional customer managed key for notebooks. 
-* Create a multi-workspace environment configured with an optional customer managed key for notebooks and an optional existing customer managed VPC.
+* Create a multiworkspace environment configured with a Databricks-managed VPC.
+* Create a multiworkspace environment configured with a Databricks-managed VPC with an optional customer-managed key for notebooks. 
+* Create a multiworkspace environment configured with an optional customer-managed key for notebooks and an optional existing customer-managed VPC.
 
 The Quick Start provides different parameters in the main template for these options.

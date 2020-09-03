@@ -10,18 +10,17 @@ image::../images/architecture_diagram.png[Architecture1,width=100%,height=100%]
 
 As shown in <<architecture1>>, this deployment sets up the following in your AWS account:
 
-* A highly available architecture that spans multiple Availability Zones.
-* A customer managed VPC configured with public subnets, according to AWS best practices, to provide you with your own virtual network on AWS.**
+* A highly available architecture that spans two Availability Zones.
+* A customer-managed VPC configured with public subnets, according to AWS best practices, to provide you with your own virtual network on AWS.**
 * In the public subnets:
 ** Databricks workspace instances.
 ** Security groups to enable secure cluster connectivity.
 * An S3 bucket to store objects such as cluster logs, notebook revisions, and job results.
 * Amazon CloudWatch Logs for the Databricks workspace instance logs.
-* A customer managed AWS KMS key to encrypt notebooks in the control plane.*
+* A customer-managed AWS KMS key to encrypt notebooks in the control plane.*
 * A cross-account IAM role to enable Databricks to deploy clusters in the appropriate VPC for the new workspaces.
 
-The Databricks managed VPC in the Databricks AWS account can securely connect to the VPC in your AWS account.
+The Databricks-managed VPC in the Databricks AWS account connects securely to the VPC in your AWS account.
 
-*The components marked by asterisks are created when an AWS KMS key ID is provided.
-
-**The components marked by double asterisks are created when no VPCID is provided.
+[.small]#*The components marked by one asterisk are created when an AWS KMS key ID is provided. +
+**The components marked by two asterisks are created when no VPCID is provided.#

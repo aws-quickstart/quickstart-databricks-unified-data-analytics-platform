@@ -2,4 +2,4 @@
 
 This Quick Start provides the following deployment option:
 
-* Create a new multi-workspace environment in an AWS account
+* Deploy into a new VPC
