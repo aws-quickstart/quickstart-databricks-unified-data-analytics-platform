@@ -22,5 +22,5 @@ As shown in <<architecture1>>, this deployment sets up the following in your AWS
 
 The Databricks-managed VPC in the Databricks AWS account connects securely to the VPC in your AWS account.
 
-*The components marked by one asterisk are created when an AWS KMS key ID is provided.
-**The components marked by two asterisks are created when no VPCID is provided.
+[.small]#*The components marked by one asterisk are created when an AWS KMS key ID is provided. +
+**The components marked by two asterisks are created when no VPCID is provided.#
