@@ -7,7 +7,7 @@ Metadata:
     - Multiworkspace
     - multiworkspace
   QuickStartDocumentation:
-    EntrypointName: "Parameters for launching a multiworkspace environment"
+    EntrypointName: "Parameters for launching into an existing VPC"
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
