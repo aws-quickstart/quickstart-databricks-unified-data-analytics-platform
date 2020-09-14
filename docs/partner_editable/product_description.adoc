@@ -21,8 +21,8 @@ The Databricks platform follows best practices for securing network access to cl
 
 [#networkflow]
 .AWS network flow with Databricks
-[link=images/network-flow.png]
-image::../images/network-flow.png[Network Flow,width=100%,height=100%]
+[link=images/network_flow.png]
+image::../images/network_flow.png[Network Flow,width=100%,height=100%]
 
 The AWS network flow with Databricks, as shown in <<networkflow>>, includes the following:
 

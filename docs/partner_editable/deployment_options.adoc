@@ -1,5 +1,8 @@
 // There are generally two deployment options. If additional are required, add them here
 
-This Quick Start provides the following deployment option:
+This Quick Start provides the following two deployment options:
 
-* Deploy into a new VPC
+* Deploy a Databricks workspace and create a *new* cross-account IAM role. You must have sufficient permissions to create a new IAM role.
+
+* Deploy a Databricks workspace using an existing *cross-account IAM role* - Databricks needs access to a cross-account service IAM role in your AWS account to deploy clusters in the appropriate VPC for the new workspace. You can create an appropriate role and policy for your deployment type by follwoing these https://docs.databricks.com/administration-guide/account-api/iam-role.html[steps]. With this deployment option, You will also need an additional IAM role with the AWSLambdaBasicExecutionRole policy.  
+
