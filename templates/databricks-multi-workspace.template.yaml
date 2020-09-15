@@ -3,11 +3,8 @@ Description: >-
   This template creates resources for a Databricks workspace in your AWS account using the Account API. The Account API is required if you want to use the following optional features: customer-managed VPCs and customer-managed keys for notebooks. Contact your Databricks representative to determine the availability of these features for your subscription and deployment type. (qs-1r0odiedc)
   
 Metadata:
-  LintSpellExclude:
-    - Multiworkspace
-    - multiworkspace
   QuickStartDocumentation:
-  EntrypointName: "Parameters for creating a workspace"
+    EntrypointName: "Parameters for creating a workspace"
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -347,7 +344,7 @@ Resources:
                   - 'ec2:DescribeInstanceStatus'
                   - 'ec2:DescribeInstances'
                   - 'ec2:DescribeInternetGateways'
-                  - 'ec2:DescribeNatGateway'
+                  - 'ec2:DescribeNatGateways'
                   - 'ec2:DescribePlacementGroups'
                   - 'ec2:DescribePrefixLists'
                   - 'ec2:DescribeReservedInstancesOfferings'
@@ -692,7 +689,7 @@ Resources:
           - - !Ref 'Username'
             - !Ref 'Password'
       network_id: !If [CustomerManagedVPC, !GetAtt 'createNetworks.NetworkId', '']
-      customer_managed_key_id: !If [IsKMSKeyProvided, !GetAtt 'createCredentials.CredentialsId', '']
+      customer_managed_key_id: !If [IsKMSKeyProvided, !GetAtt 'createCustomerManagedKey.CustomerManagedKeyId', '']
       pricing_tier: !Ref PricingTier
   
   databricksApiFunction:
