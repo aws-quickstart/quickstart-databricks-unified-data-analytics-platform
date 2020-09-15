@@ -24,13 +24,13 @@ Metadata:
           - IAMRole
           - BucketName    
       - Label:
-          default: "Optional, customer-managed key configuration for notebooks (Enterprise tier)"
+          default: "Customer-managed key configuration for notebooks (Enterprise tier, optional)"
         Parameters:
           - KeyArn
           - KeyAlias  
           - KeyRegion
       - Label:
-          default: "Optional, customer-managed VPC configuration (Premium tier)"
+          default: "Customer-managed VPC configuration (Premium tier, optional)"
         Parameters:
           - VPCID
           - SubnetIDs
@@ -266,14 +266,14 @@ Rules:
       AssertDescription: KeyRegion is required when the KeyArn is provided.
 
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
-# This rule must be UNCOMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
+# This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
 
-#  AWSQuickStartGitParametersSettings:
-#    Assertions:    
-#    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
-#      AssertDescription: The QSS3BucketName must be set to aws-quickstart.  
-#    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
-#      AssertDescription: The QSS3KeyPrefix must be set to quickstart-databricks-unified-data-analytics-platform/.
+  AWSQuickStartGitParametersSettings:
+    Assertions:    
+    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
+      AssertDescription: The QSS3BucketName must be set to aws-quickstart.  
+    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
+      AssertDescription: The QSS3KeyPrefix must be set to quickstart-databricks-unified-data-analytics-platform/.
         
 Resources:
   # Cross-account access role for Databricks-created and -managed VPC

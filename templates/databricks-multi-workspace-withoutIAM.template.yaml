@@ -25,13 +25,13 @@ Metadata:
           - IAMArnLambda
           - BucketName    
       - Label:
-          default: "Optional, customer-managed key configuration for notebooks (Enterprise Tier)"
+          default: "Customer-managed key configuration for notebooks (Enterprise Tier, optional)"
         Parameters:
           - KeyArn
           - KeyAlias  
           - KeyRegion
       - Label:
-          default: "Optional, customer-managed VPC configuration (Premium Tier)"
+          default: "Customer-managed VPC configuration (Premium Tier, optional)"
         Parameters:
           - VPCID
           - SubnetIDs
@@ -261,12 +261,12 @@ Rules:
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
 
-#  AWSQuickStartGitParametersSettings:
-#    Assertions:    
-#    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
-#      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
-#    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
-#      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
+  AWSQuickStartGitParametersSettings:
+    Assertions:    
+    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
+      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
+    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
+      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
         
 Resources:
   

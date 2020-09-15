@@ -1,7 +1,7 @@
 
 For Databricks cost estimates, see the Databricks https://databricks.com/product/aws-pricing[pricing^] page for product tiers and features.
 
-To launch the Quick Start, you need ll the following:
+To launch the Quick Start, you need the following:
 
 * An AWS account.
 * A Databricks account ID. Please https://databricks.com/company/contact[contact] your Databricks representative to sign up, if necessary. 
