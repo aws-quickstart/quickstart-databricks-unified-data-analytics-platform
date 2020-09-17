@@ -4,7 +4,7 @@ Description: >-
   
 Metadata:
   QuickStartDocumentation:
-    EntrypointName: "Parameters for creating a workspace"
+    EntrypointName: "Parameters for deploying a workspace and using an existing cross-account IAM role"
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
