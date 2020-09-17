@@ -22,7 +22,6 @@ def handler(event, context):
     responseData = {}
 
     try:
-        version = '1.0.0'
         # Do no do anything if requestType is DELETE
         if event['RequestType'] == 'Create':            
 
@@ -76,12 +75,15 @@ def handler(event, context):
                                     event['ResourceProperties']['storage_config_id'],
                                     event['ResourceProperties']['encodedbase64'],
                                     event['ResourceProperties']['network_id'],
-                                    event['ResourceProperties']['no_public_ip']
+                                    event['ResourceProperties']['customer_managed_key_id'],
+                                    event['ResourceProperties']['pricing_tier']
                                 )
                 responseData['WorkspaceId'] = post_result['workspace_id']
                 responseData['WorkspaceStatus'] = post_result['workspace_status']
                 responseData['WorkspaceStatusMsg'] = post_result['workspace_status_message']
-        
+                responseData['DeploymentName'] = post_result['deployment_name']
+                responseData['PricingTier'] = post_result['pricing_tier']
+
         else:
             logging.debug('RequestType - {}'.format(event['RequestType']))
         
@@ -99,6 +101,7 @@ def handler(event, context):
 # POST - create customer managed key 
 def create_customer_managed_key(account_id, key_arn, key_alias, key_region, encodedbase64):
 
+    version = '1.0.0'
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/customer-managed-keys"
     
@@ -111,7 +114,7 @@ def create_customer_managed_key(account_id, key_arn, key_alias, key_region, enco
         }
     }
 
-    response = post_request(URL, DATA, encodedbase64)
+    response = post_request(URL, DATA, encodedbase64, version)
     print(response)
     
     # parse response
@@ -122,6 +125,7 @@ def create_customer_managed_key(account_id, key_arn, key_alias, key_region, enco
 # POST - create credentials
 def create_credentials(account_id, credentials_name, role_arn, encodedbase64):
 
+    version = '1.0.0' 
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/credentials"
     
@@ -135,7 +139,7 @@ def create_credentials(account_id, credentials_name, role_arn, encodedbase64):
         }
     }
 
-    response = post_request(URL, DATA, encodedbase64)
+    response = post_request(URL, DATA, encodedbase64, version)
     print(response)
     
     # parse response
@@ -146,6 +150,8 @@ def create_credentials(account_id, credentials_name, role_arn, encodedbase64):
 
 # POST - create storage configuration
 def create_storage_configurations(account_id, storage_config_name, s3bucket_name, encodedbase64):
+    
+    version = '1.0.0'
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/storage-configurations"
     
@@ -157,7 +163,7 @@ def create_storage_configurations(account_id, storage_config_name, s3bucket_name
         }
     }
 
-    response = post_request(URL, DATA, encodedbase64)
+    response = post_request(URL, DATA, encodedbase64, version)
     print(response)
     
     # parse response
@@ -167,6 +173,8 @@ def create_storage_configurations(account_id, storage_config_name, s3bucket_name
 
 # POST - create network
 def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group_ids, encodedbase64):
+    
+    version = '1.0.0'
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/networks"
 
@@ -178,7 +186,7 @@ def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group
         "security_group_ids": [id.strip() for id in security_group_ids.split(",")]
     }
 
-    response = post_request(URL, DATA, encodedbase64)
+    response = post_request(URL, DATA, encodedbase64, version)
     print(response)
 
     # parse response
@@ -187,7 +195,9 @@ def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group
     return response
 
 # POST - create workspace
-def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, encodedbase64, network_id, no_public_ip):
+def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, encodedbase64, network_id, customer_managed_key_id, pricing_tier):
+    
+    version = '1.0.0'
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/workspaces"
     
@@ -197,46 +207,58 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
         "deployment_name": deployment_name, 
         "aws_region": aws_region, 
         "credentials_id": credentials_id, 
-        "storage_configuration_id": storage_config_id
+        "storage_configuration_id": storage_config_id,
+        "pricing_tier": pricing_tier
     }
 
     NETWORKDATA = {
-        "network_id": network_id,
-        "is_no_public_ip_enabled": no_public_ip
+        "network_id": network_id
     }
 
-    # Add network_id & is_no_public_is_enabled to the request object when the netword_id is provided
+    MANAGEDKEYDATA = {
+        "customer_managed_key_id": customer_managed_key_id
+    }
+
+    # Add network_id to the request object when provided
     if network_id != '':
         DATA.update(NETWORKDATA)
 
-    response = post_request(URL, DATA, encodedbase64)
+    # Add customer_managed__key_id to the request object when provided
+    if customer_managed_key_id != '':
+        DATA.update(MANAGEDKEYDATA)
+
+    response = post_request(URL, DATA, encodedbase64, version)
     print(response)
     # parse the workspace_id from the response
     workspace_id = response['workspace_id']
     workspace_status = response['workspace_status']
+    deployment_name = response['deployment_name']
+    pricing_tier = response['pricing_tier']
 
     while workspace_status == 'PROVISIONING':
         time.sleep(5)
         response = get_workspace(account_id, workspace_id, encodedbase64)
-        print(response)
         workspace_status = response['workspace_status']
         workspace_status_message = response['workspace_status_message'] 
         print('workspace_id - {}, status - {}, message - {}'.format(workspace_id, workspace_status, workspace_status_message))
     
+    print(response)
     return response
   
 # GET - get workspace
 def get_workspace(account_id, workspace_id, encodedbase64):
+    
+    version = '1.0.0'
     # api-endpoint
     workspace_identifier = str(workspace_id)
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/workspaces/"+workspace_identifier
 
-    response = get_request(URL, encodedbase64)
+    response = get_request(URL, encodedbase64, version)
     
     return response
 
 # POST request function
-def post_request(url, json_data, encodedbase64):
+def post_request(url, json_data, encodedbase64, version):
     # sending post request and saving the response as response object
     resp = requests.post(url, json=json_data, headers={"Authorization": "Basic %s" % encodedbase64, "User-Agent": "databricks-CloudFormation-provider/ %s" % version})
     
@@ -250,7 +272,7 @@ def post_request(url, json_data, encodedbase64):
     return data
 
 # GET request function
-def get_request(url, encodedbase64):
+def get_request(url, encodedbase64, version):
     # sending get request and saving the response as response object 
     resp = requests.get(url = url, headers={"Authorization": "Basic %s" % encodedbase64, "User-Agent": "databricks-CloudFormation-provider/ %s" % version}) 
     

@@ -21,8 +21,8 @@ The Databricks platform follows best practices for securing network access to cl
 
 [#networkflow]
 .AWS network flow with Databricks
-[link=images/network-flow.png]
-image::../images/network-flow.png[Network Flow,width=100%,height=100%]
+[link=images/network_flow.png]
+image::../images/network_flow.png[Network Flow,width=100%,height=100%]
 
 The AWS network flow with Databricks, as shown in <<networkflow>>, includes the following:
 
@@ -57,12 +57,11 @@ IMPORTANT: The DBFS root storage is available for nonproduction customer data, s
 
 The data plane uses the AWS Security Token Service (AWS STS) to manage DBFS credentials to Amazon S3.
 
-=== Multiworkspace environment configurations
+=== Workspace configurations
 
-This Quick Start provides the following three configuration options:
+For both deployment options, this Quick Start creates one of the following configurations:
 
-* Create a multiworkspace environment configured with a Databricks-managed VPC.
-* Create a multiworkspace environment configured with a Databricks-managed VPC with an optional customer-managed key for notebooks. 
-* Create a multiworkspace environment configured with an optional customer-managed key for notebooks and an optional existing customer-managed VPC.
+* A workspace configured with a Databricks-managed VPC.
+* A workspace configured with a Databricks-managed VPC with an optional customer-managed key for notebooks. 
+* A workspace configured with a customer-managed VPC with an optional customer-managed key for notebooks.
 
-The Quick Start provides different parameters in the main template for these options.
