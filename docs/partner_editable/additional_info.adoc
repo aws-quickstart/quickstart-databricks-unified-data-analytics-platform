@@ -1,11 +1,11 @@
 [start=10]
-<<cfn_outputs>> shows the outputs when deploying multiple workspaces configured with a Databricks-managed VPC with an optional customer-managed key for notebooks.
+<<cfn_outputs>> shows the outputs when deploying a workspace configured with a Databricks-managed VPC with an optional customer-managed key for notebooks.
 
-<<cfn_outputs_cmvpc>> shows the outputs when deploying multiple workspaces configured with a customer-managed VPC with an optional customer-managed key for notebooks.
+<<cfn_outputs_cmvpc>> shows the outputs when deploying a workspace configured with a customer-managed VPC with an optional customer-managed key for notebooks.
 
 :xrefstyle: short
 [#cfn_outputs_cmvpc]
-.{partner-product-name} multiworkspace environment with customer-managed VPC outputs after successful deployment
+.Outputs from a {partner-product-name} workspace configured with a customer-managed VPC after successful deployment
 image::../images/databricks-cmanaged-outputs.png[cfn_outputs,width=648,height=439]
 
 // Add steps as necessary for accessing the software, post-configuration, and testing. Don’t include full usage instructions for your software, but add links to your product documentation for that information.
