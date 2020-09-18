@@ -13,7 +13,7 @@ As shown in <<architecture1>>, this deployment sets up the following, which cons
 * A highly available architecture that spans at least three Availability Zones.
 * A Databricks-managed or customer-managed virtual private cloud (VPC) in the customer's AWS account. This VPC is configured with private subnets and a public subnet, according to AWS best practices, to provide you with your own virtual network on AWS.
 * In the private subnets:
-** Databricks clusters of Amazon Elastic Compute Cloud (Amazon EC2) instances. This Quick Start deploys one workspace and sets up the environment for deploying more workspaces in the future.
+** Databricks clusters of Amazon Elastic Compute Cloud (Amazon EC2) instances. 
 ** One or more security groups to enable secure cluster connectivity.
 * In the public subnet:
 ** A network address translation (NAT) gateway to allow outbound internet access.
