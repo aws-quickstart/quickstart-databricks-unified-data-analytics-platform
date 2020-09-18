@@ -18,7 +18,7 @@ As shown in <<architecture1>>, this deployment sets up the following in your AWS
 * In the public subnet:
 ** A network address translation (NAT) gateway to allow outbound internet access.
 * Amazon CloudWatch for the Databricks workspace instance logs.
-* If you provide one, a customer-managed AWS Key Management Service (AWS KMS) key to encrypt notebooks.
+* (Optional) A customer-managed AWS Key Management Service (AWS KMS) key to encrypt notebooks.
 * An Amazon Simple Storage Service (Amazon S3) bucket to store objects such as cluster logs, notebook revisions, and job results.
 * AWS Security Token Service (AWS STS) to enable you to request temporary, limited-privilege credentials for users to authenticate.
 * A VPC endpoint for access to S3 artifacts and logs.
