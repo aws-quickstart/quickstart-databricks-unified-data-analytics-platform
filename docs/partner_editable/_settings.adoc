@@ -1,7 +1,7 @@
 :quickstart-project-name: quickstart-databricks-unified-data-analytics-platform
 :partner-product-name: Databricks
 :partner-company-name: Databricks
-:doc-month: August
+:doc-month: September
 :doc-year: 2020
 :partner-contributors: Denis Dubeau, {partner-company-name}
 :quickstart-contributors: Shivansh Singh, AWS Quick Start team
