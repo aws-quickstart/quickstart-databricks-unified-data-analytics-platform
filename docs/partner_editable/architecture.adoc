@@ -8,19 +8,19 @@
 [link=images/architecture_diagram.png]
 image::../images/architecture_diagram.png[Architecture1,width=100%,height=100%]
 
-As shown in <<architecture1>>, this deployment sets up the following in your AWS account:
+As shown in <<architecture1>>, this deployment sets up the following, which constitutes the Databricks workspace in your AWS account:
 
 * A highly available architecture that spans at least three Availability Zones.
 * A Databricks-managed or customer-managed virtual private cloud (VPC) in the customer's AWS account. This VPC is configured with private subnets and a public subnet, according to AWS best practices, to provide you with your own virtual network on AWS.
 * In the private subnets:
-** Databricks clusters of Amazon Elastic Compute Cloud (Amazon EC2) instances. This Quick Start deploys one workspace and sets up the environment for deploying more workspaces in the future.
+** Databricks clusters of Amazon Elastic Compute Cloud (Amazon EC2) instances. 
 ** One or more security groups to enable secure cluster connectivity.
 * In the public subnet:
 ** A network address translation (NAT) gateway to allow outbound internet access.
 * Amazon CloudWatch for the Databricks workspace instance logs.
-* If you provide one, a customer-managed AWS Key Management Service (AWS KMS) key to encrypt notebooks.
+* (Optional) A customer-managed AWS Key Management Service (AWS KMS) key to encrypt notebooks.
 * An Amazon Simple Storage Service (Amazon S3) bucket to store objects such as cluster logs, notebook revisions, and job results.
 * AWS Security Token Service (AWS STS) to enable you to request temporary, limited-privilege credentials for users to authenticate.
 * A VPC endpoint for access to S3 artifacts and logs.
-* A cross-account AWS Identity and Access Management (IAM) role to enable Databricks to deploy clusters in the VPC for the new workspaces. Depending on the deployment option you choose, you either create this IAM role during deployment or use an existing IAM role.
+* A cross-account AWS Identity and Access Management (IAM) role to enable Databricks to deploy clusters in the VPC for the new workspace. Depending on the deployment option you choose, you either create this IAM role during deployment or use an existing IAM role.
 
