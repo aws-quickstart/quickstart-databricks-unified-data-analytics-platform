@@ -8,7 +8,7 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: "Workspace core parameters"
+          default: "Workspace configuration"
         Parameters:
           - TagValue
           - AccountId
