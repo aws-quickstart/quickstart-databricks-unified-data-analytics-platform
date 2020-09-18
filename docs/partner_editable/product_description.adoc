@@ -3,7 +3,7 @@
 // Include the benefits of using the software on AWS, and provide details on usage scenarios.
 :xrefstyle: short
 
-Using the Databricks platform, cross-functional teams can collaborate securely. You can stay focused on your data science, data analytics, and data engineering tasks while Databricks manages many of the backend services. 
+The Databricks platform helps cross-functional teams communicate securely. You can stay focused on your data science, data analytics, and data engineering tasks while Databricks manages many of the backend services. 
 
 All Databricks architectures have two planes:
 
