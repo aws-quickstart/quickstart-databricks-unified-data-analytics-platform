@@ -8,7 +8,7 @@
 [link=images/architecture_diagram.png]
 image::../images/architecture_diagram.png[Architecture1,width=100%,height=100%]
 
-As shown in <<architecture1>>, this deployment sets up the following in your AWS account:
+As shown in <<architecture1>>, this deployment sets up the following, which constitutes the Databricks workspace in your AWS account:
 
 * A highly available architecture that spans at least three Availability Zones.
 * A Databricks-managed or customer-managed virtual private cloud (VPC) in the customer's AWS account. This VPC is configured with private subnets and a public subnet, according to AWS best practices, to provide you with your own virtual network on AWS.
