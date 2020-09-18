@@ -22,5 +22,5 @@ As shown in <<architecture1>>, this deployment sets up the following, which cons
 * An Amazon Simple Storage Service (Amazon S3) bucket to store objects such as cluster logs, notebook revisions, and job results.
 * AWS Security Token Service (AWS STS) to enable you to request temporary, limited-privilege credentials for users to authenticate.
 * A VPC endpoint for access to S3 artifacts and logs.
-* A cross-account AWS Identity and Access Management (IAM) role to enable Databricks to deploy clusters in the VPC for the new workspaces. Depending on the deployment option you choose, you either create this IAM role during deployment or use an existing IAM role.
+* A cross-account AWS Identity and Access Management (IAM) role to enable Databricks to deploy clusters in the VPC for the new workspace. Depending on the deployment option you choose, you either create this IAM role during deployment or use an existing IAM role.
 
