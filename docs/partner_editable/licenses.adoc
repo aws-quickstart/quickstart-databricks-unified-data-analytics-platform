@@ -12,4 +12,4 @@ Determine if your workspace will enable the following features, which require th
 
 * https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html[Customer-managed VPC^]. Provide your own Amazon VPC.
 * https://docs.databricks.com/security/secure-cluster-connectivity.html[Secure-cluster connectivity^]. Network architecture with no VPC open ports and no Databricks runtime worker public IP addresses. In some APIs, this is referred to as No Public IP or NPIP.
-* https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html[Customer managed keys for notebooks^] (private preview). Provide AWS Key Management Service (AWS KMS) keys to encrypt notebooks in the Databricks managed control plane.
+* https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html[Customer-managed keys for notebooks^] (private preview). Provide AWS Key Management Service (AWS KMS) keys to encrypt notebooks in the Databricks managed control plane.
