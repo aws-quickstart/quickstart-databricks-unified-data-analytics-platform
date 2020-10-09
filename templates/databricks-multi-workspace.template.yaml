@@ -12,7 +12,6 @@ Metadata:
         Parameters:
           - TagValue
           - AccountId
-          - AWSAccountId 
           - AWSRegion
           - PricingTier
           - DeploymentName
@@ -43,8 +42,6 @@ Metadata:
     ParameterLabels:
       AccountId:
         default: Databricks account ID
-      AWSAccountId:
-        default: AWS account ID
       AWSRegion:
         default: AWS Region of the Databricks workspace
       PricingTier:
@@ -130,17 +127,11 @@ Outputs:
 
 Parameters:
   AccountId:
-    Description: "Your account must be on the E2 version of the platform. See https://docs.databricks.com/getting-started/overview.html#e2-architecture." 
-    MinLength: '32'
+    Description: "Your account must be on the E2 version of the platform. For additional information, please refer to https://docs.databricks.com/getting-started/overview.html#e2-architecture." 
+    AllowedPattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$'
+    MinLength: '36'
     Type: String
-    Default: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee 
-  AWSAccountId:
-    Description: "This must be a 12-digit number."
-    AllowedPattern: '^\d{12}$'
-    ConstraintDescription: Must be a valid 12-digit number
-    MinLength: '12'
-    Type: String
-    Default: 111111111111
+    Default: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
   AWSRegion:
     Description: "AWS Region where the workspace will be created. Customer-managed keys to encrypt notebooks are not supported in Region us-west-1."
     MinLength: '9'
@@ -154,7 +145,7 @@ Parameters:
        - us-west-2
     Type: String
   PricingTier:
-    Description: "Choose a pricing tier. If you keep this box blank, the API will default to the highest tier available to your account. See https://databricks.com/product/aws-pricing."
+    Description: "If you do not provide this, the API will default to the highest pricing tier available to your account. See https://databricks.com/product/aws-pricing for available pricing tier information."
     AllowedValues:
        - STANDARD
        - PREMIUM 
@@ -163,9 +154,9 @@ Parameters:
     Type: String
     Default: ''      
   DeploymentName:
-    Description: "(Optional but recommended) Unique name that defines part of the workspace subdomain, such as <workspace-deployment-name>.cloud.databricks.com. Hyphens (-) are allowed but not as the first or last character. If your account has a deployment name prefix, the prefix (followed by a hyphen) is added before the deployment name. If your account has a deployment name prefix and you set DeploymentName to the reserved keyword EMPTY, DeploymentName is replaced by your account prefix. See https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-create-the-workspace."
-    AllowedPattern: '^(([a-z0-9][a-z0-9-]*[a-z0-9])|([a-z0-9]))|(EMPTY)$'
-    ConstraintDescription: You must specify a valid subdomain for the workspace or the reserved word EMPTY.
+    Description: "Choose your deployment_name value carefully. The deployment name defines part of the subdomain for the workspace, such as <workspace-deployment-name>.cloud.databricks.com. Hyphens are allowed but not the first or last character. If your account has a deployment name prefix, the prefix is added before the deployment name separated by a hyphen. For more examples, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-create-the-workspace. This value must be unique across all non-deleted deployments across all AWS regions."
+    AllowedPattern: '^(([a-z0-9][a-z0-9-]*[a-z0-9])|([a-z0-9]))$'
+    ConstraintDescription: You must specify a valid subdomain for the workspace.
     Type: String 
   Username:
     Description: "Your account email address, which is used for REST API authentication as your user name. This is case-sensitive. Use the same capitalization as when you sent it to your Databricks representative."
@@ -184,13 +175,12 @@ Parameters:
     Type: String
     MinLength: '1'
     MaxLength: '64'
-    Default: 'rolename'  
   BucketName:
     Description: "Name of your new S3 root bucket. Use only alphanumeric characters. For naming rules, see https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html."
     AllowedPattern: '(?=^.{3,63}$)(?!xn--)([a-z0-9](?:[a-z0-9-]*)[a-z0-9])$'
     MinLength: '3'
     MaxLength: '63'
-    Type: String  
+    Type: String
     ConstraintDescription: The Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
   KeyArn:
     Description: "(Optional) AWS KMS key ARN to encrypt and decrypt the workspace notebooks in the control plane. Set only if using the feature customer-managed key for notebooks. See https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html."
@@ -264,6 +254,12 @@ Rules:
       AssertDescription: KeyAlias is required when the KeyArn is provided.
     - Assert: !Not [!Equals ['', !Ref KeyRegion ]]
       AssertDescription: KeyRegion is required when the KeyArn is provided.
+
+# Validate the selected Region from the drop-down matches the Region from the Console
+  RunningTemplateFromDifferentRegionThanDropDown:
+    Assertions:
+    - Assert: !Equals [!Ref AWSRegion, !Ref AWS::Region]
+      AssertDescription: The region from the AWS Management Console MUST be the same as the selected region from the drop-down.
 
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
@@ -383,10 +379,7 @@ Resources:
       Tags:
         -
           Key: Name
-          Value: !Join
-                  - '_'
-                  - - !Ref TagValue
-                    - !Sub '${AWS::StackName}-IAMRole'
+          Value: !Sub '${TagValue}-IAMRole'
   
   # Cross-account access role for customer-managed VPC
   accessRoleCustomerManagedVPC:
@@ -451,7 +444,7 @@ Resources:
                   - 'ec2:DisassociateIamInstanceProfile'
                   - 'ec2:ReplaceIamInstanceProfileAssociation'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:instance/* 
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:instance/* 
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'
@@ -460,8 +453,8 @@ Resources:
                 Action:
                   - 'ec2:RunInstances'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:volume/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:instance/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:instance/*
                 Condition:
                   StringEquals:
                     'aws:RequestTag/Vendor': 'Databricks' 
@@ -470,7 +463,7 @@ Resources:
                 Action:
                   - 'ec2:RunInstances'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:image/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:image/*
                 Condition:
                   StringEquals:
                     'aws:ResourceTag/Vendor': 'Databricks'
@@ -479,29 +472,29 @@ Resources:
                 Action:
                   - 'ec2:RunInstances'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:network-interface/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:subnet/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:security-group/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:network-interface/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:subnet/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:security-group/*
                 Condition:
                   StringEquals:
-                    'ec2:vpc' : !Sub 'arn:aws:ec2:${AWSRegion}:${AWSAccountId}:vpc/${VPCID}'
+                    'ec2:vpc' : !Sub 'arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${VPCID}'
               - Sid: AllowEc2RunInstanceOtherResources
                 Effect: Allow
                 Action:
                   - 'ec2:RunInstances'
                 NotResource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:image/* 
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:network-interface/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:subnet/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:security-group/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:volume/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:instance/*     
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:image/* 
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:network-interface/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:subnet/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:security-group/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:instance/*     
               - Sid: EC2TerminateInstancesTag
                 Effect: Allow
                 Action:
                   - 'ec2:TerminateInstances'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:instance/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:instance/*
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'         
@@ -511,8 +504,8 @@ Resources:
                   - 'ec2:AttachVolume'
                   - 'ec2:DetachVolume'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:instance/* 
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:volume/*
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:instance/* 
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'  
@@ -521,7 +514,7 @@ Resources:
                 Action:
                   - 'ec2:CreateVolume'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:volume/* 
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:volume/* 
                 Condition:
                   StringEquals:
                     'aws:RequestTag/Vendor': 'Databricks'   
@@ -530,7 +523,7 @@ Resources:
                 Action:
                   - 'ec2:DeleteVolume'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:volume/* 
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:volume/* 
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'  
@@ -551,19 +544,16 @@ Resources:
                   - 'ec2:RevokeSecurityGroupEgress'
                   - 'ec2:RevokeSecurityGroupIngress'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWSAccountId}:security-group/${SecurityGroupIDs}
+                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:security-group/${SecurityGroupIDs}
                 Condition:
                   StringEquals:
-                    'ec2:vpc' : !Sub 'arn:aws:ec2:${AWSRegion}:${AWSAccountId}:vpc/${VPCID}'                                              
+                    'ec2:vpc' : !Sub 'arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${VPCID}'                                              
             Version: 2012-10-17
           PolicyName: databricks-cross-account-iam-role-policy
       Tags:
         -
           Key: Name
-          Value: !Join
-                  - '_'
-                  - - !Ref TagValue
-                    - !Sub '${AWS::StackName}-IAMRole'
+          Value: !Sub '${TagValue}-IAMRole'
 
   # S3 root bucket requirements
   assetsS3Bucket:
@@ -717,7 +707,11 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole       
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+        -
+          Key: Name
+          Value: !Sub '${TagValue}-IAMRole'       
 
   # Resources to stage lambda.zip file
   LambdaZipsBucket:
@@ -760,6 +754,10 @@ Resources:
                   - s3:DeleteObject
                 Resource:
                   - !Sub 'arn:aws:s3:::${LambdaZipsBucket}/${QSS3KeyPrefix}*'
+      Tags:
+        -
+          Key: Name
+          Value: !Sub '${TagValue}-IAMRole'            
 
   CopyZipsFunction:
     Type: AWS::Lambda::Function

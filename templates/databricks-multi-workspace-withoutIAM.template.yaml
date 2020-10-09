@@ -12,7 +12,6 @@ Metadata:
         Parameters:
           - TagValue
           - AccountId
-          - AWSAccountId 
           - AWSRegion
           - PricingTier
           - DeploymentName
@@ -44,8 +43,6 @@ Metadata:
     ParameterLabels:
       AccountId:
         default: Databricks account ID
-      AWSAccountId:
-        default: AWS account ID
       AWSRegion:
         default: AWS Region of the Databricks workspace
       PricingTier:
@@ -122,16 +119,10 @@ Outputs:
 Parameters:
   AccountId:
     Description: "Your account must be on the E2 version of the platform. See https://docs.databricks.com/getting-started/overview.html#e2-architecture."
-    MinLength: '32'
+    AllowedPattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$'
+    MinLength: '36'
     Type: String
-    Default: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee 
-  AWSAccountId:
-    Description: "This must be a 12-digit number."
-    AllowedPattern: '^\d{12}$'
-    ConstraintDescription: Must be a valid 12-digit number
-    MinLength: '12'
-    Type: String
-    Default: 111111111111
+    Default: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
   AWSRegion:
     Description: "AWS Region where the workspace will be created. Customer-managed keys to encrypt notebooks are not supported in Region us-west-1."
     AllowedValues:
@@ -144,7 +135,7 @@ Parameters:
        - us-west-2
     Type: String
   PricingTier:
-    Description: "Choose a pricing tier. If you keep this box blank, the API will default to the highest tier available to your account. See https://databricks.com/product/aws-pricing."
+    Description: "If you do not provide this, the API will default to the highest pricing tier available to your account. See https://databricks.com/product/aws-pricing for available pricing tier information."
     AllowedValues:
        - STANDARD
        - PREMIUM 
@@ -153,9 +144,9 @@ Parameters:
     Type: String   
     Default: ''  
   DeploymentName:
-    Description: "(Optional but recommended) Unique name that defines part of the workspace subdomain, such as <workspace-deployment-name>.cloud.databricks.com. Hyphens (-) are allowed but not as the first or last character. If your account has a deployment name prefix, the prefix (followed by a hyphen) is added before the deployment name. If your account has a deployment name prefix and you set DeploymentName to the reserved keyword EMPTY, DeploymentName is replaced by your account prefix. See https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-create-the-workspace."
-    AllowedPattern: '^(([a-z0-9][a-z0-9-]*[a-z0-9])|([a-z0-9]))|(EMPTY)$'
-    ConstraintDescription: You must specify a valid subdomain for the workspace or the reserved word EMPTY.
+    Description: "Choose your deployment_name value carefully. The deployment name defines part of the subdomain for the workspace, such as <workspace-deployment-name>.cloud.databricks.com. Hyphens are allowed but not the first or last character. If your account has a deployment name prefix, the prefix is added before the deployment name separated by a hyphen. For more examples, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-create-the-workspace. This value must be unique across all non-deleted deployments across all AWS regions."
+    AllowedPattern: '^(([a-z0-9][a-z0-9-]*[a-z0-9])|([a-z0-9]))$'
+    ConstraintDescription: You must specify a valid subdomain for the workspace.
     Type: String 
   Username:
     Description: "Your account email address, which is used for REST API authentication as your user name. This is case-sensitive. Use the same capitalization as when you sent it to your Databricks representative."
@@ -257,6 +248,12 @@ Rules:
       AssertDescription: KeyAlias is required when the KeyArn is provided
     - Assert: !Not [!Equals ['', !Ref KeyRegion ]]
       AssertDescription: KeyRegion is required when the KeyArn is provided
+
+# Validate the selected Region from drop-down matches the Region from the Console
+  RunningTemplateFromDifferentRegionThanDropDown:
+    Assertions:
+    - Assert: !Equals [!Ref AWSRegion, !Ref AWS::Region]
+      AssertDescription: The region from the AWS Management Console MUST be the same as the selected region from the drop-down.
 
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
