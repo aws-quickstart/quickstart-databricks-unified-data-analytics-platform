@@ -136,6 +136,8 @@ Parameters:
     Description: "AWS Region where the workspace will be created. Customer-managed keys to encrypt notebooks are not supported in Region us-west-1."
     MinLength: '9'
     AllowedValues:
+       - ap-south-1
+       - ap-southeast-2
        - ca-central-1
        - eu-central-1
        - eu-west-1
