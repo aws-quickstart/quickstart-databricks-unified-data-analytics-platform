@@ -5,3 +5,5 @@
 - ca-central-1 (Canada Central)
 - eu-central-1 (Frankfurt)
 - eu-west-1 (Ireland)
+- ap-south-1 (Mumbai)
+- ap-southeast-2 (Sydney)
