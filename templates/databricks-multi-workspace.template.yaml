@@ -136,6 +136,7 @@ Parameters:
     Description: "AWS Region where the workspace will be created. Customer-managed keys to encrypt notebooks are not supported in Region us-west-1."
     MinLength: '9'
     AllowedValues:
+       - ap-northeast-1
        - ap-south-1
        - ap-southeast-2
        - ca-central-1
@@ -266,12 +267,12 @@ Rules:
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
 
-  AWSQuickStartGitParametersSettings:
-    Assertions:    
-    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
-      AssertDescription: The QSS3BucketName must be set to aws-quickstart.  
-    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
-      AssertDescription: The QSS3KeyPrefix must be set to quickstart-databricks-unified-data-analytics-platform/.
+#  AWSQuickStartGitParametersSettings:
+#    Assertions:    
+#    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
+#      AssertDescription: The QSS3BucketName must be set to aws-quickstart.  
+#    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
+#      AssertDescription: The QSS3KeyPrefix must be set to quickstart-databricks-unified-data-analytics-platform/.
         
 Resources:
   # Cross-account access role for Databricks-created and -managed VPC
@@ -564,7 +565,7 @@ Resources:
       BucketName: !Ref BucketName
   bucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
-    Properties:
+    Properties:     
       PolicyDocument:
         Id: MyPolicy
         Version: 2012-10-17
