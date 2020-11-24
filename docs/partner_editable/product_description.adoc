@@ -44,7 +44,7 @@ If you use the customer-managed VPC feature, you can specify your own VPC in you
 
 === S3 bucket in the customer account
 
-During workspace creation, an Amazon Simple Storage Service (Amazon S3) bucket is created in the customer account with default encryption enbaled. It provides Databricks access to the managed S3 bucket with a cross-account AWS Identity and Access Management (IAM) role. IAM roles allow customers to access data from Databricks clusters without having to embed AWS keys in notebooks.
+During workspace creation, an Amazon Simple Storage Service (Amazon S3) bucket is created in the customer account with default encryption enabled. It provides Databricks access to the managed S3 bucket with a cross-account AWS Identity and Access Management (IAM) role. IAM roles allow customers to access data from Databricks clusters without having to embed AWS keys in notebooks.
 
 IMPORTANT: The customer is responsible for backing up, securing access to, and encrypting customer data in the S3 bucket. Databricks is not responsible for backups of this data or any other customer data and thus cannot give a copy of this data to customers if requested.
 
@@ -67,4 +67,3 @@ For both deployment options, this Quick Start creates one of the following confi
 * A workspace configured with a Databricks-managed VPC.
 * A workspace configured with a Databricks-managed VPC with an optional customer-managed key for notebooks. 
 * A workspace configured with a customer-managed VPC with an optional customer-managed key for notebooks.
-
