@@ -10,16 +10,17 @@ Metadata:
       - Label:
           default: "Workspace configuration"
         Parameters:
-          - TagValue
           - AccountId
-          - AWSRegion
-          - PricingTier
-          - DeploymentName
           - Username
           - Password
+          - PricingTier
+          - DeploymentName
+          - AWSRegion
+          - HIPAAparm
       - Label:
           default: "Required IAM role and S3 bucket configuration"  
         Parameters:
+          - TagValue
           - IAMRole
           - BucketName    
       - Label:
@@ -42,38 +43,40 @@ Metadata:
     ParameterLabels:
       AccountId:
         default: Databricks account ID
-      AWSRegion:
-        default: AWS Region of the Databricks workspace
-      PricingTier:
-        default: Pricing tier of the workspace  
-      DeploymentName:
-        default: Name of the new workspace deployment
       Username:
         default: Workspace account email address
       Password:
-        default: Workspace account password
+        default: Workspace account password  
+      PricingTier:
+        default: Pricing tier of the workspace
+      DeploymentName:
+        default: New workspace deployment name
+      AWSRegion:
+        default: AWS Region of the Databricks workspace   
+      HIPAAparm:
+        default: Are you creating this workspace in a HIPAA tier account?
+      TagValue:
+        default: IAM role tag value  
       IAMRole:
         default: Cross-account IAM role name
       BucketName:
-        default: Root S3 bucket name  
-      KeyArn:
-        default: ARN for customer-managed AWS KMS key
-      KeyAlias:
-        default: Alias name for customer-managed AWS KMS key
-      KeyRegion:
-        default: AWS Region for customer-managed AWS KMS key  
+        default: Root S3 bucket name   
       VPCID:
         default: VPC ID
       SubnetIDs:
         default: Private-subnet IDs
       SecurityGroupIDs:
         default: Security-group IDs
+      KeyArn:
+        default: ARN for customer-managed AWS KMS key
+      KeyAlias:
+        default: Alias name for customer-managed AWS KMS key
+      KeyRegion:
+        default: AWS Region for customer-managed AWS KMS key 
       QSS3BucketName:
         default: Quick Start S3 bucket name
       QSS3KeyPrefix:
         default: Quick Start S3 key prefix
-      TagValue:
-        default: Tag value used for all AWS resources
 
 Outputs:
   CustomerManagedVPCIAMRoleARN:
@@ -124,6 +127,9 @@ Outputs:
   PricingTier:
     Description: The pricing tier of the workspace. See https://databricks.com/product/aws-pricing.
     Value: !GetAtt createWorkspace.PricingTier
+  ClusterPolicyID:
+    Description: The cluster policy unique identifier   
+    Value: !GetAtt createWorkspace.ClusterPolicyId
 
 Parameters:
   AccountId:
@@ -132,6 +138,31 @@ Parameters:
     MinLength: '36'
     Type: String
     Default: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+  Username:
+    Description: "Your account email address, which is used for REST API authentication as your user name. This is case-sensitive. Use the same capitalization as when you sent it to your Databricks representative."
+    AllowedPattern: '^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$'
+    ConstraintDescription: Must be a valid email format.
+    MinLength: '8'
+    Type: String
+  Password:
+    Description: "Your account password, which is used for REST API authentication. This is case-sensitive. Minimum length is 8 characters."
+    MinLength: '8'
+    NoEcho: 'true'
+    Type: String  
+  PricingTier:
+    Description: "If you do not provide this, the API will default to the highest pricing tier available to your account. See https://databricks.com/product/aws-pricing for available pricing tier information."
+    AllowedValues:
+       - STANDARD
+       - PREMIUM 
+       - ENTERPRISE
+       - '' 
+    Type: String
+    Default: ''
+  DeploymentName:
+    Description: "Choose your deployment_name value carefully. The deployment name defines part of the subdomain for the workspace, such as <workspace-deployment-name>.cloud.databricks.com. Hyphens are allowed but not the first or last character. If your account has a deployment name prefix, the prefix is added before the deployment name separated by a hyphen. For more examples, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-create-the-workspace. This value must be unique across all non-deleted deployments across all AWS regions."
+    AllowedPattern: '^(([a-z0-9][a-z0-9-]*[a-z0-9])|([a-z0-9]))$'
+    ConstraintDescription: You must specify a valid subdomain for the workspace.
+    Type: String    
   AWSRegion:
     Description: "AWS Region where the workspace will be created. Customer-managed keys to encrypt notebooks are not supported in Region us-west-1."
     MinLength: '9'
@@ -147,31 +178,18 @@ Parameters:
        - us-west-1
        - us-west-2
     Type: String
-  PricingTier:
-    Description: "If you do not provide this, the API will default to the highest pricing tier available to your account. See https://databricks.com/product/aws-pricing for available pricing tier information."
+  HIPAAparm:
+    Description: "Answering 'Yes' will create a cluster template you should use to create clusters in the HIPAA account"
     AllowedValues:
-       - STANDARD
-       - PREMIUM 
-       - ENTERPRISE
-       - '' 
+       - 'Yes'
+       - 'No'
+    Default: 'No'
     Type: String
-    Default: ''      
-  DeploymentName:
-    Description: "Choose your deployment_name value carefully. The deployment name defines part of the subdomain for the workspace, such as <workspace-deployment-name>.cloud.databricks.com. Hyphens are allowed but not the first or last character. If your account has a deployment name prefix, the prefix is added before the deployment name separated by a hyphen. For more examples, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-create-the-workspace. This value must be unique across all non-deleted deployments across all AWS regions."
-    AllowedPattern: '^(([a-z0-9][a-z0-9-]*[a-z0-9])|([a-z0-9]))$'
-    ConstraintDescription: You must specify a valid subdomain for the workspace.
-    Type: String 
-  Username:
-    Description: "Your account email address, which is used for REST API authentication as your user name. This is case-sensitive. Use the same capitalization as when you sent it to your Databricks representative."
-    AllowedPattern: '^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$'
-    ConstraintDescription: Must be a valid email format.
-    MinLength: '8'
+  TagValue:
+    Description: "Enter a tag value to identify the IAM role created by this template. See https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html."
+    MinLength: '1'
     Type: String
-  Password:
-    Description: "Your account password, which is used for REST API authentication. This is case-sensitive. Minimum length is 8 characters."
-    MinLength: '8'
-    NoEcho: 'true'
-    Type: String
+    Default: databricks-quickstart-cloud-formation  
   IAMRole: 
     Description: "Specify a unique cross-account IAM role name. This name must not already exist. For naming rules, see https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateRole.html."
     AllowedPattern: '[\w+=,@-]+'
@@ -222,11 +240,6 @@ Parameters:
     AllowedPattern: '^[0-9a-zA-Z-/]*$'
     Type: String  
     Default: quickstart-databricks-unified-data-analytics-platform/
-  TagValue:
-    Description: "All new AWS objects get a tag with the key name. Enter a value for this tag so that you can identify all new AWS objects that this template creates. See https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html."
-    MinLength: '1'
-    Type: String
-    Default: databricks-quickstart-cloud-formation
   
 
 Conditions:
@@ -263,6 +276,13 @@ Rules:
     Assertions:
     - Assert: !Equals [!Ref AWSRegion, !Ref AWS::Region]
       AssertDescription: The region from the AWS Management Console MUST be the same as the selected region from the drop-down.
+      
+# HIPAA supported regions
+  SupportedHipaaRegions:
+    RuleCondition: !Equals [!Ref HIPAAparm, 'Yes']
+    Assertions:
+    - Assert: !Contains [['us-east-1', 'us-east-2', 'ca-central-1'], !Ref AWSRegion]
+      AssertDescription: Can only create a workspace for HIPAA tier accounts in the us-east-1, us-east-2 and ca-central-1 regions.      
 
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
@@ -270,9 +290,9 @@ Rules:
   AWSQuickStartGitParametersSettings:
     Assertions:    
     - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
-      AssertDescription: The QSS3BucketName must be set to aws-quickstart.  
+      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
     - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
-      AssertDescription: The QSS3KeyPrefix must be set to quickstart-databricks-unified-data-analytics-platform/.
+      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
         
 Resources:
   # Cross-account access role for Databricks-created and -managed VPC
@@ -584,7 +604,7 @@ Resources:
             Resource:
               - !Sub 'arn:aws:s3:::${assetsS3Bucket}/*'
               - !Sub 'arn:aws:s3:::${assetsS3Bucket}'
-      Bucket: !Ref assetsS3Bucket                  
+      Bucket: !Ref assetsS3Bucket                       
 
   # Databricks API for configuring notebook encryption with a customer-managed AWS KMS, if provided
   createCustomerManagedKey:
@@ -684,6 +704,7 @@ Resources:
       network_id: !If [CustomerManagedVPC, !GetAtt 'createNetworks.NetworkId', '']
       customer_managed_key_id: !If [IsKMSKeyProvided, !GetAtt 'createCustomerManagedKey.CustomerManagedKeyId', '']
       pricing_tier: !Ref PricingTier
+      hipaa_parm: !Ref HIPAAparm
   
   databricksApiFunction:
     DependsOn: CopyZips
@@ -710,11 +731,11 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole   
       Tags:
         -
           Key: Name
-          Value: !Sub '${TagValue}-IAMRole'       
+          Value: !Sub '${TagValue}-IAMRole'  
 
   # Resources to stage lambda.zip file
   LambdaZipsBucket:
@@ -756,11 +777,12 @@ Resources:
                   - s3:PutObject
                   - s3:DeleteObject
                 Resource:
-                  - !Sub 'arn:aws:s3:::${LambdaZipsBucket}/${QSS3KeyPrefix}*'
+                  - !Sub 'arn:aws:s3:::${LambdaZipsBucket}/${QSS3KeyPrefix}*' 
       Tags:
         -
           Key: Name
           Value: !Sub '${TagValue}-IAMRole'            
+
 
   CopyZipsFunction:
     Type: AWS::Lambda::Function
