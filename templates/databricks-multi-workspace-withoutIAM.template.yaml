@@ -260,7 +260,7 @@ Rules:
 # Validate the selected Region from drop-down matches the Region from the Console
   RunningTemplateFromDifferentRegionThanDropDown:
     Assertions:
-    - Assert: !Equals [!Ref AWSRegion, !Ref AWS::Region]
+    - Assert: !Equals [!Ref AWSRegion, !Ref 'AWS::Region']
       AssertDescription: The region from the AWS Management Console MUST be the same as the selected region from the drop-down.
 
 # HIPAA supported regions
@@ -274,7 +274,7 @@ Rules:
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
 
   AWSQuickStartGitParametersSettings:
-    Assertions:    
+    Assertions:
     - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
       AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
     - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
