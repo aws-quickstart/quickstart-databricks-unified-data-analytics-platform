@@ -2,10 +2,13 @@
 
 Databricks needs access to a cross-account IAM role in your AWS account to launch clusters into the VPC of the new workspace. This Quick Start provides the following two deployment options:
 
+IMPORTANT: Select Option 1 if you have the privilege to create an IAM role in your account, otherwise select option 2 which requires the setup of IAM roles prior to launch the deployment.
+
 * Deploy a Databricks workspace and create a *new* cross-account IAM role. You must have sufficient permissions to create a new IAM role.
 
 * Deploy a Databricks workspace and use an *existing* cross-account IAM role. You can create an appropriate role and policy for your deployment type by following these https://docs.databricks.com/administration-guide/account-api/iam-role.html[steps]. For this deployment option, you will need an additional IAM role with the AWSLambdaBasicExecutionRole policy as follow:
 
+`
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -21,4 +24,4 @@ Databricks needs access to a cross-account IAM role in your AWS account to launc
         }
     ]
 }
-
+`

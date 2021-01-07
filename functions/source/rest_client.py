@@ -76,13 +76,15 @@ def handler(event, context):
                                     event['ResourceProperties']['encodedbase64'],
                                     event['ResourceProperties']['network_id'],
                                     event['ResourceProperties']['customer_managed_key_id'],
-                                    event['ResourceProperties']['pricing_tier']
+                                    event['ResourceProperties']['pricing_tier'],
+                                    event['ResourceProperties']['hipaa_parm']
                                 )
                 responseData['WorkspaceId'] = post_result['workspace_id']
                 responseData['WorkspaceStatus'] = post_result['workspace_status']
                 responseData['WorkspaceStatusMsg'] = post_result['workspace_status_message']
                 responseData['DeploymentName'] = post_result['deployment_name']
                 responseData['PricingTier'] = post_result['pricing_tier']
+                responseData['ClusterPolicyId'] = post_result['policy_id']                    
 
         else:
             logging.debug('RequestType - {}'.format(event['RequestType']))
@@ -101,7 +103,7 @@ def handler(event, context):
 # POST - create customer managed key 
 def create_customer_managed_key(account_id, key_arn, key_alias, key_region, encodedbase64):
 
-    version = '1.0.0'
+    version = '1.1.0'
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/customer-managed-keys"
     
@@ -125,7 +127,7 @@ def create_customer_managed_key(account_id, key_arn, key_alias, key_region, enco
 # POST - create credentials
 def create_credentials(account_id, credentials_name, role_arn, encodedbase64):
 
-    version = '1.0.0' 
+    version = '1.1.0' 
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/credentials"
     
@@ -151,7 +153,7 @@ def create_credentials(account_id, credentials_name, role_arn, encodedbase64):
 # POST - create storage configuration
 def create_storage_configurations(account_id, storage_config_name, s3bucket_name, encodedbase64):
     
-    version = '1.0.0'
+    version = '1.1.0'
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/storage-configurations"
     
@@ -174,7 +176,7 @@ def create_storage_configurations(account_id, storage_config_name, s3bucket_name
 # POST - create network
 def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group_ids, encodedbase64):
     
-    version = '1.0.0'
+    version = '1.1.0'
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/networks"
 
@@ -195,9 +197,9 @@ def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group
     return response
 
 # POST - create workspace
-def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, encodedbase64, network_id, customer_managed_key_id, pricing_tier):
+def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, encodedbase64, network_id, customer_managed_key_id, pricing_tier, hipaa_parm):
     
-    version = '1.0.0'
+    version = '1.1.0'
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/workspaces"
     
@@ -229,7 +231,7 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
 
     response = post_request(URL, DATA, encodedbase64, version)
     print(response)
-    # parse the workspace_id from the response
+    # parse the workspace_id elements from the response
     workspace_id = response['workspace_id']
     workspace_status = response['workspace_status']
     deployment_name = response['deployment_name']
@@ -240,15 +242,41 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
         response = get_workspace(account_id, workspace_id, encodedbase64)
         workspace_status = response['workspace_status']
         workspace_status_message = response['workspace_status_message'] 
-        print('workspace_id - {}, status - {}, message - {}'.format(workspace_id, workspace_status, workspace_status_message))
-    
-    print(response)
+        print('workspace_id - {}, status - {}, message - {}'.format(workspace_id, workspace_status, workspace_status_message))  
+    print(response)        
+        
+    if workspace_status == 'RUNNING':
+        # api-endpoint
+        URL = "https://"+deployment_name+".cloud.databricks.com/api/2.0/policies/clusters/create"
+
+        # Json data
+        DATA = {
+            "name": "Default Cluster Policy (HIPAA) - Free form", 
+            "definition": "{\"node_type_id\":{\"type\":\"allowlist\",\"values\":[\"c5.xlarge\",\"c5.2xlarge\",\"c5.4xlarge\",\"c5.9xlarge\",\"c5.12xlarge\",\"c5.18xlarge\",\"c5.24xlarge\",\"c5d.xlarge\",\"c5d.2xlarge\",\"c5d.4xlarge\",\"c5d.9xlarge\",\"c5d.12xlarge\",\"c5d.18xlarge\",\"c5d.24xlarge\",\"m5.large\",\"m5.xlarge\",\"m5.2xlarge\",\"m5.4xlarge\",\"m5.8xlarge\",\"m5.12xlarge\",\"m5.16xlarge\",\"m5.24xlarge\",\"m5a.large\",\"m5a.xlarge\",\"m5a.2xlarge\",\"m5a.4xlarge\",\"m5a.8xlarge\",\"m5a.12xlarge\",\"m5a.16xlarge\",\"m5a.24xlarge\",\"m5d.large\",\"m5d.xlarge\",\"m5d.2xlarge\",\"m5d.4xlarge\",\"m5d.8xlarge\",\"m5d.12xlarge\",\"m5d.16xlarge\",\"m5d.24xlarge\",\"r5.large\",\"r5.xlarge\",\"r5.2xlarge\",\"r5.4xlarge\",\"r5.8xlarge\",\"r5.12xlarge\",\"r5.16xlarge\",\"r5.24xlarge\",\"r5a.large\",\"r5a.xlarge\",\"r5a.2xlarge\",\"r5a.4xlarge\",\"r5a.8xlarge\",\"r5a.12xlarge\",\"r5a.16xlarge\",\"r5a.24xlarge\",\"r5d.large\",\"r5d.xlarge\",\"r5d.2xlarge\",\"r5d.4xlarge\",\"r5d.8xlarge\",\"r5d.12xlarge\",\"r5d.16xlarge\",\"r5d.24xlarge\",\"z1d.large\",\"z1d.xlarge\",\"z1d.2xlarge\",\"z1d.3xlarge\",\"z1d.6xlarge\",\"z1d.12xlarge\"],\"defaultValue\":\"c5.xlarge\"},\"driver_node_type_id\":{\"type\":\"allowlist\",\"values\":[\"c5.xlarge\",\"c5.2xlarge\",\"c5.4xlarge\",\"c5.9xlarge\",\"c5.12xlarge\",\"c5.18xlarge\",\"c5.24xlarge\",\"c5d.xlarge\",\"c5d.4xlarge\",\"c5d.2xlarge\",\"c5d.4xlarge\",\"c5d.9xlarge\",\"c5d.12xlarge\",\"c5d.18xlarge\",\"c5d.24xlarge\",\"m5.large\",\"m5.xlarge\",\"m5.2xlarge\",\"m5.4xlarge\",\"m5.8xlarge\",\"m5.12xlarge\",\"m5.16xlarge\",\"m5.24xlarge\",\"m5a.large\",\"m5a.xlarge\",\"m5a.2xlarge\",\"m5a.4xlarge\",\"m5a.8xlarge\",\"m5a.12xlarge\",\"m5a.16xlarge\",\"m5a.24xlarge\",\"m5d.large\",\"m5d.xlarge\",\"m5d.2xlarge\",\"m5d.4xlarge\",\"m5d.8xlarge\",\"m5d.12xlarge\",\"m5d.16xlarge\",\"m5d.24xlarge\",\"r5.large\",\"r5.xlarge\",\"r5.2xlarge\",\"r5.4xlarge\",\"r5.8xlarge\",\"r5.12xlarge\",\"r5.16xlarge\",\"r5.24xlarge\",\"r5a.large\",\"r5a.xlarge\",\"r5a.2xlarge\",\"r5a.4xlarge\",\"r5a.8xlarge\",\"r5a.12xlarge\",\"r5a.16xlarge\",\"r5a.24xlarge\",\"r5d.large\",\"r5d.xlarge\",\"r5d.2xlarge\",\"r5d.4xlarge\",\"r5d.8xlarge\",\"r5d.12xlarge\",\"r5d.16xlarge\",\"r5d.24xlarge\",\"z1d.large\",\"z1d.xlarge\",\"z1d.2xlarge\",\"z1d.3xlarge\",\"z1d.6xlarge\",\"z1d.12xlarge\"],\"defaultValue\":\"c5.xlarge\"}}"
+        } 
+
+        print(DATA)    
+        response_policy = post_request(URL, DATA, encodedbase64, version)
+        print(response_policy)
+        # parse the policy_id element from the response
+        policy_id = response_policy['policy_id']
+       
+        response.update(response_policy)
+        print(response)
+    else:
+        cluster_policy_str = {
+            "policy_id": "Cluster Policy cannot be created because the workspace creation has FAILED!"
+            }  
+        response.update(cluster_policy_str)    
+        print(response)
+
     return response
-  
+    
+
 # GET - get workspace
 def get_workspace(account_id, workspace_id, encodedbase64):
     
-    version = '1.0.0'
+    version = '1.1.0'
     # api-endpoint
     workspace_identifier = str(workspace_id)
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/workspaces/"+workspace_identifier

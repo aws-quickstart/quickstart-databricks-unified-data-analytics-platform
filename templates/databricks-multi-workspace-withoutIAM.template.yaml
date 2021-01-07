@@ -10,31 +10,31 @@ Metadata:
       - Label:
           default: "Workspace configuration"
         Parameters:
-          - TagValue
           - AccountId
-          - AWSRegion
-          - PricingTier
-          - DeploymentName
           - Username
           - Password
+          - PricingTier
+          - DeploymentName
+          - AWSRegion
+          - HIPAAparm
       - Label:
           default: "Required IAM role and S3 bucket configuration"  
         Parameters:
           - IAMArn
           - IAMArnLambda
-          - BucketName    
-      - Label:
-          default: "(Optional) Customer-managed-key configuration for notebooks—requires the Enterprise tier"
-        Parameters:
-          - KeyArn
-          - KeyAlias  
-          - KeyRegion
+          - BucketName      
       - Label:
           default: "(Optional) Customer-managed VPC configuration—requires the Premium tier"
         Parameters:
           - VPCID
           - SubnetIDs
-          - SecurityGroupIDs
+          - SecurityGroupIDs   
+      - Label:
+          default: "(Optional) Customer-managed-key configuration for notebooks—requires the Enterprise tier"
+        Parameters:
+          - KeyArn
+          - KeyAlias  
+          - KeyRegion    
       - Label:
           default: "Quick Start configuration"
         Parameters:
@@ -43,40 +43,40 @@ Metadata:
     ParameterLabels:
       AccountId:
         default: Databricks account ID
-      AWSRegion:
-        default: AWS Region of the Databricks workspace
+      Username:
+        default: Workspace account email address
+      Password:
+        default: Workspace account password  
       PricingTier:
         default: Pricing tier of the workspace
       DeploymentName:
         default: New workspace deployment name
-      Username:
-        default: Workspace account email address
-      Password:
-        default: Workspace account password
+      AWSRegion:
+        default: AWS Region of the Databricks workspace   
+      HIPAAparm:
+        default: Are you creating this workspace in a HIPAA tier account?
       IAMArn:
         default: ARN of the existing cross-account IAM role
       IAMArnLambda:
         default: ARN of the existing IAM role with Lambda execution and S3 access permissions
       BucketName:
-        default: Root S3 bucket name  
-      KeyArn:
-        default: ARN for customer-managed AWS KMS key
-      KeyAlias:
-        default: Alias name for customer-managed AWS KMS key
-      KeyRegion:
-        default: AWS Region for customer-managed AWS KMS key
+        default: Root S3 bucket name
       VPCID:
         default: VPC ID
       SubnetIDs:
         default: Private-subnet IDs
       SecurityGroupIDs:
         default: Security-group IDs
+      KeyArn:
+        default: ARN for customer-managed AWS KMS key
+      KeyAlias:
+        default: Alias name for customer-managed AWS KMS key
+      KeyRegion:
+        default: AWS Region for customer-managed AWS KMS key
       QSS3BucketName:
         default: Quick Start S3 bucket name
       QSS3KeyPrefix:
         default: Quick Start S3 key prefix
-      TagValue:
-        default: Tag value used for all AWS resources
 
 Outputs:
   S3BucketName:
@@ -115,6 +115,9 @@ Outputs:
   PricingTier:
     Description: The pricing tier of the workspace. See https://databricks.com/product/aws-pricing.
     Value: !GetAtt createWorkspace.PricingTier
+  ClusterPolicyID:
+    Description: The cluster policy unique identifier   
+    Value: !GetAtt createWorkspace.ClusterPolicyId
 
 Parameters:
   AccountId:
@@ -123,20 +126,17 @@ Parameters:
     MinLength: '36'
     Type: String
     Default: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
-  AWSRegion:
-    Description: "AWS Region where the workspace will be created. Customer-managed keys to encrypt notebooks are not supported in Region us-west-1."
-    AllowedValues:
-       - ap-northeast-1
-       - ap-south-1
-       - ap-southeast-2
-       - ca-central-1
-       - eu-central-1
-       - eu-west-1
-       - us-east-1
-       - us-east-2
-       - us-west-1
-       - us-west-2
+  Username:
+    Description: "Your account email address, which is used for REST API authentication as your user name. This is case-sensitive. Use the same capitalization as when you sent it to your Databricks representative."
+    AllowedPattern: '^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$'
+    ConstraintDescription: Must be a valid email format.
+    MinLength: '8'
     Type: String
+  Password:
+    Description: "Your account password, which is used for REST API authentication. This is case-sensitive. Minimum length is 8 characters."
+    MinLength: '8'
+    NoEcho: 'true'
+    Type: String  
   PricingTier:
     Description: "If you do not provide this, the API will default to the highest pricing tier available to your account. See https://databricks.com/product/aws-pricing for available pricing tier information."
     AllowedValues:
@@ -151,60 +151,70 @@ Parameters:
     AllowedPattern: '^(([a-z0-9][a-z0-9-]*[a-z0-9])|([a-z0-9]))$'
     ConstraintDescription: You must specify a valid subdomain for the workspace.
     Type: String 
-  Username:
-    Description: "Your account email address, which is used for REST API authentication as your user name. This is case-sensitive. Use the same capitalization as when you sent it to your Databricks representative."
-    AllowedPattern: '^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$'
-    ConstraintDescription: Must be a valid email format.
-    MinLength: '8'
-    Type: String
-  Password:
-    Description: "Your account password, which is used for REST API authentication. This is case-sensitive. Minimum length is 8 characters."
-    MinLength: '8'
-    NoEcho: 'true'
+  AWSRegion:
+    Description: "AWS Region where the workspace will be created. Customer-managed keys to encrypt notebooks are not supported in Region us-west-1."
+    AllowedValues:
+       - ap-northeast-1
+       - ap-south-1
+       - ap-southeast-2
+       - ca-central-1
+       - eu-central-1
+       - eu-west-1
+       - us-east-1
+       - us-east-2
+       - us-west-1
+       - us-west-2
+    Type: String 
+  HIPAAparm:
+    Description: "Answering 'Yes' will create a cluster template you should use to create clusters in the HIPAA account"
+    AllowedValues:
+       - 'Yes'
+       - 'No'
+    Default: 'No'
     Type: String
   IAMArn: 
     Description: "Specify an existing IAM role ARN. For instructions on creating an IAM role, see https://docs.databricks.com/administration-guide/multiworkspace/iam-role.html."
-    Type: String
     AllowedPattern: 'arn:aws:iam::\d{12}:role/.*'
     ConstraintDescription: Must be an IAM role ARN.
     MinLength: 16
     Default: 'arn:aws:iam::111111111111:role/your-role-name'
+    Type: String
   IAMArnLambda: 
     Description: "Specify an existing IAM role ARN with AWSLambdaBasicExecutionRole. See the deployment guide for guidance."
-    Type: String
     AllowedPattern: 'arn:aws:iam::\d{12}:role/.*'
     ConstraintDescription: Must be an IAM role ARN.
     MinLength: 16   
     Default: 'arn:aws:iam::111111111111:role/your-role-name'
+    Type: String
   BucketName:
     Description: "Name of your new S3 root bucket. Only alphanumeric characters. For naming rules, https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html."
     AllowedPattern: '(?=^.{3,63}$)(?!xn--)([a-z0-9](?:[a-z0-9-]*)[a-z0-9])$'
     MinLength: '3'
     MaxLength: '63'
     Type: String  
-    ConstraintDescription: The Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
+    ConstraintDescription: The workspace root bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-)."
   KeyArn:
-    Description: "(Optional) AWS KMS key ARN to encrypt and decrypt the workspace notebooks in the control plane. Set only if using the feature customer-managed key for notebooks. See https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html."
+    Description: "AWS KMS key ARN to encrypt and decrypt the workspace notebooks in the control plane. Set only if using the feature customer-managed key for notebooks. See https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html."
     Default: ''
     Type: String
-  KeyAlias:
-    Description: "(Optional) AWS KMS key alias. Keep blank if you didn't specify a key ARN."
+  KeyAlias: 
+    Description: "AWS KMS key alias. Specify only if you have set a key ARN. Otherwise, keep blank."
     Default: ''
     Type: String 
   KeyRegion:
-    Description: "(Optional) AWS Region of your AWS KMS key. Keep blank if you didn't specify a key ARN."
+    Description: "AWS Region of your AWS KMS key. Specify only if you have set a key ARN. Otherwise, keep blank."
     Default: ''
     Type: String
   VPCID:
-    Description: "(Optional) ID for your VPC in which to create the new workspace. Set only if using the customer-managed VPC feature. Format is vpc-xxxxxxxxxxxxxxxx. See https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. If unspecified, Databricks creates the new workspace in a new VPC that Databricks creates."
+    Description: "ID for your VPC in which to create the new workspace. Set only if using the customer-managed VPC feature. Format is vpc-xxxxxxxxxxxxxxxx. See https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. If unspecified, Databricks creates the new workspace in a new VPC that Databricks creates."
     Type: String  
     Default: ''  
   SecurityGroupIDs:
-    Description: "(Optional) Names of one or more security groups in your VPC. The format is sg-xxxxxxxxxxxxxxxxx. To provide multiple IDs, separate with commas. Databricks must have access to at least one security group and no more than five security groups. You can reuse existing security groups rather than create new ones. Keep blank if you didn't specify VPCID. See https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html."
+    Description: "Names of one or more security groups in your VPC. The format is sg-xxxxxxxxxxxxxxxxx. To provide multiple IDs, separate with commas. Databricks must have access to at least one security group and no more than five security groups. You can reuse existing security groups rather than create new ones. See https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. Specify only if you have set a VPCID. Otherwise, keep blank."
     Type: String
     Default: ''
   SubnetIDs:
-    Description: "(Optional) At least two private-subnet IDs in your VPC, separated by commas. These subnets cannot be shared with other workspaces nor any other non-Databricks resources. Each subnet must have a netmask between /17 and /25. Subnets must be private. Subnets must have outbound access to the public network using a NAT gateway and internet gateway or similar customer-managed appliance infrastructure. The NAT gateway must be set up in its own subnet that routes quad-zero (0.0.0.0/0) traffic to an internet gateway or similar customer-managed appliance infrastructure. Keep blank if you didn't specify VPCID. See https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html."
+    Description: "At least two private-subnet IDs in your VPC, separated by commas. These subnets cannot be shared with other workspaces nor any other non-Databricks resources. Each subnet must have a netmask between /17 and /25. Subnets must be private. Subnets must have outbound access to the public network using a NAT gateway and internet gateway or similar customer-managed appliance infrastructure. The NAT gateway must be set up in its own subnet that routes quad-zero (0.0.0.0/0) traffic to an internet gateway or similar customer-managed appliance infrastructure. See https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. Specify only if you have set a VPCID. Otherwise, keep blank."
     Type: String 
     Default: '' 
   QSS3BucketName:
@@ -219,18 +229,13 @@ Parameters:
     AllowedPattern: '^[0-9a-zA-Z-/]*$'
     Default: quickstart-databricks-unified-data-analytics-platform/
     Type: String
-  TagValue:
-    Description: "All new AWS objects get a tag with the key name. Enter a value for this tag so that you can identify all new AWS objects that this template creates. See https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html."
-    MinLength: '1'
-    Type: String
-    Default: databricks-quickstart-cloud-formation
   
 
 Conditions:
 # Condition to check if a VPC ID is provided by the user
   CustomerManagedVPC: !Not [!Equals [!Ref VPCID, '']]
 # Condition to check if an AWS KMS key ID is provided by the user
-  IsKMSKeyProvided: !Not [!Equals [!Ref KeyArn, '']]  
+  IsKMSKeyProvided: !Not [!Equals [!Ref KeyArn, '']]
 
 Rules:
   
@@ -257,6 +262,13 @@ Rules:
     Assertions:
     - Assert: !Equals [!Ref AWSRegion, !Ref AWS::Region]
       AssertDescription: The region from the AWS Management Console MUST be the same as the selected region from the drop-down.
+
+# HIPAA supported regions
+  SupportedHipaaRegions:
+    RuleCondition: !Equals [!Ref HIPAAparm, 'Yes']
+    Assertions:
+    - Assert: !Contains [['us-east-1', 'us-east-2', 'ca-central-1'], !Ref AWSRegion]
+      AssertDescription: Can only create a workspace for HIPAA tier accounts in the us-east-1, us-east-2 and ca-central-1 regions.
 
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
@@ -396,7 +408,7 @@ Resources:
       network_id: !If [CustomerManagedVPC, !GetAtt 'createNetworks.NetworkId', '']
       customer_managed_key_id: !If [IsKMSKeyProvided,!GetAtt 'createCustomerManagedKey.CustomerManagedKeyId', '']
       pricing_tier: !Ref PricingTier
-      
+      hipaa_parm: !Ref HIPAAparm
 
   databricksApiFunction:
     DependsOn: CopyZips
