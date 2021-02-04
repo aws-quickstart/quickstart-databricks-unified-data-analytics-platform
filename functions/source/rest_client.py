@@ -199,7 +199,7 @@ def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group
 # POST - create workspace
 def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, encodedbase64, network_id, customer_managed_key_id, pricing_tier, hipaa_parm):
     
-    version = '1.1.0'
+    version = '1.2.0'
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/workspaces"
     
