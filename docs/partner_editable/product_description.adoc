@@ -44,7 +44,7 @@ If you use the customer-managed VPC feature, you can specify your own VPC in you
 
 === S3 bucket in the customer account
 
-During workspace creation, an Amazon Simple Storage Service (Amazon S3) bucket is created in the customer account with default encryption enabled. It provides Databricks access to the managed S3 bucket with a cross-account AWS Identity and Access Management (IAM) role. IAM roles allow customers to access data from Databricks clusters without having to embed AWS keys in notebooks.
+During workspace creation, an Amazon Simple Storage Service (Amazon S3) bucket is created in the customer account with default encryption and bucket versioning enabled, blocked all public access and with a life cycle management rule to permanently delete older versions after five days.
 
 IMPORTANT: The customer is responsible for backing up, securing access to, and encrypting customer data in the S3 bucket. Databricks is not responsible for backups of this data or any other customer data and thus cannot give a copy of this data to customers if requested.
 
@@ -52,8 +52,6 @@ The Databricks workspace uses this bucket to store some input or output data. It
 
 * *Databricks-managed directories.* These directories are inaccessible to customers using Databricks File System (DBFS). Some data—for example, Spark driver log initial storage and job output—is stored or read by Databricks in hidden directories. This data cannot be accessed directly by customer notebooks at a DBFS path or through the AWS admin interface. 
 
-IMPORTANT: Databricks strongly recommends that you enable bucket versioning. Versioning allows you to restore earlier versions of files in the bucket if files are accidentally modified or deleted. For enabling bucket versioning, refer to the https://docs.databricks.com/administration-guide/account-settings/aws-storage.html#step-2b-enable-bucket-versioning[Databricks documentation^].
- 
 * *DBFS root storage.* This is accessible to customers using DBFS. Other areas of storage can be accessed by customer notebooks at a DBFS path. For example, the FileStore area of DBFS root storage is where uploaded data files and code libraries are stored when imported using the web application. Other DBFS paths are available for customer usage.
 
 IMPORTANT: The DBFS root storage is available for nonproduction customer data, such as simple uploads for testing. DBFS root storage is not intended as a storage location for production customer data. Instead, for storage of production customer data, use additional customer-managed data sources of many types. Customers can optionally use Databricks API operations to create additional DBFS mount points for additional S3 buckets.
