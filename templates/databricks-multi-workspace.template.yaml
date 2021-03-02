@@ -287,12 +287,12 @@ Rules:
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
 
-  AWSQuickStartGitParametersSettings:
-    Assertions:    
-    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
-      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
-    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
-      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
+#  AWSQuickStartGitParametersSettings:
+#    Assertions:    
+#    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
+#      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
+#    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
+#      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
         
 Resources:
   # Cross-account access role for Databricks-created and -managed VPC
@@ -558,25 +558,39 @@ Resources:
                   - arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
                 Condition:
                   StringLike:
-                    'iam:AWSServiceName': spot.amazonaws.com 
-              - Sid: VpcNonresourceSpecificActions
-                Effect: Allow
-                Action:
-                  - 'ec2:AuthorizeSecurityGroupEgress'
-                  - 'ec2:AuthorizeSecurityGroupIngress'
-                  - 'ec2:RevokeSecurityGroupEgress'
-                  - 'ec2:RevokeSecurityGroupIngress'
-                Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:security-group/${SecurityGroupIDs}
-                Condition:
-                  StringEquals:
-                    'ec2:vpc' : !Sub 'arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${VPCID}'                                              
+                    'iam:AWSServiceName': spot.amazonaws.com                                               
             Version: 2012-10-17
           PolicyName: databricks-cross-account-iam-role-policy
       Tags:
         -
           Key: Name
           Value: !Sub '${TagValue}-IAMRole'
+
+  # Customer managed VPC - Create databricks-cross-account-iam-role-policy-sg policy 
+  updateIAMVpcNonresourceSpecificActionsSid:
+    Type: Custom::UpdateRoleAssumePolicy
+    Properties:
+      ServiceToken: !GetAtt 'updateIAMRoleFunction.Arn'
+      IAMRoleName: !Ref IAMRole
+      Region: !Ref AWSRegion
+      AccountId: !Ref AWS::AccountId
+      SecurityGroupIDs: !Ref SecurityGroupIDs
+      VPCID: !Ref VPCID
+  updateIAMRoleFunction:
+    DependsOn: 
+      - CopyZips
+      - accessRoleCustomerManagedVPC
+    Condition: CustomerManagedVPC
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Update IAM Role policy document with the list of Security Group Ids
+      Handler: update_custommanagedvpc_iam_role.handler
+      Runtime: python3.8
+      Role: !GetAtt 'functionRole.Arn'
+      Timeout: 60
+      Code:
+        S3Bucket: !Ref 'LambdaZipsBucket'
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'
 
   # S3 root bucket requirements
   assetsS3Bucket:
@@ -801,7 +815,7 @@ Resources:
     Properties:
       Description: Copies objects from a source S3 bucket to a destination
       Handler: index.handler
-      Runtime: python2.7
+      Runtime: python3.8
       Role: !GetAtt 'CopyZipsRole.Arn'
       Timeout: 240
       Code:
