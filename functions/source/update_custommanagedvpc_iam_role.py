@@ -34,11 +34,14 @@ sg = "arn:aws:ec2:AWSREGION:ACCOUNTID:security-group/SECURITYGROUPID"
 vpc = "ec2:vpc: arn:aws:ec2:AWSREGION:ACCOUNTID:vpc/VPCID"
 
 def put_role_policy_sg(role_name, aws_region, accountid, security_group_ids, vpcid):
+    global sg
+    global vpc
+    global custom_managed_vpc_policy
     sg_list = ([id.strip() for id in security_group_ids.split(",")])
     print('security groups list: {}'.format(sg_list),"\n")
     resource = custom_managed_vpc_policy['Statement'][0]['Resource']
     # Replace AWSREGION & ACCOUNTID strings for the Security Groups in the working area  
-    sg = sg.replace('AWSREGION', region)
+    sg = sg.replace('AWSREGION', aws_region)
     sg = sg.replace('ACCOUNTID', accountid)
 
     # Build the Resource block of the policy
@@ -50,7 +53,7 @@ def put_role_policy_sg(role_name, aws_region, accountid, security_group_ids, vpc
     custom_managed_vpc_policy['Statement'][0]['Resource'] = resource  
 
     # Replace AWSREGION, ACCOUNTID and VPCID strings for the VPC in the working area
-    vpc = vpc.replace('AWSREGION', region)
+    vpc = vpc.replace('AWSREGION', aws_region)
     vpc = vpc.replace('ACCOUNTID', accountid)
     vpc = vpc.replace('VPCID', vpcid) 
 
@@ -61,8 +64,8 @@ def put_role_policy_sg(role_name, aws_region, accountid, security_group_ids, vpc
     response = client.put_role_policy(
         RoleName=role_name,
         PolicyName='databricks-cross-account-iam-role-policy-sg',
-        Policy=json.dumps(custom_managed_vpc_policy)
-    
+        PolicyDocument=json.dumps(custom_managed_vpc_policy)
+    )
 
 def timeout(event, context):
     logging.error('Execution is about to time out, sending failure response to CloudFormation')

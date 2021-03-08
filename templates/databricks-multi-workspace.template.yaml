@@ -571,10 +571,10 @@ Resources:
     Type: Custom::UpdateRoleAssumePolicy
     Properties:
       ServiceToken: !GetAtt 'updateIAMRoleFunction.Arn'
-      IAMRoleName: !Ref IAMRole
-      Region: !Ref AWSRegion
+      RoleName: !Ref IAMRole
+      AWSRegion: !Ref AWSRegion
       AccountId: !Ref AWS::AccountId
-      SecurityGroupIDs: !Ref SecurityGroupIDs
+      SecurityGroupIds: !Ref SecurityGroupIDs
       VPCID: !Ref VPCID
   updateIAMRoleFunction:
     DependsOn: 
@@ -757,7 +757,8 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole   
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 
+        - arn:aws:iam::aws:policy/IAMFullAccess 
       Tags:
         -
           Key: Name
