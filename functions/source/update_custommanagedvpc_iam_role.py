@@ -8,7 +8,7 @@ import cfnresponse
 
 client = boto3.client('iam')
 
-custom_managed_vpc_policy = {
+custom_managed_policy = {
     "Version": "2012-10-17",
     "Statement": [
       {
@@ -21,9 +21,10 @@ custom_managed_vpc_policy = {
           "ec2:RevokeSecurityGroupIngress"
        ], 
        "Resource": [
-       ], 
+       ],
        "Condition": {
          "StringEquals": {
+              "ec2:vpc": "arn:aws:ec2:AWSREGION:ACCOUNTID:vpc/VPCID"
          }   
        }
       }
@@ -31,40 +32,37 @@ custom_managed_vpc_policy = {
 }
 
 sg = "arn:aws:ec2:AWSREGION:ACCOUNTID:security-group/SECURITYGROUPID"  
-vpc = "ec2:vpc: arn:aws:ec2:AWSREGION:ACCOUNTID:vpc/VPCID"
 
 def put_role_policy_sg(role_name, aws_region, accountid, security_group_ids, vpcid):
     global sg
-    global vpc
-    global custom_managed_vpc_policy
+    global custom_managed_policy
     sg_list = ([id.strip() for id in security_group_ids.split(",")])
     print('security groups list: {}'.format(sg_list),"\n")
-    resource = custom_managed_vpc_policy['Statement'][0]['Resource']
+    resource = custom_managed_policy['Statement'][0]['Resource']
     # Replace AWSREGION & ACCOUNTID strings for the Security Groups in the working area  
     sg = sg.replace('AWSREGION', aws_region)
     sg = sg.replace('ACCOUNTID', accountid)
 
-    # Build the Resource block of the policy
+    # Build the Resource block of the policy for as many security groups provided
     for i in sg_list: 
         sg_str = sg.replace('SECURITYGROUPID', str(i))
         resource.append(sg_str)
          
-    # Update the policy with the Resource block         
-    custom_managed_vpc_policy['Statement'][0]['Resource'] = resource  
+    # Update the Policy Resource block with the list of Security Group Ids           
+    custom_managed_policy['Statement'][0]['Resource'] = resource  
 
-    # Replace AWSREGION, ACCOUNTID and VPCID strings for the VPC in the working area
-    vpc = vpc.replace('AWSREGION', aws_region)
-    vpc = vpc.replace('ACCOUNTID', accountid)
-    vpc = vpc.replace('VPCID', vpcid) 
-
-    # Build the Condition block of the policy
-    custom_managed_vpc_policy['Statement'][0]['Condition']['StringEquals'] = vpc   
-    print('Managed Policy: {}'.format(json.dumps(custom_managed_vpc_policy)))
+    # Replace AWSREGION, ACCOUNTID and VPCID strings for the VPC 
+    custom_managed_vpc_policy = str(custom_managed_policy) 
+    custom_managed_vpc_policy = custom_managed_vpc_policy.replace('AWSREGION', aws_region)
+    custom_managed_vpc_policy = custom_managed_vpc_policy.replace('ACCOUNTID', accountid)
+    custom_managed_vpc_policy = custom_managed_vpc_policy.replace('VPCID', vpcid) 
+    custom_managed_vpc_policy = custom_managed_vpc_policy.replace("\'", "\"") 
+    print('Managed Policy: {}'.format(custom_managed_vpc_policy))
 
     response = client.put_role_policy(
         RoleName=role_name,
         PolicyName='databricks-cross-account-iam-role-policy-sg',
-        PolicyDocument=json.dumps(custom_managed_vpc_policy)
+        PolicyDocument=(custom_managed_vpc_policy)
     )
 
 def timeout(event, context):
