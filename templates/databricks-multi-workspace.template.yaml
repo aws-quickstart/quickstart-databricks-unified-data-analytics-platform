@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   This template creates resources for a Databricks workspace in your AWS account using the Account API. The Account API is required if you want to use the following optional features: customer-managed VPCs and customer-managed keys for notebooks. Contact your Databricks representative to determine the availability of these features for your subscription and deployment type. (qs-1r0odiedc)
-  
+
 Metadata:
   QuickStartDocumentation:
     EntrypointName: "Parameters for deploying a workspace and creating a new cross-account IAM role"
@@ -252,7 +252,6 @@ Conditions:
  
 
 Rules:
-  
 # Ensure that the SubnetIds and SecurityGroupIds are provided, if the user provides a customer-managed VPC ID  
   CustomerManagedVPC:
     RuleCondition: !Not [!Equals [!Ref VPCID, '']]
@@ -286,13 +285,12 @@ Rules:
 
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
-
-#  AWSQuickStartGitParametersSettings:
-#    Assertions:    
-#    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
-#      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
-#    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
-#      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
+  AWSQuickStartGitParametersSettings:
+    Assertions:    
+    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
+      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
+    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
+      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
         
 Resources:
   # Cross-account access role for Databricks-created and -managed VPC
