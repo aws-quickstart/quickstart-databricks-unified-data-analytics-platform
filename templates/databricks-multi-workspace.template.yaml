@@ -274,23 +274,23 @@ Rules:
   RunningTemplateFromDifferentRegionThanDropDown:
     Assertions:
     - Assert: !Equals [!Ref AWSRegion, !Ref 'AWS::Region']
-      AssertDescription: The region from the AWS Management Console MUST be the same as the selected region from the drop-down.
+      AssertDescription: "The region from the AWS Management Console MUST be the same as the selected region from the drop-down."
       
 # HIPAA supported regions
   SupportedHipaaRegions:
     RuleCondition: !Equals [!Ref HIPAAparm, 'Yes']
     Assertions:
-    - Assert: !Contains [['us-east-1', 'us-east-2', 'ca-central-1'], !Ref AWSRegion]
-      AssertDescription: Can only create a workspace for HIPAA tier accounts in the us-east-1, us-east-2 and ca-central-1 regions.      
+    - Assert: !Contains [['us-east-1', 'us-east-2', 'ca-central-1'], !Ref AWSRegion]    
+      AssertDescription: "Can only create a workspace for HIPAA tier accounts in the us-east-1, us-east-2 and ca-central-1 regions."      
 
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
-  AWSQuickStartGitParametersSettings:
-    Assertions:    
-    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
-      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
-    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
-      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
+#  AWSQuickStartGitParametersSettings:
+#    Assertions:    
+#    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
+#      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
+#    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
+#      AssertDescription: "The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/"
         
 Resources:
   # Cross-account access role for Databricks-created and -managed VPC
@@ -564,32 +564,6 @@ Resources:
           Key: Name
           Value: !Sub '${TagValue}-IAMRole'
 
-  # Customer managed VPC - Create databricks-cross-account-iam-role-policy-sg policy 
-  updateIAMVpcNonresourceSpecificActionsSid:
-    Type: Custom::UpdateRoleAssumePolicy
-    Properties:
-      ServiceToken: !GetAtt 'updateIAMRoleFunction.Arn'
-      RoleName: !Ref IAMRole
-      AWSRegion: !Ref AWSRegion
-      AccountId: !Ref AWS::AccountId
-      SecurityGroupIds: !Ref SecurityGroupIDs
-      VPCID: !Ref VPCID
-  updateIAMRoleFunction:
-    DependsOn: 
-      - CopyZips
-      - accessRoleCustomerManagedVPC
-    Condition: CustomerManagedVPC
-    Type: AWS::Lambda::Function
-    Properties:
-      Description: Update IAM Role policy document with the list of Security Group Ids
-      Handler: update_custommanagedvpc_iam_role.handler
-      Runtime: python3.8
-      Role: !GetAtt 'functionRole.Arn'
-      Timeout: 60
-      Code:
-        S3Bucket: !Ref 'LambdaZipsBucket'
-        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'
-
   # S3 root bucket requirements
   assetsS3Bucket:
     Type: AWS::S3::Bucket
@@ -730,6 +704,18 @@ Resources:
       pricing_tier: !Ref PricingTier
       hipaa_parm: !Ref HIPAAparm
   
+  # Customer managed VPC - Create databricks-cross-account-iam-role-policy-sg policy 
+  updateIAMVpcNonresourceSpecificActionsSid:
+    Condition: CustomerManagedVPC 
+    Type: Custom::UpdateRoleAssumePolicy
+    Properties:
+      ServiceToken: !GetAtt 'updateIAMRoleFunction.Arn'
+      RoleName: !Ref IAMRole
+      AWSRegion: !Ref AWSRegion
+      AccountId: !Ref AWS::AccountId
+      SecurityGroupIds: !Ref SecurityGroupIDs
+      VPCID: !Ref VPCID
+
   databricksApiFunction:
     DependsOn: CopyZips
     Type: AWS::Lambda::Function
@@ -742,6 +728,20 @@ Resources:
       Code:
         S3Bucket: !Ref 'LambdaZipsBucket'
         S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'   
+
+  updateIAMRoleFunction:
+    Condition: CustomerManagedVPC
+    DependsOn: CopyZips
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Update IAM Role policy document with the list of Security Group Ids
+      Handler: update_custommanagedvpc_iam_role.handler
+      Runtime: python3.8
+      Role: !GetAtt 'functionRole.Arn'
+      Timeout: 60
+      Code:
+        S3Bucket: !Ref 'LambdaZipsBucket'
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'  
 
   # IAM Role for lambda function execution
   functionRole:

@@ -8,7 +8,7 @@ IMPORTANT: Select Option 1 if you have the privilege to create an IAM role in yo
 
 * Deploy a Databricks workspace and use an *existing* cross-account IAM role. You can create an appropriate role and policy for your deployment type by following these https://docs.databricks.com/administration-guide/account-api/iam-role.html[steps]. For this deployment option, you will need an additional IAM role with the AWSLambdaBasicExecutionRole policy as follow:
 
-`
+----
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -24,4 +24,6 @@ IMPORTANT: Select Option 1 if you have the privilege to create an IAM role in yo
         }
     ]
 }
-`
+----
+
+
