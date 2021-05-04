@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  This template creates resources for a Databricks workspace in your AWS account using the Account API. The Account API is required if you want to use the following optional features: customer-managed VPCs and customer-managed keys for notebooks. Contact your Databricks representative to determine the availability of these features for your subscription and deployment type.
+  This template creates resources for a Databricks workspace in your AWS account. Contact Databricks at quickstart-support@databricks.com if you have any questions.
 
 Metadata:
   QuickStartDocumentation:
