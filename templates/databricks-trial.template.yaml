@@ -1,0 +1,478 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  This template creates resources for a Databricks workspace in your AWS account. Contact Databricks at quickstart-support@databricks.com if you have any questions.
+
+Metadata:
+  QuickStartDocumentation:
+    EntrypointName: "Parameters for deploying a workspace and creating a new cross-account IAM role"
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Workspace configuration"
+        Parameters:
+          - AccountId
+          - Username
+          - Password
+          - WorkspaceName
+          - AWSRegion
+      - Label:
+          default: "Required IAM role and S3 bucket configuration"  
+        Parameters:
+          - IAMRole
+          - BucketName    
+    ParameterLabels:
+      AccountId:
+        default: Databricks account ID
+      Username:
+        default: Databricks account email address
+      Password:
+        default: Databricks account password  
+      WorkspaceName:
+        default: Workspace name
+      AWSRegion:
+        default: AWS Region of the Databricks workspace   
+      IAMRole:
+        default: Cross-account IAM role name
+      BucketName:
+        default: Root S3 bucket name   
+
+Outputs:
+  DBManagedVPCIAMRoleARN:
+    Description: ARN of the cross-account IAM role
+    Value: !GetAtt 
+      - accessRoleDBManagedVPC
+      - Arn
+  S3BucketName:
+    Description: Name of the S3 root bucket
+    Value: !Ref assetsS3Bucket
+  CredentialsId:
+    Description: Credential ID
+    Value: !GetAtt createCredentials.CredentialsId
+  ExternalId:
+    Description: Databricks external ID
+    Value: !GetAtt createCredentials.ExternalId
+  StorageConfigId:
+    Description: Storage configuration ID
+    Value: !GetAtt createStorageConfiguration.StorageConfigId
+  WorkspaceURL:
+    Description: URL of the workspace
+    Value: !Join
+      - ''
+      - - 'https://'
+        - !GetAtt createWorkspace.DeploymentName
+        - '.cloud.databricks.com'
+  WorkspaceStatus:
+    Description: Status of the requested workspace
+    Value: !GetAtt createWorkspace.WorkspaceStatus
+  WorkspaceStatusMessage:
+    Description: Detailed status description of the requested workspace
+    Value: !GetAtt createWorkspace.WorkspaceStatusMsg  
+  PricingTier:
+    Description: The pricing tier of the workspace. See https://databricks.com/product/aws-pricing.
+    Value: !GetAtt createWorkspace.PricingTier
+
+Parameters:
+  AccountId:
+    Description: "You can find your account ID at https://accounts.cloud.databricks.com" 
+    AllowedPattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$'
+    MinLength: '36'
+    Type: String
+    Default: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+  Username:
+    Description: "Your case-sensitive Databricks account email address."
+    AllowedPattern: '^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$'
+    ConstraintDescription: Must be a valid email format.
+    MinLength: '8'
+    Type: String
+  Password:
+    Description: "This is the password you set for your Databricks account."
+    MinLength: '8'
+    NoEcho: 'true'
+    Type: String  
+  WorkspaceName:
+    Description: "Human-readable name for this workspace."
+    MinLength: '1'
+    MaxLength: '64'
+    Type: String    
+  AWSRegion:
+    Description: "AWS Region where the workspace will be created."
+    MinLength: '9'
+    AllowedValues:
+       - ap-northeast-1
+       - ap-south-1
+       - ap-southeast-2
+       - ca-central-1
+       - eu-central-1
+       - eu-west-1
+       - eu-west-2
+       - us-east-1
+       - us-east-2
+       - us-west-1
+       - us-west-2
+    Type: String  
+  IAMRole:
+    Description: "Specify a unique cross-account IAM role name. For naming rules, see https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateRole.html."
+    AllowedPattern: '[\w+=,@-]+'
+    Type: String
+    MinLength: '1'
+    MaxLength: '64'
+  BucketName:
+    Description: "Specify a unique name for the S3 bucket where Databricks will store metadata for your workspace. Use only alphanumeric characters. For naming rules, see https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html."
+    AllowedPattern: '(?=^.{3,63}$)(?!xn--)([a-z0-9](?:[a-z0-9-]*)[a-z0-9])$'
+    MinLength: '3'
+    MaxLength: '63'
+    Type: String
+    ConstraintDescription: The Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
+ 
+
+Rules:
+# Validate the selected Region from the drop-down matches the Region from the Console
+  RunningTemplateFromDifferentRegionThanDropDown:
+    Assertions:
+    - Assert: !Equals [!Ref AWSRegion, !Ref 'AWS::Region']
+      AssertDescription: "The region from the AWS Management Console MUST be the same as the selected region from the drop-down."
+
+Resources:
+  # Cross-account access role for Databricks-created and -managed VPC
+  accessRoleDBManagedVPC:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Ref IAMRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals: 
+                'sts:ExternalId': !Sub '${AccountId}'
+            Effect: Allow
+            Principal:
+              AWS: !Join 
+                - ''
+                - - 'arn:aws:iam::'
+                  - '414351767826'
+                  - ':root'
+            Sid: ''
+        Version: 2012-10-17
+      Path: /
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Sid: Stmt1403287045000
+                Effect: Allow
+                Action:
+                  - 'ec2:AllocateAddress'
+                  - 'ec2:AssociateDhcpOptions'
+                  - 'ec2:AssociateIamInstanceProfile'
+                  - 'ec2:AssociateRouteTable'
+                  - 'ec2:AttachInternetGateway'
+                  - 'ec2:AttachVolume'
+                  - 'ec2:AuthorizeSecurityGroupEgress'
+                  - 'ec2:AuthorizeSecurityGroupIngress'
+                  - 'ec2:CancelSpotInstanceRequests'
+                  - 'ec2:CreateDhcpOptions'
+                  - 'ec2:CreateInternetGateway'
+                  - 'ec2:CreateKeyPair'
+                  - 'ec2:CreateNatGateway'
+                  - 'ec2:CreatePlacementGroup'
+                  - 'ec2:CreateRoute'
+                  - 'ec2:CreateRouteTable'
+                  - 'ec2:CreateSecurityGroup'
+                  - 'ec2:CreateSubnet'
+                  - 'ec2:CreateTags'
+                  - 'ec2:CreateVolume'
+                  - 'ec2:CreateVpc'
+                  - 'ec2:CreateVpcEndpoint'
+                  - 'ec2:DeleteDhcpOptions'
+                  - 'ec2:DeleteInternetGateway'
+                  - 'ec2:DeleteKeyPair'
+                  - 'ec2:DeleteNatGateway'
+                  - 'ec2:DeletePlacementGroup'
+                  - 'ec2:DeleteRoute'
+                  - 'ec2:DeleteRouteTable'
+                  - 'ec2:DeleteSecurityGroup'
+                  - 'ec2:DeleteSubnet'
+                  - 'ec2:DeleteTags'
+                  - 'ec2:DeleteVolume'
+                  - 'ec2:DeleteVpc'
+                  - 'ec2:DeleteVpcEndpoints'
+                  - 'ec2:DescribeAvailabilityZones'
+                  - 'ec2:DescribeIamInstanceProfileAssociations'
+                  - 'ec2:DescribeInstanceStatus'
+                  - 'ec2:DescribeInstances'
+                  - 'ec2:DescribeInternetGateways'
+                  - 'ec2:DescribeNatGateways'
+                  - 'ec2:DescribePlacementGroups'
+                  - 'ec2:DescribePrefixLists'
+                  - 'ec2:DescribeReservedInstancesOfferings'
+                  - 'ec2:DescribeRouteTables'
+                  - 'ec2:DescribeSecurityGroups'
+                  - 'ec2:DescribeSpotInstanceRequests'
+                  - 'ec2:DescribeSpotPriceHistory'
+                  - 'ec2:DescribeSubnets'
+                  - 'ec2:DescribeVolumes'
+                  - 'ec2:DescribeVpcs'
+                  - 'ec2:DetachInternetGateway'
+                  - 'ec2:DisassociateIamInstanceProfile'
+                  - 'ec2:DisassociateRouteTable'
+                  - 'ec2:ModifyVpcAttribute'
+                  - 'ec2:ReleaseAddress'
+                  - 'ec2:ReplaceIamInstanceProfileAssociation'
+                  - 'ec2:ReplaceRoute'
+                  - 'ec2:RequestSpotInstances'
+                  - 'ec2:RevokeSecurityGroupEgress'
+                  - 'ec2:RevokeSecurityGroupIngress'
+                  - 'ec2:RunInstances'
+                  - 'ec2:TerminateInstances'
+                Resource:
+                  - '*'
+              - Effect: Allow
+                Action:
+                  - 'iam:CreateServiceLinkedRole'
+                  - 'iam:PutRolePolicy'
+                Resource: >-
+                  arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
+                Condition:
+                  StringLike:
+                    'iam:AWSServiceName': spot.amazonaws.com
+            Version: 2012-10-17
+          PolicyName: databricks-cross-account-iam-role-policy
+      Tags: 
+        -
+          Key: Name
+          Value: 'databricks-trial-quickstart-cloud-formation'
+
+  # S3 root bucket requirements
+  assetsS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls       : true
+        BlockPublicPolicy     : true
+        IgnorePublicAcls      : true
+        RestrictPublicBuckets : true     
+  bucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:     
+      PolicyDocument:
+        Id: MyPolicy
+        Version: 2012-10-17
+        Statement:
+          - Sid: Grant Databricks Access
+            Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::414351767826:root
+            Action:
+              - 's3:GetObject'
+              - 's3:GetObjectVersion'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:ListBucket'
+              - 's3:GetBucketLocation'
+            Resource:
+              - !Sub 'arn:aws:s3:::${assetsS3Bucket}/*'
+              - !Sub 'arn:aws:s3:::${assetsS3Bucket}'
+      Bucket: !Ref assetsS3Bucket                       
+
+  # Databricks API for workspace credentials
+  createCredentials:
+    Type: Custom::CreateCredentials
+    Properties:
+      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
+      action: 'CREATE_CREDENTIALS'
+      accountId: !Ref AccountId
+      credentials_name: !Join
+        - '-'
+        - - !Ref WorkspaceName
+          - 'credentials'
+      role_arn: !GetAtt 'accessRoleDBManagedVPC.Arn'
+      encodedbase64: 
+        Fn::Base64: !Join
+          - ':'
+          - - !Ref 'Username'
+            - !Ref 'Password'
+      user_agent: 'databricks-CloudFormation-Trial-provider'      
+
+  # Databricks API for workspace storage configuration    
+  createStorageConfiguration:
+    Type: Custom::CreateStorageConfigurations
+    Properties:
+      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
+      action: 'CREATE_STORAGE_CONFIGURATIONS'
+      accountId: !Ref AccountId
+      storage_config_name: !Join
+        - '-'
+        - - !Ref 'WorkspaceName'
+          - 'storage'
+      s3bucket_name: !Ref assetsS3Bucket
+      encodedbase64: 
+        Fn::Base64: !Join
+          - ':'
+          - - !Ref 'Username'
+            - !Ref 'Password'
+      user_agent: 'databricks-CloudFormation-Trial-provider'           
+
+  # Databricks API for workspace creation    
+  createWorkspace:
+    Type: Custom::CreateWorkspace
+    Properties:
+      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
+      action: 'CREATE_WORKSPACES'
+      accountId: !Ref AccountId
+      workspace_name: !Ref 'WorkspaceName'
+      deployment_name: ''
+      aws_region: !Ref AWSRegion
+      credentials_id: !GetAtt createCredentials.CredentialsId
+      storage_config_id: !GetAtt createStorageConfiguration.StorageConfigId
+      encodedbase64: 
+        Fn::Base64: !Join
+          - ':'
+          - - !Ref 'Username'
+            - !Ref 'Password'
+      network_id: ''
+      customer_managed_key_id: ''
+      pricing_tier: ''
+      hipaa_parm: ''
+      customer_name: ''
+      authoritative_user_email: ''
+      authoritative_user_full_name: ''
+      user_agent: 'databricks-CloudFormation-Trial-provider'
+
+  databricksApiFunction:
+    DependsOn: CopyZips
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Databricks Account API
+      Handler: rest_client.handler
+      Runtime: python3.8
+      Role: !GetAtt 'functionRole.Arn'
+      Timeout: 900
+      Code:
+        S3Bucket: !Ref 'LambdaZipsBucket'
+        S3Key: 'quickstart-databricks-unified-data-analytics-platform/functions/packages/lambda.zip'   
+
+  # IAM Role for lambda function execution
+  functionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 
+        - arn:aws:iam::aws:policy/IAMFullAccess 
+      Tags:
+        -
+          Key: Name
+          Value: 'databricks-CloudFormation-Trial-provider'
+
+  # Resources to stage lambda.zip file
+  LambdaZipsBucket:
+    Type: AWS::S3::Bucket
+  CopyZips:
+    Type: Custom::CopyZips
+    Properties:
+      ServiceToken: !GetAtt 'CopyZipsFunction.Arn'
+      DestBucket: !Ref 'LambdaZipsBucket'
+      SourceBucket: 'aws-quickstart'
+      Prefix: 'quickstart-databricks-unified-data-analytics-platform/'
+      Objects:
+        - functions/packages/lambda.zip
+  CopyZipsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Path: /
+      Policies:
+        - PolicyName: lambda-copier
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - 'arn:aws:s3:::aws-quickstart/quickstart-databricks-unified-data-analytics-platform/*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub 'arn:aws:s3:::${LambdaZipsBucket}/quickstart-databricks-unified-data-analytics-platform/*' 
+      Tags:
+        -
+          Key: Name
+          Value: 'databricks-CloudFormation-Trial-provider'
+
+
+  CopyZipsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Copies objects from a source S3 bucket to a destination
+      Handler: index.handler
+      Runtime: python3.8
+      Role: !GetAtt 'CopyZipsRole.Arn'
+      Timeout: 240
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          import threading
+          import boto3
+          import cfnresponse
+          def copy_objects(source_bucket, dest_bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              for o in objects:
+                  key = prefix + o
+                  copy_source = {
+                      'Bucket': source_bucket,
+                      'Key': key
+                  }
+                  print('copy_source: %s' % copy_source)
+                  print('dest_bucket = %s'%dest_bucket)
+                  print('key = %s' %key)
+                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
+                        Key=key)
+          def delete_objects(bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              objects = {'Objects': [{'Key': prefix + o} for o in objects]}
+              s3.delete_objects(Bucket=bucket, Delete=objects)
+          def timeout(event, context):
+              logging.error('Execution is about to time out, sending failure response to CloudFormation')
+              cfnresponse.send(event, context, cfnresponse.FAILED, {}, None)
+          def handler(event, context):
+              # make sure we send a failure to CloudFormation if the function
+              # is going to timeout
+              timer = threading.Timer((context.get_remaining_time_in_millis()
+                        / 1000.00) - 0.5, timeout, args=[event, context])
+              timer.start()
+              print('Received event: %s' % json.dumps(event))
+              status = cfnresponse.SUCCESS
+              try:
+                  source_bucket = event['ResourceProperties']['SourceBucket']
+                  dest_bucket = event['ResourceProperties']['DestBucket']
+                  prefix = event['ResourceProperties']['Prefix']
+                  objects = event['ResourceProperties']['Objects']
+                  if event['RequestType'] == 'Delete':
+                      delete_objects(dest_bucket, prefix, objects)
+                  else:
+                      copy_objects(source_bucket, dest_bucket, prefix, objects)
+              except Exception as e:
+                  logging.error('Exception: %s' % e, exc_info=True)
+                  status = cfnresponse.FAILED
+              finally:
+                  timer.cancel()
+                  cfnresponse.send(event, context, status, {}, None)
+                  

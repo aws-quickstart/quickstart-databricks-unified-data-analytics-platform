@@ -160,6 +160,7 @@ Parameters:
        - ca-central-1
        - eu-central-1
        - eu-west-1
+       - eu-west-2
        - us-east-1
        - us-east-2
        - us-west-1
@@ -238,7 +239,6 @@ Conditions:
   IsKMSKeyProvided: !Not [!Equals [!Ref KeyArn, '']]
 
 Rules:
-  
 # Ensure that the SubnetIds and SecurityGroupIds are provided, if the user provides a customer-managed VPC ID  
   CustomerManagedVPC:
     RuleCondition: !Not [!Equals [!Ref VPCID, '']]
@@ -272,7 +272,6 @@ Rules:
 
 # Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
-
   AWSQuickStartGitParametersSettings:
     Assertions:
     - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
@@ -281,7 +280,6 @@ Rules:
       AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
         
 Resources:
-  
   # S3 root bucket requirements
   assetsS3Bucket:
     Type: AWS::S3::Bucket
@@ -338,6 +336,10 @@ Resources:
           - ':'
           - - !Ref 'Username'
             - !Ref 'Password'
+      customer_name: ''
+      authoritative_user_email: ''
+      authoritative_user_full_name: ''
+      user_agent: 'databricks-CloudFormation-provider'      
 
   # Databricks API for workspace credentials
   createCredentials:
@@ -356,6 +358,10 @@ Resources:
           - ':'
           - - !Ref 'Username'
             - !Ref 'Password'
+      customer_name: ''
+      authoritative_user_email: ''
+      authoritative_user_full_name: ''
+      user_agent: 'databricks-CloudFormation-provider'      
 
   # Databricks API for workspace storage configuration    
   createStorageConfiguration:
@@ -374,6 +380,10 @@ Resources:
           - ':'
           - - !Ref 'Username'
             - !Ref 'Password'
+      customer_name: ''
+      authoritative_user_email: ''
+      authoritative_user_full_name: ''
+      user_agent: 'databricks-CloudFormation-provider'      
 
   # Databricks API for customer-managed VPC    
   createNetworks:
@@ -396,6 +406,10 @@ Resources:
           - ':'
           - - !Ref 'Username'
             - !Ref 'Password'
+      customer_name: ''
+      authoritative_user_email: ''
+      authoritative_user_full_name: ''
+      user_agent: 'databricks-CloudFormation-provider'      
 
   # Databricks API for workspace creation    
   createWorkspace:
@@ -421,6 +435,10 @@ Resources:
       customer_managed_key_id: !If [IsKMSKeyProvided,!GetAtt 'createCustomerManagedKey.CustomerManagedKeyId', '']
       pricing_tier: !Ref PricingTier
       hipaa_parm: !Ref HIPAAparm
+      customer_name: ''
+      authoritative_user_email: ''
+      authoritative_user_full_name: ''
+      user_agent: 'databricks-CloudFormation-provider'
 
   databricksApiFunction:
     DependsOn: CopyZips
