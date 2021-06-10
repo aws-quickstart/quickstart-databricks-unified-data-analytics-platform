@@ -123,7 +123,11 @@ Parameters:
     MaxLength: '63'
     Type: String
     ConstraintDescription: The Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
- 
+  DefaultCluster:
+    Description: 'Hello bogyi default cluster'
+    Default: 'False'
+    Type: String
+    AllowedValues: ['True', 'False']
 
 Rules:
 # Validate the selected Region from the drop-down matches the Region from the Console
@@ -337,6 +341,7 @@ Resources:
       authoritative_user_email: ''
       authoritative_user_full_name: ''
       user_agent: 'databricks-CloudFormation-Trial-provider'
+      default_cluster: !Ref DefaultCluster
 
   databricksApiFunction:
     DependsOn: CopyZips

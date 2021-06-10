@@ -70,6 +70,10 @@ def handler(event, context):
                 responseData['NetworkId'] = post_result['network_id']
 
             if event['ResourceProperties']['action'] == 'CREATE_WORKSPACES':
+                if 'default_cluster' in event['ResourceProperties'] and event['ResourceProperties']['default_cluster'] == 'True':
+                        event['ResourceProperties']['default_cluster'] = True
+                    else:
+                        event['ResourceProperties']['default_cluster'] = False
                 post_result = create_workspaces(
                                     event['ResourceProperties']['accountId'],
                                     event['ResourceProperties']['workspace_name'],
@@ -85,7 +89,8 @@ def handler(event, context):
                                     event['ResourceProperties']['customer_name'],
                                     event['ResourceProperties']['authoritative_user_email'],
                                     event['ResourceProperties']['authoritative_user_full_name'],
-                                    event['ResourceProperties']['user_agent']
+                                    event['ResourceProperties']['user_agent'],
+                                    event['ResourceProperties']['default_cluster'],
                                 )
                 responseData['WorkspaceId'] = post_result['workspace_id']
                 responseData['WorkspaceStatus'] = post_result['workspace_status']
@@ -205,7 +210,7 @@ def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group
     return response
 
 # POST - create workspace
-def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, encodedbase64, network_id, customer_managed_key_id, pricing_tier, hipaa_parm, customer_name, authoritative_user_email, authoritative_user_full_name, user_agent):
+def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, encodedbase64, network_id, customer_managed_key_id, pricing_tier, hipaa_parm, customer_name, authoritative_user_email, authoritative_user_full_name, user_agent, default_cluster = False):
     
     version = '1.2.0'
     # api-endpoint
@@ -294,6 +299,35 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
        
             response.update(response_policy)
             print(response)
+
+            # DEFAULT CLUSTER
+            if default_cluster:
+                
+                CLUSTER_URL = "https://"+deployment_name+".cloud.databricks.com/api/2.0/clusters/create"
+
+                CLUSTER_DATA = {
+                    "cluster_name": "single-node-cluster",
+                    "spark_version": "7.6.x-scala2.12",
+                    "node_type_id": "M4.xlarge",
+                    "num_workers": 0,
+                    "start_cluster": False,
+                    "spark_conf": {
+                        "spark.databricks.cluster.profile": "singleNode",
+                        "spark.master": "local[*]"
+                    },
+                    "custom_tags": {
+                        "ResourceClass": "SingleNode"
+                    }
+                }
+
+                
+
+                default_cluster = post_request(CLUSTER_URL, CLUSTER_DATA, encodedbase64, user_agent, version)
+                print(default_cluster)
+                # parse the cluster_id element from the response
+                cluster_id = default_cluster['cluster_id']
+               
+                print(cluster_id)
         else:
             cluster_policy_str = {
                 "policy_id": "Cluster Policy cannot be created because the workspace creation has FAILED!"
