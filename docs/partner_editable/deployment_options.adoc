@@ -6,24 +6,50 @@ IMPORTANT: Select Option 1 if you have the privilege to create an IAM role in yo
 
 * Deploy a Databricks workspace and create a *new* cross-account IAM role. You must have sufficient permissions to create a new IAM role.
 
-* Deploy a Databricks workspace and use an *existing* cross-account IAM role. You can create an appropriate role and policy for your deployment type by following these https://docs.databricks.com/administration-guide/account-api/iam-role.html[steps]. For this deployment option, you will need an additional IAM role with the AWSLambdaBasicExecutionRole policy as follow:
+* Deploy a Databricks workspace and use an *existing* cross-account IAM role. You can create an appropriate role and policy for your deployment type by following these https://docs.databricks.com/administration-guide/account-api/iam-role.html[steps]. For this deployment option, you will need to create an additional IAM role with the follwoing permissions:
 
+1. embed the *AWSLambdaBasicExecutionRole* policy
+2. Inline policy to access to the QuickStart S3 location
 ----
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "CloudWatch",
+       {
+            "Sid": "S3SourceBucket",
             "Effect": "Allow",
             "Action": [
-                "logs:CreateLogStream",
-                "logs:CreateLogGroup",
-                "logs:PutLogEvents"
+                "s3:Get*",
+                "s3:List*"
+            ],
+            "Resource": [
+                "arn:aws:s3:::aws-quickstart/*",
+                "arn:aws:s3:::aws-quickstart"
+            ]
+        }
+----
+3. Inline policy allowing to  manage the necessary S3 buckets 
+----
+       {
+            "Sid": "S3Buckets",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetBucket*",
+                "s3:PutBucket*",
+                "s3:CreateBucket",
+                "s3:ListBucket",
+                "s3:Delete*"
+            ],
+            "Resource": "arn:aws:s3:::<S3 prefix optional or *>"
+        }
+----
+4. Inline KMS permissions, if you the select the optional Customer Managed Key feature.
+----
+       {
+            "Sid": "KMS",
+            "Effect": "Allow",
+            "Action": [
+                "kms:Get*",
+                "kms:PutKeyPolicy"
             ],
             "Resource": "*"
         }
-    ]
-}
-----
+---- 
 
 

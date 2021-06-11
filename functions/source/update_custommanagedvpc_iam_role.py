@@ -44,7 +44,7 @@ def put_role_policy_sg(role_name, aws_region, accountid, security_group_ids, vpc
     sg = sg.replace('ACCOUNTID', accountid)
 
     # Build the Resource block of the policy for as many security groups provided
-    for i in sg_list: 
+    for i in security_group_ids: 
         sg_str = sg.replace('SECURITYGROUPID', str(i))
         resource.append(sg_str)
          
@@ -79,10 +79,10 @@ def handler(event, context):
     status = cfnresponse.SUCCESS
     
     try:
-        role_name = event['ResourceProperties']['RoleName']
-        aws_region = event['ResourceProperties']['AWSRegion']
-        accountId = event['ResourceProperties']['AccountId']
-        security_group_ids = event['ResourceProperties']['SecurityGroupIds']
+        role_name = event['ResourceProperties']['role_name']
+        aws_region = event['ResourceProperties']['aws_region']
+        accountId = event['ResourceProperties']['accountId']
+        security_group_ids = event['ResourceProperties']['security_group_ids']
         vpcid = event['ResourceProperties']['VPCID']
         
         print('role_name - '+role_name)
