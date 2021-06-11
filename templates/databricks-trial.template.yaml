@@ -15,11 +15,12 @@ Metadata:
           - Password
           - WorkspaceName
           - AWSRegion
+          - DefaultCluster
       - Label:
           default: "Required IAM role and S3 bucket configuration"  
         Parameters:
           - IAMRole
-          - BucketName    
+          - BucketName
     ParameterLabels:
       AccountId:
         default: Databricks account ID
@@ -34,7 +35,9 @@ Metadata:
       IAMRole:
         default: Cross-account IAM role name
       BucketName:
-        default: Root S3 bucket name   
+        default: Root S3 bucket name
+      DefaultCluster:
+        default: Create Default Cluster
 
 Outputs:
   DBManagedVPCIAMRoleARN:
@@ -124,7 +127,7 @@ Parameters:
     Type: String
     ConstraintDescription: The Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
   DefaultCluster:
-    Description: 'Hello bogyi default cluster'
+    Description: 'Configure compute resources during workspace deployment.'
     Default: 'False'
     Type: String
     AllowedValues: ['True', 'False']

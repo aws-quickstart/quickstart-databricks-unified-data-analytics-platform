@@ -303,7 +303,7 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
             # DEFAULT CLUSTER
             if default_cluster:
                 
-                CLUSTER_URL = "https://"+deployment_name+".cloud.databricks.com/api/2.0/clusters/create"
+                CLUSTER_URL = "https://{}.cloud.databricks.com/api/2.0/clusters/create".format(deployment_name)
 
                 CLUSTER_DATA = {
                     "cluster_name": "single-node-cluster",
