@@ -44,7 +44,7 @@ def put_role_policy_sg(role_name, aws_region, accountid, security_group_ids, vpc
     sg = sg.replace('ACCOUNTID', accountid)
 
     # Build the Resource block of the policy for as many security groups provided
-    for i in security_group_ids: 
+    for i in sg_list: 
         sg_str = sg.replace('SECURITYGROUPID', str(i))
         resource.append(sg_str)
          

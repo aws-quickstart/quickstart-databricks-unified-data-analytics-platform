@@ -850,14 +850,24 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 
         - arn:aws:iam::aws:policy/IAMFullAccess
-      Policies:
+     Policies:
         - PolicyName: kmsUpdateRole
           PolicyDocument:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
-                Action: 'kms:*'
+                Action: 
+                  - 'kms:GetKeyPolicy'
+                  - 'kms:PutKeyPolicy'
                 Resource: '*'   
+        - PolicyName: iamUpdateRole
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'iam:PutRolePolicy'
+                Resource: '*'  
       Tags:
         -
           Key: Name
