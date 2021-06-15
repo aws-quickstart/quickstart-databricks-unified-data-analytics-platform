@@ -30,7 +30,8 @@ def handler(event, context):
                                     event['ResourceProperties']['accountId'],
                                     event['ResourceProperties']['key_arn'],
                                     event['ResourceProperties']['key_alias'],
-                                    event['ResourceProperties']['key_region'],
+                                    event['ResourceProperties']['use_cases'],
+                                    event['ResourceProperties']['reuse_key_for_cluster_volumes'],
                                     event['ResourceProperties']['encodedbase64'],
                                     event['ResourceProperties']['user_agent']
                                 )
@@ -109,21 +110,41 @@ def handler(event, context):
         cfnresponse.send(event, context, status, responseData, None)
 
 # POST - create customer managed key 
-def create_customer_managed_key(account_id, key_arn, key_alias, key_region, encodedbase64, user_agent):
+def create_customer_managed_key(account_id, key_arn, key_alias, use_cases, reuse_key_for_cluster_volumes, encodedbase64, user_agent):
 
-    version = '1.1.0'
+    version = '1.3.0'
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/customer-managed-keys"
     
+    if use_cases == 'BOTH':
+        use_cases = ["MANAGED_SERVICES", "STORAGE"]
+    
     # Json data
     DATA = {
+        "use_cases": use_cases
+    }
+
+    MANAGED_SERVICE_DATA = { 
+        "aws_key_info": {
+            "key_arn": key_arn,
+            "key_alias": key_alias
+        }
+    }
+    
+    STORAGE_DATA = {
         "aws_key_info": {
             "key_arn": key_arn,
             "key_alias": key_alias,
-            "key_region": key_region
+            "reuse_key_for_cluster_volumes": reuse_key_for_cluster_volumes
         }
-    }
+    }    
 
+    if use_cases == 'MANAGED_SERVICES':
+        DATA.update(MANAGED_SERVICE_DATA)
+    else:
+        DATA.update(STORAGE_DATA)  
+
+    print(DATA)    
     response = post_request(URL, DATA, encodedbase64, user_agent, version)
     print(response)
     
@@ -187,7 +208,7 @@ def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group
     version = '1.1.0'
     # api-endpoint
     URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+account_id+"/networks"
-
+    
     # Json data
     DATA = {
         "network_name": network_name,
@@ -196,6 +217,7 @@ def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group
         "security_group_ids": [id.strip() for id in security_group_ids.split(",")]
     }
 
+    print('DATA - {}'.format(DATA)) 
     response = post_request(URL, DATA, encodedbase64, user_agent, version)
     print(response)
 

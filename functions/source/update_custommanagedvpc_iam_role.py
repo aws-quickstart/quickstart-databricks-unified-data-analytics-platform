@@ -79,10 +79,10 @@ def handler(event, context):
     status = cfnresponse.SUCCESS
     
     try:
-        role_name = event['ResourceProperties']['RoleName']
-        aws_region = event['ResourceProperties']['AWSRegion']
-        accountId = event['ResourceProperties']['AccountId']
-        security_group_ids = event['ResourceProperties']['SecurityGroupIds']
+        role_name = event['ResourceProperties']['role_name']
+        aws_region = event['ResourceProperties']['aws_region']
+        accountId = event['ResourceProperties']['accountId']
+        security_group_ids = event['ResourceProperties']['security_group_ids']
         vpcid = event['ResourceProperties']['VPCID']
         
         print('role_name - '+role_name)
