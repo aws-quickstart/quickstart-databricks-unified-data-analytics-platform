@@ -283,7 +283,7 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
 
     if workspace_status == 'RUNNING' and hipaa_parm == 'No':
         # api-endpoint
-        URL = "https://"+deployment_name+".cloud.databricks.com/api/2.0/policies/clusters/create"
+        URL = "https://{deployment_name}.cloud.databricks.com/api/2.0/policies/clusters/create".format(deployment_name=deployment_name)
 
         # Json data
         DATA = {
@@ -300,10 +300,10 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
         response.update(response_policy)
         print(response)
 
-        # DEFAULT CLUSTER
+        # DEFAULT CLUSTER in Terminating State
         if default_cluster:
             
-            CLUSTER_URL = "https://"+deployment_name+".cloud.databricks.com/api/2.0/clusters/create"
+            CLUSTER_URL = "https://{deployment_name}.cloud.databricks.com/api/2.0/clusters/create".format(deployment_name=deployment_name)
 
             CLUSTER_DATA = {
                 "cluster_name": "basic-starter-cluster",
