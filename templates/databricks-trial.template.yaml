@@ -128,9 +128,9 @@ Parameters:
     ConstraintDescription: The Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
   DefaultCluster:
     Description: 'Configure compute resources during workspace deployment.'
-    Default: 'False'
+    Default: 'No'
     Type: String
-    AllowedValues: ['True', 'False']
+    AllowedValues: ['Yes', 'No']
 
 Rules:
 # Validate the selected Region from the drop-down matches the Region from the Console

@@ -70,7 +70,7 @@ def handler(event, context):
                 responseData['NetworkId'] = post_result['network_id']
 
             if event['ResourceProperties']['action'] == 'CREATE_WORKSPACES':
-                if 'default_cluster' in event['ResourceProperties'] and event['ResourceProperties']['default_cluster'] == 'True':
+                if event['ResourceProperties'].get('default_cluster') == 'Yes':
                         event['ResourceProperties']['default_cluster'] = True
                     else:
                         event['ResourceProperties']['default_cluster'] = False
@@ -280,6 +280,63 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
         print('workspace FAILED about to raise an exception')
         raise Exception(workspace_status_message)
 
+
+    if workspace_status == 'RUNNING' and hipaa_parm == 'No':
+        # api-endpoint
+        URL = "https://"+deployment_name+".cloud.databricks.com/api/2.0/policies/clusters/create"
+
+        # Json data
+        DATA = {
+            "name": "Default Cluster Policy",
+            "definition": "{\"spark_version\":{\"type\":\"fixed\",\"value\":\"next-major-version-scala2.12\",\"hidden\":true}}"
+        }
+
+        print(DATA)
+        response_policy = post_request(URL, DATA, encodedbase64, user_agent, version)
+        print(response_policy)
+        # parse the policy_id element from the response
+        policy_id = response_policy['policy_id']
+
+        response.update(response_policy)
+        print(response)
+
+        # DEFAULT CLUSTER
+        if default_cluster:
+            
+            CLUSTER_URL = "https://"+deployment_name+".cloud.databricks.com/api/2.0/clusters/create"
+
+            CLUSTER_DATA = {
+                "cluster_name": "basic-starter-cluster",
+                "spark_version": "7.6.x-scala2.12",
+                "node_type_id": "m5d.large",
+                "num_workers": 0,
+                "start_cluster": False,
+                "spark_conf": {
+                    "spark.databricks.cluster.profile": "singleNode",
+                    "spark.master": "local[*]"
+                },
+                "custom_tags": {
+                    "ResourceClass": "SingleNode"
+                }
+            }
+
+            try:
+                default_cluster = post_request(CLUSTER_URL, CLUSTER_DATA, encodedbase64, user_agent, version)
+                print(default_cluster)
+                # parse the cluster_id element from the response
+                cluster_id = default_cluster['cluster_id']
+
+                print(cluster_id)
+
+            except Exception as e:
+                logging.error('Exception: %s' % e, exc_info=True)
+    else:
+        cluster_policy_str = {
+            "policy_id": "Cluster Policy cannot be created because the workspace creation has FAILED!"
+            }
+        response.update(cluster_policy_str)
+        print(response)
+
     if hipaa_parm == 'Yes':
         if workspace_status == 'RUNNING':
             # api-endpoint
@@ -299,35 +356,6 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
        
             response.update(response_policy)
             print(response)
-
-            # DEFAULT CLUSTER
-            if default_cluster:
-                
-                CLUSTER_URL = "https://{}.cloud.databricks.com/api/2.0/clusters/create".format(deployment_name)
-
-                CLUSTER_DATA = {
-                    "cluster_name": "single-node-cluster",
-                    "spark_version": "7.6.x-scala2.12",
-                    "node_type_id": "M4.xlarge",
-                    "num_workers": 0,
-                    "start_cluster": False,
-                    "spark_conf": {
-                        "spark.databricks.cluster.profile": "singleNode",
-                        "spark.master": "local[*]"
-                    },
-                    "custom_tags": {
-                        "ResourceClass": "SingleNode"
-                    }
-                }
-
-                
-
-                default_cluster = post_request(CLUSTER_URL, CLUSTER_DATA, encodedbase64, user_agent, version)
-                print(default_cluster)
-                # parse the cluster_id element from the response
-                cluster_id = default_cluster['cluster_id']
-               
-                print(cluster_id)
         else:
             cluster_policy_str = {
                 "policy_id": "Cluster Policy cannot be created because the workspace creation has FAILED!"
