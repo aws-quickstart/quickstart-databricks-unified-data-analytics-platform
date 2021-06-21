@@ -316,25 +316,7 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
             print(response)
 
         if default_cluster:
-            # api-endpoint
-            URL = "https://{deployment_name}.cloud.databricks.com/api/2.0/policies/clusters/create".format(deployment_name=deployment_name)
-
-            # Json data
-            DATA = {
-                "name": "Default Cluster Policy",
-                "definition": "{\"spark_version\":{\"type\":\"fixed\",\"value\":\"next-major-version-scala2.12\",\"hidden\":true}}"
-            }
-
-            print(DATA)
-            response_policy = post_request(URL, DATA, encodedbase64, user_agent, version)
-            print(response_policy)
-            # parse the policy_id element from the response
-            policy_id = response_policy['policy_id']
-
-            response.update(response_policy)
-            print(response)
-
-            # DEFAULT CLUSTER in Terminating State
+            # DEFAULT CLUSTER in Terminated State
             CLUSTER_URL = "https://{deployment_name}.cloud.databricks.com/api/2.0/clusters/create".format(deployment_name=deployment_name)
 
             CLUSTER_DATA = {
@@ -362,13 +344,6 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
 
             except Exception as e:
                 logging.error('Exception: %s' % e, exc_info=True)
-                
-        else:
-            cluster_policy_str = {
-                "policy_id": "Default Cluster Policy is Not Applicable - Default cluster flag is set to NO"
-            }
-            response.update(cluster_policy_str)
-            print(response)
 
     else:
         cluster_policy_str = {
