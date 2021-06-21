@@ -70,10 +70,18 @@ def handler(event, context):
                 responseData['NetworkId'] = post_result['network_id']
 
             if event['ResourceProperties']['action'] == 'CREATE_WORKSPACES':
+                # Handle default_cluster Flag
                 if event['ResourceProperties'].get('default_cluster') == 'Yes':
                         event['ResourceProperties']['default_cluster'] = True
                     else:
                         event['ResourceProperties']['default_cluster'] = False
+
+                # Handle Hippa Flag
+                if event['ResourceProperties'].get('hipaa_parm') == 'Yes':
+                        event['ResourceProperties']['hipaa_parm'] = True
+                    else:
+                        event['ResourceProperties']['hipaa_parm'] = False
+
                 post_result = create_workspaces(
                                     event['ResourceProperties']['accountId'],
                                     event['ResourceProperties']['workspace_name'],
@@ -210,7 +218,7 @@ def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group
     return response
 
 # POST - create workspace
-def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, encodedbase64, network_id, customer_managed_key_id, pricing_tier, hipaa_parm, customer_name, authoritative_user_email, authoritative_user_full_name, user_agent, default_cluster = False):
+def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, encodedbase64, network_id, customer_managed_key_id, pricing_tier, hipaa_parm, customer_name, authoritative_user_email, authoritative_user_full_name, user_agent, default_cluster):
     
     version = '1.2.0'
     # api-endpoint
@@ -280,29 +288,53 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
         print('workspace FAILED about to raise an exception')
         raise Exception(workspace_status_message)
 
+    if workspace_status == 'RUNNING':
+        if hipaa_parm:
+            # api-endpoint
+            URL = "https://"+deployment_name+".cloud.databricks.com/api/2.0/policies/clusters/create"
 
-    if workspace_status == 'RUNNING' and hipaa_parm == 'No':
-        # api-endpoint
-        URL = "https://{deployment_name}.cloud.databricks.com/api/2.0/policies/clusters/create".format(deployment_name=deployment_name)
+            # Json data
+            DATA = {
+                "name": "Default Cluster Policy (HIPAA)", 
+                "definition": "{\"node_type_id\":{\"type\":\"allowlist\",\"values\":[\"c5.xlarge\",\"c5.2xlarge\",\"c5.4xlarge\",\"c5.9xlarge\",\"c5.12xlarge\",\"c5.18xlarge\",\"c5.24xlarge\",\"c5d.xlarge\",\"c5d.2xlarge\",\"c5d.4xlarge\",\"c5d.9xlarge\",\"c5d.12xlarge\",\"c5d.18xlarge\",\"c5d.24xlarge\",\"g4dn.xlarge\",\"g4dn.2xlarge\",\"g4dn.4xlarge\",\"g4dn.8xlarge\",\"g4dn.12xlarge\",\"g4dn.16xlarge\",\"i3en.large\",\"i3en.xlarge\",\"i3en.2xlarge\",\"i3en.3xlarge\",\"i3en.6xlarge\",\"i3en.12xlarge\",\"i3en.24xlarge\",\"m5.large\",\"m5.xlarge\",\"m5.2xlarge\",\"m5.4xlarge\",\"m5.8xlarge\",\"m5.12xlarge\",\"m5.16xlarge\",\"m5.24xlarge\",\"m5a.large\",\"m5a.xlarge\",\"m5a.2xlarge\",\"m5a.4xlarge\",\"m5a.8xlarge\",\"m5a.12xlarge\",\"m5a.16xlarge\",\"m5a.24xlarge\",\"m5d.large\",\"m5d.xlarge\",\"m5d.2xlarge\",\"m5d.4xlarge\",\"m5d.8xlarge\",\"m5d.12xlarge\",\"m5d.16xlarge\",\"m5d.24xlarge\",\"r5.large\",\"r5.xlarge\",\"r5.2xlarge\",\"r5.4xlarge\",\"r5.8xlarge\",\"r5.12xlarge\",\"r5.16xlarge\",\"r5.24xlarge\",\"r5a.large\",\"r5a.xlarge\",\"r5a.2xlarge\",\"r5a.4xlarge\",\"r5a.8xlarge\",\"r5a.12xlarge\",\"r5a.16xlarge\",\"r5a.24xlarge\",\"r5d.large\",\"r5d.xlarge\",\"r5d.2xlarge\",\"r5d.4xlarge\",\"r5d.8xlarge\",\"r5d.12xlarge\",\"r5d.16xlarge\",\"r5d.24xlarge\",\"z1d.large\",\"z1d.xlarge\",\"z1d.2xlarge\",\"z1d.3xlarge\",\"z1d.6xlarge\",\"z1d.12xlarge\"],\"defaultValue\":\"c5.xlarge\"},\"driver_node_type_id\":{\"type\":\"allowlist\",\"values\":[\"c5.xlarge\",\"c5.2xlarge\",\"c5.4xlarge\",\"c5.9xlarge\",\"c5.12xlarge\",\"c5.18xlarge\",\"c5.24xlarge\",\"c5d.xlarge\",\"c5d.4xlarge\",\"c5d.2xlarge\",\"c5d.4xlarge\",\"c5d.9xlarge\",\"c5d.12xlarge\",\"c5d.18xlarge\",\"c5d.24xlarge\",\"g4dn.xlarge\",\"g4dn.2xlarge\",\"g4dn.4xlarge\",\"g4dn.8xlarge\",\"g4dn.12xlarge\",\"g4dn.16xlarge\",\"i3en.large\",\"i3en.xlarge\",\"i3en.2xlarge\",\"i3en.3xlarge\",\"i3en.6xlarge\",\"i3en.12xlarge\",\"i3en.24xlarge\",\"m5.large\",\"m5.xlarge\",\"m5.2xlarge\",\"m5.4xlarge\",\"m5.8xlarge\",\"m5.12xlarge\",\"m5.16xlarge\",\"m5.24xlarge\",\"m5a.large\",\"m5a.xlarge\",\"m5a.2xlarge\",\"m5a.4xlarge\",\"m5a.8xlarge\",\"m5a.12xlarge\",\"m5a.16xlarge\",\"m5a.24xlarge\",\"m5d.large\",\"m5d.xlarge\",\"m5d.2xlarge\",\"m5d.4xlarge\",\"m5d.8xlarge\",\"m5d.12xlarge\",\"m5d.16xlarge\",\"m5d.24xlarge\",\"r5.large\",\"r5.xlarge\",\"r5.2xlarge\",\"r5.4xlarge\",\"r5.8xlarge\",\"r5.12xlarge\",\"r5.16xlarge\",\"r5.24xlarge\",\"r5a.large\",\"r5a.xlarge\",\"r5a.2xlarge\",\"r5a.4xlarge\",\"r5a.8xlarge\",\"r5a.12xlarge\",\"r5a.16xlarge\",\"r5a.24xlarge\",\"r5d.large\",\"r5d.xlarge\",\"r5d.2xlarge\",\"r5d.4xlarge\",\"r5d.8xlarge\",\"r5d.12xlarge\",\"r5d.16xlarge\",\"r5d.24xlarge\",\"z1d.large\",\"z1d.xlarge\",\"z1d.2xlarge\",\"z1d.3xlarge\",\"z1d.6xlarge\",\"z1d.12xlarge\"],\"defaultValue\":\"c5.xlarge\"}}"
+            } 
 
-        # Json data
-        DATA = {
-            "name": "Default Cluster Policy",
-            "definition": "{\"spark_version\":{\"type\":\"fixed\",\"value\":\"next-major-version-scala2.12\",\"hidden\":true}}"
-        }
+            print(DATA)    
+            response_policy = post_request(URL, DATA, encodedbase64, user_agent, version)
+            print(response_policy)
+            # parse the policy_id element from the response
+            policy_id = response_policy['policy_id']
+       
+            response.update(response_policy)
+            print(response)
 
-        print(DATA)
-        response_policy = post_request(URL, DATA, encodedbase64, user_agent, version)
-        print(response_policy)
-        # parse the policy_id element from the response
-        policy_id = response_policy['policy_id']
+        else:
+            cluster_policy_str = {
+                "policy_id": "Cluster Policy is Not Applicable - HIPAA flag is set to NO"
+                }  
+            response.update(cluster_policy_str)    
+            print(response)
 
-        response.update(response_policy)
-        print(response)
-
-        # DEFAULT CLUSTER in Terminating State
         if default_cluster:
-            
+            # api-endpoint
+            URL = "https://{deployment_name}.cloud.databricks.com/api/2.0/policies/clusters/create".format(deployment_name=deployment_name)
+
+            # Json data
+            DATA = {
+                "name": "Default Cluster Policy",
+                "definition": "{\"spark_version\":{\"type\":\"fixed\",\"value\":\"next-major-version-scala2.12\",\"hidden\":true}}"
+            }
+
+            print(DATA)
+            response_policy = post_request(URL, DATA, encodedbase64, user_agent, version)
+            print(response_policy)
+            # parse the policy_id element from the response
+            policy_id = response_policy['policy_id']
+
+            response.update(response_policy)
+            print(response)
+
+            # DEFAULT CLUSTER in Terminating State
             CLUSTER_URL = "https://{deployment_name}.cloud.databricks.com/api/2.0/clusters/create".format(deployment_name=deployment_name)
 
             CLUSTER_DATA = {
@@ -330,44 +362,21 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
 
             except Exception as e:
                 logging.error('Exception: %s' % e, exc_info=True)
+                
+        else:
+            cluster_policy_str = {
+                "policy_id": "Default Cluster Policy is Not Applicable - Default cluster flag is set to NO"
+            }
+            response.update(cluster_policy_str)
+            print(response)
+
     else:
         cluster_policy_str = {
             "policy_id": "Cluster Policy cannot be created because the workspace creation has FAILED!"
-            }
-        response.update(cluster_policy_str)
-        print(response)
-
-    if hipaa_parm == 'Yes':
-        if workspace_status == 'RUNNING':
-            # api-endpoint
-            URL = "https://"+deployment_name+".cloud.databricks.com/api/2.0/policies/clusters/create"
-
-            # Json data
-            DATA = {
-                "name": "Default Cluster Policy (HIPAA)", 
-                "definition": "{\"node_type_id\":{\"type\":\"allowlist\",\"values\":[\"c5.xlarge\",\"c5.2xlarge\",\"c5.4xlarge\",\"c5.9xlarge\",\"c5.12xlarge\",\"c5.18xlarge\",\"c5.24xlarge\",\"c5d.xlarge\",\"c5d.2xlarge\",\"c5d.4xlarge\",\"c5d.9xlarge\",\"c5d.12xlarge\",\"c5d.18xlarge\",\"c5d.24xlarge\",\"g4dn.xlarge\",\"g4dn.2xlarge\",\"g4dn.4xlarge\",\"g4dn.8xlarge\",\"g4dn.12xlarge\",\"g4dn.16xlarge\",\"i3en.large\",\"i3en.xlarge\",\"i3en.2xlarge\",\"i3en.3xlarge\",\"i3en.6xlarge\",\"i3en.12xlarge\",\"i3en.24xlarge\",\"m5.large\",\"m5.xlarge\",\"m5.2xlarge\",\"m5.4xlarge\",\"m5.8xlarge\",\"m5.12xlarge\",\"m5.16xlarge\",\"m5.24xlarge\",\"m5a.large\",\"m5a.xlarge\",\"m5a.2xlarge\",\"m5a.4xlarge\",\"m5a.8xlarge\",\"m5a.12xlarge\",\"m5a.16xlarge\",\"m5a.24xlarge\",\"m5d.large\",\"m5d.xlarge\",\"m5d.2xlarge\",\"m5d.4xlarge\",\"m5d.8xlarge\",\"m5d.12xlarge\",\"m5d.16xlarge\",\"m5d.24xlarge\",\"r5.large\",\"r5.xlarge\",\"r5.2xlarge\",\"r5.4xlarge\",\"r5.8xlarge\",\"r5.12xlarge\",\"r5.16xlarge\",\"r5.24xlarge\",\"r5a.large\",\"r5a.xlarge\",\"r5a.2xlarge\",\"r5a.4xlarge\",\"r5a.8xlarge\",\"r5a.12xlarge\",\"r5a.16xlarge\",\"r5a.24xlarge\",\"r5d.large\",\"r5d.xlarge\",\"r5d.2xlarge\",\"r5d.4xlarge\",\"r5d.8xlarge\",\"r5d.12xlarge\",\"r5d.16xlarge\",\"r5d.24xlarge\",\"z1d.large\",\"z1d.xlarge\",\"z1d.2xlarge\",\"z1d.3xlarge\",\"z1d.6xlarge\",\"z1d.12xlarge\"],\"defaultValue\":\"c5.xlarge\"},\"driver_node_type_id\":{\"type\":\"allowlist\",\"values\":[\"c5.xlarge\",\"c5.2xlarge\",\"c5.4xlarge\",\"c5.9xlarge\",\"c5.12xlarge\",\"c5.18xlarge\",\"c5.24xlarge\",\"c5d.xlarge\",\"c5d.4xlarge\",\"c5d.2xlarge\",\"c5d.4xlarge\",\"c5d.9xlarge\",\"c5d.12xlarge\",\"c5d.18xlarge\",\"c5d.24xlarge\",\"g4dn.xlarge\",\"g4dn.2xlarge\",\"g4dn.4xlarge\",\"g4dn.8xlarge\",\"g4dn.12xlarge\",\"g4dn.16xlarge\",\"i3en.large\",\"i3en.xlarge\",\"i3en.2xlarge\",\"i3en.3xlarge\",\"i3en.6xlarge\",\"i3en.12xlarge\",\"i3en.24xlarge\",\"m5.large\",\"m5.xlarge\",\"m5.2xlarge\",\"m5.4xlarge\",\"m5.8xlarge\",\"m5.12xlarge\",\"m5.16xlarge\",\"m5.24xlarge\",\"m5a.large\",\"m5a.xlarge\",\"m5a.2xlarge\",\"m5a.4xlarge\",\"m5a.8xlarge\",\"m5a.12xlarge\",\"m5a.16xlarge\",\"m5a.24xlarge\",\"m5d.large\",\"m5d.xlarge\",\"m5d.2xlarge\",\"m5d.4xlarge\",\"m5d.8xlarge\",\"m5d.12xlarge\",\"m5d.16xlarge\",\"m5d.24xlarge\",\"r5.large\",\"r5.xlarge\",\"r5.2xlarge\",\"r5.4xlarge\",\"r5.8xlarge\",\"r5.12xlarge\",\"r5.16xlarge\",\"r5.24xlarge\",\"r5a.large\",\"r5a.xlarge\",\"r5a.2xlarge\",\"r5a.4xlarge\",\"r5a.8xlarge\",\"r5a.12xlarge\",\"r5a.16xlarge\",\"r5a.24xlarge\",\"r5d.large\",\"r5d.xlarge\",\"r5d.2xlarge\",\"r5d.4xlarge\",\"r5d.8xlarge\",\"r5d.12xlarge\",\"r5d.16xlarge\",\"r5d.24xlarge\",\"z1d.large\",\"z1d.xlarge\",\"z1d.2xlarge\",\"z1d.3xlarge\",\"z1d.6xlarge\",\"z1d.12xlarge\"],\"defaultValue\":\"c5.xlarge\"}}"
-            } 
-
-            print(DATA)    
-            response_policy = post_request(URL, DATA, encodedbase64, user_agent, version)
-            print(response_policy)
-            # parse the policy_id element from the response
-            policy_id = response_policy['policy_id']
-       
-            response.update(response_policy)
-            print(response)
-        else:
-            cluster_policy_str = {
-                "policy_id": "Cluster Policy cannot be created because the workspace creation has FAILED!"
-                }  
-            response.update(cluster_policy_str)    
-            print(response)
-    else:
-        cluster_policy_str = {
-            "policy_id": "Cluster Policy is Not Applicable - HIPAA flag is set to NO"
             }  
         response.update(cluster_policy_str)    
-        print(response)        
+        print(response)
+         
 
     return response
     
