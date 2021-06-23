@@ -849,7 +849,7 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 
-     Policies:
+      Policies:
         - PolicyName: kmsUpdateRole
           PolicyDocument:
             Version: 2012-10-17
