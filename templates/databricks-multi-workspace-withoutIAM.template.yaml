@@ -338,8 +338,8 @@ Resources:
               - 's3:ListBucket'
               - 's3:GetBucketLocation'
             Resource:
-              - !Sub 'arn:aws:s3:::${assetsS3Bucket}/*'
-              - !Sub 'arn:aws:s3:::${assetsS3Bucket}'
+              - !Sub 'arn:${AWS::Partition}:s3:::${assetsS3Bucket}/*'
+              - !Sub 'arn:${AWS::Partition}:s3:::${assetsS3Bucket}'
       Bucket: !Ref assetsS3Bucket
 
   # Databricks API for configuring notebook encryption with a customer-managed KMS, if provided

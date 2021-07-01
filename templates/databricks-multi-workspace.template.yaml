@@ -317,6 +317,13 @@ Resources:
   # Cross-account access role for Databricks-created and managed VPC
   accessRoleDBManagedVPC:
     Type: 'AWS::IAM::Role'
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
     Condition: CreateDBManagedVPC
     Properties:
       RoleName: !Ref IAMRole
@@ -411,8 +418,8 @@ Resources:
                 Action:
                   - 'iam:CreateServiceLinkedRole'
                   - 'iam:PutRolePolicy'
-                Resource: >-
-                  arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot'
                 Condition:
                   StringLike:
                     'iam:AWSServiceName': spot.amazonaws.com
@@ -426,6 +433,13 @@ Resources:
   # Cross-account access role for customer-managed VPC
   accessRoleCustomerManagedVPC:
     Type: 'AWS::IAM::Role'
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
     Condition: CustomerManagedVPC
     Properties:
       RoleName: !Ref IAMRole
@@ -486,7 +500,7 @@ Resources:
                   - 'ec2:DisassociateIamInstanceProfile'
                   - 'ec2:ReplaceIamInstanceProfileAssociation'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:instance/* 
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/* 
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'
@@ -495,8 +509,8 @@ Resources:
                 Action:
                   - 'ec2:RunInstances'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:instance/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/*
                 Condition:
                   StringEquals:
                     'aws:RequestTag/Vendor': 'Databricks' 
@@ -505,7 +519,7 @@ Resources:
                 Action:
                   - 'ec2:RunInstances'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:image/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:image/*
                 Condition:
                   StringEquals:
                     'aws:ResourceTag/Vendor': 'Databricks'
@@ -514,29 +528,29 @@ Resources:
                 Action:
                   - 'ec2:RunInstances'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:network-interface/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:subnet/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:security-group/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:network-interface/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:subnet/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:security-group/*
                 Condition:
                   StringEquals:
-                    'ec2:vpc' : !Sub 'arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${VPCID}'
+                    'ec2:vpc' : !Sub 'arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${VPCID}'
               - Sid: AllowEc2RunInstanceOtherResources
                 Effect: Allow
                 Action:
                   - 'ec2:RunInstances'
                 NotResource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:image/* 
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:network-interface/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:subnet/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:security-group/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:instance/*     
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:image/* 
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:network-interface/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:subnet/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:security-group/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/*     
               - Sid: EC2TerminateInstancesTag
                 Effect: Allow
                 Action:
                   - 'ec2:TerminateInstances'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:instance/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/*
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'         
@@ -546,8 +560,8 @@ Resources:
                   - 'ec2:AttachVolume'
                   - 'ec2:DetachVolume'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:instance/* 
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/* 
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'  
@@ -556,7 +570,7 @@ Resources:
                 Action:
                   - 'ec2:CreateVolume'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:volume/* 
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/* 
                 Condition:
                   StringEquals:
                     'aws:RequestTag/Vendor': 'Databricks'   
@@ -565,7 +579,7 @@ Resources:
                 Action:
                   - 'ec2:DeleteVolume'
                 Resource:
-                  - !Sub arn:aws:ec2:${AWSRegion}:${AWS::AccountId}:volume/* 
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/* 
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'  
@@ -574,7 +588,7 @@ Resources:
                   - 'iam:CreateServiceLinkedRole'
                   - 'iam:PutRolePolicy'
                 Resource: 
-                  - arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
+                  - !Sub arn:${AWS::Partition}:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
                 Condition:
                   StringLike:
                     'iam:AWSServiceName': spot.amazonaws.com                                               
@@ -621,8 +635,8 @@ Resources:
               - 's3:ListBucket'
               - 's3:GetBucketLocation'
             Resource:
-              - !Sub 'arn:aws:s3:::${assetsS3Bucket}/*'
-              - !Sub 'arn:aws:s3:::${assetsS3Bucket}'
+              - !Sub 'arn:${AWS::Partition}:s3:::${assetsS3Bucket}/*'
+              - !Sub 'arn:${AWS::Partition}:s3:::${assetsS3Bucket}'
       Bucket: !Ref assetsS3Bucket                       
 
   # Databricks API for configuring notebook encryption with a customer-managed AWS KMS, if provided
@@ -807,6 +821,13 @@ Resources:
   # IAM Role for lambda function execution
   functionRole:
     Type: AWS::IAM::Role
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -816,7 +837,7 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 
       Policies:
         - PolicyName: kmsUpdateRole
           PolicyDocument:
@@ -863,7 +884,7 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Path: /
       Policies:
         - PolicyName: lambda-copier
@@ -874,13 +895,13 @@ Resources:
                 Action:
                   - s3:GetObject
                 Resource:
-                  - !Sub 'arn:aws:s3:::${QSS3BucketName}/${QSS3KeyPrefix}*'
+                  - !Sub 'arn:${AWS::Partition}:s3:::${QSS3BucketName}/${QSS3KeyPrefix}*'
               - Effect: Allow
                 Action:
                   - s3:PutObject
                   - s3:DeleteObject
                 Resource:
-                  - !Sub 'arn:aws:s3:::${LambdaZipsBucket}/${QSS3KeyPrefix}*' 
+                  - !Sub 'arn:${AWS::Partition}:s3:::${LambdaZipsBucket}/${QSS3KeyPrefix}*' 
       Tags:
         -
           Key: Name
