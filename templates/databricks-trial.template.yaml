@@ -136,6 +136,13 @@ Resources:
   # Cross-account access role for Databricks-created and -managed VPC
   accessRoleDBManagedVPC:
     Type: 'AWS::IAM::Role'
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
     Properties:
       RoleName: !Ref IAMRole
       AssumeRolePolicyDocument:
@@ -229,8 +236,8 @@ Resources:
                 Action:
                   - 'iam:CreateServiceLinkedRole'
                   - 'iam:PutRolePolicy'
-                Resource: >-
-                  arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
+                Resource:
+                  - !Sub arn:${AWS::Partition}:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
                 Condition:
                   StringLike:
                     'iam:AWSServiceName': spot.amazonaws.com
@@ -270,8 +277,8 @@ Resources:
               - 's3:ListBucket'
               - 's3:GetBucketLocation'
             Resource:
-              - !Sub 'arn:aws:s3:::${assetsS3Bucket}/*'
-              - !Sub 'arn:aws:s3:::${assetsS3Bucket}'
+              - !Sub 'arn:${AWS::Partition}:s3:::${assetsS3Bucket}/*'
+              - !Sub 'arn:${AWS::Partition}:s3:::${assetsS3Bucket}'
       Bucket: !Ref assetsS3Bucket                       
 
   # Databricks API for workspace credentials
@@ -363,8 +370,8 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 
-        - arn:aws:iam::aws:policy/IAMFullAccess 
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/IAMFullAccess 
       Tags:
         -
           Key: Name
@@ -393,7 +400,7 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Path: /
       Policies:
         - PolicyName: lambda-copier
@@ -404,13 +411,13 @@ Resources:
                 Action:
                   - s3:GetObject
                 Resource:
-                  - 'arn:aws:s3:::aws-quickstart/quickstart-databricks-unified-data-analytics-platform/*'
+                  - !Sub 'arn:${AWS::Partition}:s3:::aws-quickstart/quickstart-databricks-unified-data-analytics-platform/*'
               - Effect: Allow
                 Action:
                   - s3:PutObject
                   - s3:DeleteObject
                 Resource:
-                  - !Sub 'arn:aws:s3:::${LambdaZipsBucket}/quickstart-databricks-unified-data-analytics-platform/*' 
+                  - !Sub 'arn:${AWS::Partition}:s3:::${LambdaZipsBucket}/quickstart-databricks-unified-data-analytics-platform/*' 
       Tags:
         -
           Key: Name
