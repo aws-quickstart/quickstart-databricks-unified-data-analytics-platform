@@ -5,9 +5,9 @@
 // Space needed to maintain table headers
 |VPCs |1
 |Subnets |3
-|Security Groups |1
-|NAT gateway |1
-|Internet gateway |1
+|Security groups |1
+|NAT gateways |1
+|Internet gateways |1
 |S3 buckets |2
 |IAM roles |3
 |===
