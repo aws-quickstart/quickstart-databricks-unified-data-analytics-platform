@@ -6,7 +6,7 @@
 
 ==== Prepare your {partner-company-name} account
 
-You need a Databricks E2 account ID to launch this Quick Start. Please https://databricks.com/company/contact[contact] your Databricks representative to sign up, if necessary.
+You must have a Databricks E2 account ID to launch this Quick Start. For more information, https://databricks.com/company/contact[Contact your Databricks representative^].
 
 // ==== Prepare for the deployment
 
