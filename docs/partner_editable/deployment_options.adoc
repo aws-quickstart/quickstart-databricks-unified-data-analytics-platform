@@ -2,14 +2,13 @@
 
 Databricks needs access to a cross-account IAM role in your AWS account to launch clusters into the VPC of the new workspace. This Quick Start provides the following two deployment options:
 
-IMPORTANT: Select Option 1 if you have the privilege to create an IAM role in your account, otherwise select option 2 which requires the setup of IAM roles prior to launch the deployment.
+IMPORTANT: Select option 1 if you have the privilege to create an IAM role in your account, otherwise select option 2. Note that option 2 requires you to configure IAM roles prior to launching the deployment.
 
 * Deploy a Databricks workspace and create a *new* cross-account IAM role. You must have sufficient permissions to create a new IAM role.
+* Deploy a Databricks workspace and use an *existing* cross-account IAM role. You can create an appropriate role and policy for your deployment type by following these https://docs.databricks.com/administration-guide/account-api/iam-role.html[steps]. For this deployment option, create an additional IAM role with the following permissions:
 
-* Deploy a Databricks workspace and use an *existing* cross-account IAM role. You can create an appropriate role and policy for your deployment type by following these https://docs.databricks.com/administration-guide/account-api/iam-role.html[steps]. For this deployment option, you will need to create an additional IAM role with the follwoing permissions:
-
-1. embed the *AWSLambdaBasicExecutionRole* policy
-2. Inline policy to access to the QuickStart S3 location
+. Embed the *AWSLambdaBasicExecutionRole* policy.
+. Configure the inline policy to access to the Quick Start S3 location:
 ----
        {
             "Sid": "S3SourceBucket",
@@ -24,7 +23,8 @@ IMPORTANT: Select Option 1 if you have the privilege to create an IAM role in yo
             ]
         }
 ----
-3. Inline policy allowing to  manage the necessary S3 buckets 
+[start=3]
+. Configure the inline policy to allow for managing the S3 buckets: 
 ----
        {
             "Sid": "S3Buckets",
@@ -39,7 +39,8 @@ IMPORTANT: Select Option 1 if you have the privilege to create an IAM role in yo
             "Resource": "arn:aws:s3:::<S3 prefix optional or *>"
         }
 ----
-4. Inline KMS permissions, if you the select the optional Customer Managed Key feature.
+[start=4]
+. If you the choose the optional customer-managed key feature, configure inline KMS permissions:
 ----
        {
             "Sid": "KMS",
