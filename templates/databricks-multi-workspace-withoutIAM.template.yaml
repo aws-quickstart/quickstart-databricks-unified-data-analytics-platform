@@ -55,7 +55,7 @@ Metadata:
       AWSRegion:
         default: AWS Region of the Databricks workspace
       HIPAAparm:
-        default: Are you creating this workspace in a HIPAA tier account?
+        default: HIPAA tier account
       IAMArn:
         default: ARN of the existing cross-account IAM role
       IAMArnLambda:
@@ -124,7 +124,7 @@ Outputs:
 
 Parameters:
   AccountId:
-    Description: "Your account must be on the E2 version of the platform. See https://docs.databricks.com/getting-started/overview.html#e2-architecture."
+    Description: "Your account must be on the E2 version of the platform. See https://docs.databricks.com/getting-started/overview.html#e2-architecture." 
     AllowedPattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$'
     MinLength: '36'
     Type: String

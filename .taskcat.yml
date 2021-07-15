@@ -2,6 +2,9 @@ project:
   name: quickstart-databricks-unified-data-analytics-platform
   owner: sshvans@amazon.com
   package_lambda: false
+  s3_regional_buckets: true
+  shorten_stack_name: true
+  # s3_bucket: tcat-0a820f79e7cf5251aa73ff7df7f4c4a0-us-west-1
   regions:
   - ap-northeast-1
   - ap-northeast-2
@@ -18,12 +21,30 @@ project:
   - us-west-1
   - us-west-2
 tests:
-  xacctest:
+  multiwrspc-test:
     parameters:
-      ExternalID: 'databricks'
-      IAMRole: databricks-cross-account-role
-      BucketName: test-dbrks-bkt
-      TagName: 'Name=databricks'
+      AccountId: 'Override'
+      Username: sshvans@amazon.com
+      Password: 'Override'
+      PricingTier: 'ENTERPRISE'
+      DeploymentName: 'qsdeploy'
+      AWSRegion: 'us-west-1'
+      TagValue: 'qstest'
+      IAMRole: 'qstest-iam'
+      BucketName: db-$[taskcat_autobucket]
+      KeyAlias: ''
+      KeyUseCases: ''
+      KeyReuseForClusterVolumes: ''
+      QSS3BucketName: $[taskcat_autobucket]
     regions:
-    - us-west-2
-    template: templates/databricks-cross-account-role.template.yaml
+    - us-west-1
+    template: templates/databricks-multi-workspace-test.template.yaml
+  # xacctest:
+  #   parameters:
+  #     ExternalID: 'databricks'
+  #     IAMRole: databricks-cross-account-role
+  #     BucketName: test-dbrks-bkt
+  #     TagName: 'Name=databricks'
+  #   regions:
+  #   - us-west-2
+  #   template: templates/databricks-cross-account-role.template.yaml

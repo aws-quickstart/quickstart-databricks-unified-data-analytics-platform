@@ -3,8 +3,6 @@ Description: >-
   This template creates resources for a Databricks workspace in your AWS account. Contact Databricks at quickstart-support@databricks.com if you have any questions. (qs-1rrjcbj76)
 
 Metadata:
-  QuickStartDocumentation:
-    EntrypointName: "Parameters for deploying a workspace and creating a new cross-account IAM role"
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -73,7 +71,7 @@ Outputs:
 
 Parameters:
   AccountId:
-    Description: "You can find your account ID at https://accounts.cloud.databricks.com" 
+    Description: "Find your account ID at https://accounts.cloud.databricks.com" 
     AllowedPattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$'
     MinLength: '36'
     Type: String
