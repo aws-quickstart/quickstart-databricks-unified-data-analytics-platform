@@ -31,7 +31,7 @@ tests:
       AWSRegion: 'us-west-1'
       TagValue: 'qstest'
       IAMRole: 'qstest-iam'
-      BucketName: $[taskcat_autobucket]
+      BucketName: db-$[taskcat_autobucket]
       KeyAlias: ''
       KeyUseCases: ''
       KeyReuseForClusterVolumes: ''
