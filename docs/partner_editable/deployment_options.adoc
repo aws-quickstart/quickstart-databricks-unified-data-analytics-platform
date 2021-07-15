@@ -2,7 +2,7 @@
 
 To launch clusters into the VPC workspace, Databricks must have access to a cross-account IAM role in your AWS account. This Quick Start provides two deployment options:
 
-IMPORTANT: Choose the first option if you can create an IAM role in your account, otherwise choose the second option. Note that the second option requires you to configure IAM roles prior to launching the deployment.
+IMPORTANT: Choose the first option if you can create an IAM role in your account, otherwise choose the second option. Note that the second option requires you to configure IAM roles before launching the deployment.
 
 * Deploy a Databricks workspace, and create a new cross-account IAM role. You must have sufficient permissions to create a new IAM role.
 * Deploy a Databricks workspace, and use an existing cross-account IAM role. For more information, see https://docs.databricks.com/administration-guide/account-api/iam-role.html#create-a-cross-account-role-and-an-access-policy[Create a cross-account role and an access policy^]. For this option, create an additional IAM role with the following permissions:
@@ -41,7 +41,7 @@ IMPORTANT: Choose the first option if you can create an IAM role in your account
         }
 ----
 +
-. If you the choose the optional customer-managed key feature, configure inline KMS permissions:
+. If you choose the optional customer managed key feature, configure the AWS KMS permissions:
 +
 ----
        {
