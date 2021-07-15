@@ -64,7 +64,7 @@ Metadata:
       AWSRegion:
         default: AWS Region of the Databricks workspace   
       HIPAAparm:
-        default: Are you creating this workspace in a HIPAA tier account?
+        default: HIPAA tier account
       TagValue:
         default: IAM role tag value  
       IAMRole:

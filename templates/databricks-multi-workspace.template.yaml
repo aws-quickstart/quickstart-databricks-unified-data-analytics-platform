@@ -55,7 +55,7 @@ Metadata:
       AWSRegion:
         default: AWS Region of the Databricks workspace   
       HIPAAparm:
-        default: Are you creating this workspace in a HIPAA tier account?
+        default: HIPAA tier account
       TagValue:
         default: IAM role tag value  
       IAMRole:
@@ -153,7 +153,7 @@ Parameters:
     NoEcho: 'true'
     Type: String  
   PricingTier:
-    Description: "If you do not provide this, the API will default to the highest pricing tier available to your account. See https://databricks.com/product/aws-pricing for available pricing tier information."
+    Description: "Choose a pricing tier. If you keep this box blank, the API will default to the highest tier available to your account. See https://databricks.com/product/aws-pricing."
     AllowedValues:
        - STANDARD
        - PREMIUM 
@@ -162,7 +162,7 @@ Parameters:
     Type: String
     Default: ''
   DeploymentName:
-    Description: "Choose your deployment_name value carefully. The deployment name defines part of the subdomain for the workspace, such as <workspace-deployment-name>.cloud.databricks.com. Hyphens are allowed but not the first or last character. If your account has a deployment name prefix, the prefix is added before the deployment name separated by a hyphen. For more examples, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-create-the-workspace. This value must be unique across all non-deleted deployments across all AWS regions."
+    Description: "Unique name that defines part of the workspace subdomain, such as <workspace-deployment-name>.cloud.databricks.com. Hyphens (-) are allowed but not as the first or last character. If your account has a deployment name prefix, the prefix (followed by a hyphen) is added before the deployment name. If your account has a deployment name prefix and you set DeploymentName to the reserved keyword EMPTY, DeploymentName is replaced by your account prefix. See https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-create-the-workspace. This value must be unique across all non-deleted deployments across all AWS regions."
     AllowedPattern: '^(([a-z0-9][a-z0-9-]*[a-z0-9])|([a-z0-9]))$'
     ConstraintDescription: You must specify a valid subdomain for the workspace.
     Type: String    
@@ -190,7 +190,7 @@ Parameters:
     Default: 'No'
     Type: String
   TagValue:
-    Description: "Enter a tag value to identify the IAM role created by this template. See https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html."
+    Description: "All new AWS objects get a tag with the key name. Enter a value for this tag so that you can identify all new AWS objects that this template creates. See https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html."
     MinLength: '1'
     Type: String
     Default: databricks-quickstart-cloud-formation  
