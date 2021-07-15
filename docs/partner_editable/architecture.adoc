@@ -1,6 +1,6 @@
 :xrefstyle: short
 
-<<architecture1>> shows all the components the Quick Start may deploy. (This diagram shows the data plane in the customer account, as shown in <<networkflow>>). Resources are created according to the deployment option you choose when launching the AWS CloudFormation template.
+Deploying this Quick Start for a new virtual private cloud (VPC) with default parameters builds the following Databricks environment in the AWS Cloud.
 
 :xrefstyle: short
 [#architecture1]
@@ -8,19 +8,19 @@
 [link=images/architecture_diagram.png]
 image::../images/architecture_diagram.png[Architecture1,width=100%,height=100%]
 
-As shown in <<architecture1>>, this deployment sets up the following, which constitutes the Databricks workspace in your AWS account:
+As shown in <<architecture1>>, this deployment sets up the following:
 
 * A highly available architecture that spans at least three Availability Zones.
-* A Databricks-managed or customer-managed virtual private cloud (VPC) in the customer's AWS account. This VPC is configured with private subnets and a public subnet, according to AWS best practices, to provide you with your own virtual network on AWS.
+* A VPC configured with public and private subnets, according to AWS best practices, to provide you with your own virtual network on AWS.*
 * In the private subnets:
 ** Databricks clusters of Amazon Elastic Compute Cloud (Amazon EC2) instances. 
-** One or more security groups to enable secure cluster connectivity.
+** One or more security groups for secure cluster connectivity.
 * In the public subnet:
 ** A network address translation (NAT) gateway to allow outbound internet access.
 * Amazon CloudWatch for the Databricks workspace instance logs.
-* (Optional) A customer-managed AWS Key Management Service (AWS KMS) key to encrypt notebooks.
-* An Amazon Simple Storage Service (Amazon S3) bucket to store objects such as cluster logs, notebook revisions, and job results.
-* AWS Security Token Service (AWS STS) to enable you to request temporary, limited-privilege credentials for users to authenticate.
-* A VPC endpoint for access to S3 artifacts and logs.
-* A cross-account AWS Identity and Access Management (IAM) role to enable Databricks to deploy clusters in the VPC for the new workspace. Depending on the deployment option you choose, you either create this IAM role during deployment or use an existing IAM role.
+* (Optional) A customer managed AWS KMS key to encrypt notebooks.
+* An Amazon Simple Storage Service (Amazon S3) bucket to store objects, such as cluster logs, notebook revisions, and job results.
+* AWS Security Token Service (AWS STS) for requesting temporary, least-privilege access for users.
+* A VPC endpoint for access to Amazon S3 artifacts and logs.
+* A cross-account AWS Identity and Access Management (IAM) role to deploy clusters in the VPC for the new workspace. Depending on the deployment option you choose, you either use an existing IAM role or create an IAM role during deployment.
 
