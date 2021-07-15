@@ -25,6 +25,7 @@ IMPORTANT: Choose the first option if you can create an IAM role in your account
 ----
 +
 . Configure the inline policy to allow for managing the S3 buckets: 
++
 ----
        {
             "Sid": "S3Buckets",
@@ -41,6 +42,7 @@ IMPORTANT: Choose the first option if you can create an IAM role in your account
 ----
 +
 . If you the choose the optional customer-managed key feature, configure inline KMS permissions:
++
 ----
        {
             "Sid": "KMS",
