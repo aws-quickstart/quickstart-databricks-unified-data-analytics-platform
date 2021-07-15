@@ -14,11 +14,11 @@ As shown in <<architecture1>>, this deployment sets up the following:
 * A VPC configured with public and private subnets, according to AWS best practices, to provide you with your own virtual network on AWS.*
 * In the private subnets:
 ** Databricks clusters of Amazon Elastic Compute Cloud (Amazon EC2) instances. 
-** One or more security groups to enable secure cluster connectivity.
+** One or more security groups for secure cluster connectivity.
 * In the public subnet:
 ** A network address translation (NAT) gateway to allow outbound internet access.
 * Amazon CloudWatch for the Databricks workspace instance logs.
-* (Optional) A customer-managed AWS Key Management Service (AWS KMS) key to encrypt notebooks.
+* (Optional) A customer managed AWS KMS key to encrypt notebooks.
 * An Amazon Simple Storage Service (Amazon S3) bucket to store objects, such as cluster logs, notebook revisions, and job results.
 * AWS Security Token Service (AWS STS) for requesting temporary, least-privilege access for users.
 * A VPC endpoint for access to Amazon S3 artifacts and logs.
