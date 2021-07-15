@@ -8,6 +8,7 @@ IMPORTANT: Choose the first option if you can create an IAM role in your account
 * Deploy a Databricks workspace, and use an existing cross-account IAM role. For more information, see https://docs.databricks.com/administration-guide/account-api/iam-role.html#create-a-cross-account-role-and-an-access-policy[Create a cross-account role and an access policy^]. For this option, create an additional IAM role with the following permissions:
 . Embed the *AWSLambdaBasicExecutionRole* policy.
 . Configure the inline policy to access to the Quick Start S3 location:
++
 ----
        {
             "Sid": "S3SourceBucket",
@@ -23,7 +24,6 @@ IMPORTANT: Choose the first option if you can create an IAM role in your account
         }
 ----
 +
-[start=3]
 . Configure the inline policy to allow for managing the S3 buckets: 
 ----
        {
@@ -40,7 +40,6 @@ IMPORTANT: Choose the first option if you can create an IAM role in your account
         }
 ----
 +
-[start=4]
 . If you the choose the optional customer-managed key feature, configure inline KMS permissions:
 ----
        {
