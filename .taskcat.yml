@@ -4,7 +4,7 @@ project:
   package_lambda: false
   s3_regional_buckets: true
   shorten_stack_name: true
-  s3_bucket: tcat-0a820f79e7cf5251aa73ff7df7f4c4a0-us-west-1
+  # s3_bucket: tcat-0a820f79e7cf5251aa73ff7df7f4c4a0-us-west-1
   regions:
   - ap-northeast-1
   - ap-northeast-2
