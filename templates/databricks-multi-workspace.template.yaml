@@ -1,10 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  This template creates resources for a Databricks workspace in your AWS account using the Account API. The Account API is required if you want to use the following optional features: customer-managed VPCs and customer-managed keys for notebooks. Contact your Databricks representative to determine the availability of these features for your subscription and deployment type. (qs-1r0odiedc)
+This template creates Databricks workspace resources in your AWS account using the API account. The API account is required if you want to use either customer managed VPCs or customer managed keys for notebooks. For feature availability, contact your Databricks representative. (qs-1r0odiedc)
 
 Metadata:
   QuickStartDocumentation:
-    EntrypointName: "Parameters for deploying a workspace and creating a new cross-account IAM role"
+    EntrypointName: "Parameters for deploying a workspace and creating a cross-account IAM role"
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -18,24 +18,24 @@ Metadata:
           - AWSRegion
           - HIPAAparm
       - Label:
-          default: "Required IAM role and S3 bucket configuration"  
+          default: "IAM role and S3 bucket configuration"
         Parameters:
           - TagValue
           - IAMRole
-          - BucketName    
+          - BucketName
       - Label:
-          default: "(Optional) Customer-managed VPC configuration—requires the Premium tier"
+          default: "(Optional) Customer managed VPC configuration (requires the premium tier)"
         Parameters:
           - VPCID
           - SubnetIDs
           - SecurityGroupIDs
       - Label:
-          default: "(Optional) Customer-managed-key configuration for notebooks—requires the Enterprise tier"
+          default: "(Optional) Customer managed key configuration for notebooks (requires the enterprise tier)"
         Parameters:
           - KeyArn
-          - KeyAlias  
+          - KeyAlias
           - KeyUseCases
-          - KeyReuseForClusterVolumes    
+          - KeyReuseForClusterVolumes
       - Label:
           default: "Quick Start configuration"
         Parameters:
@@ -45,35 +45,35 @@ Metadata:
       AccountId:
         default: Databricks account ID
       Username:
-        default: Workspace account email address
+        default: Workspace account email
       Password:
-        default: Workspace account password  
+        default: Workspace account password
       PricingTier:
         default: Pricing tier of the workspace
       DeploymentName:
-        default: New workspace deployment name
+        default: Workspace deployment name
       AWSRegion:
-        default: AWS Region of the Databricks workspace   
+        default: AWS Region of the Databricks workspace 
       HIPAAparm:
         default: HIPAA tier account
       TagValue:
-        default: IAM role tag value  
+        default: IAM role tag
       IAMRole:
         default: Cross-account IAM role name
       BucketName:
-        default: Root S3 bucket name   
+        default: Root S3 bucket name 
       VPCID:
         default: VPC ID
       SubnetIDs:
-        default: Private-subnet IDs
+        default: Private subnet IDs
       SecurityGroupIDs:
-        default: Security-group IDs
+        default: Security group IDs
       KeyArn:
-        default: ARN for customer-managed AWS KMS key
+        default: ARN for the customer managed AWS KMS key
       KeyAlias:
-        default: Alias name for customer-managed AWS KMS key
+        default: Alias for the customer managed AWS KMS key
       KeyUseCases:
-        default: The use case for which to use the key
+        default: Use case for which to use the key
       KeyReuseForClusterVolumes:
         default: Encrypt cluster EBS volumes
       QSS3BucketName:
@@ -83,77 +83,77 @@ Metadata:
 
 Outputs:
   CustomerManagedVPCIAMRoleARN:
-    Description: ARN of the customer-managed cross-account IAM role
+    Description: ARN of the customer managed cross-account IAM role.
     Condition: CustomerManagedVPC
     Value: !GetAtt 
       - accessRoleCustomerManagedVPC
       - Arn
   DBManagedVPCIAMRoleARN:
-    Description: ARN of the cross-account IAM role
+    Description: ARN of the cross-account IAM role.
     Condition: CreateDBManagedVPC
     Value: !GetAtt 
       - accessRoleDBManagedVPC
       - Arn
   S3BucketName:
-    Description: Name of the S3 root bucket
+    Description: Name of the S3 root bucket.
     Value: !Ref assetsS3Bucket
   CustomerManagedKeyId:
-    Description: ID of the created customer-managed key object  
+    Description: ID of the customer managed key object.
     Condition: IsKMSKeyProvided
     Value: !GetAtt createCustomerManagedKey.CustomerManagedKeyId
   CredentialsId:
-    Description: Credential ID
+    Description: Credential ID.
     Value: !GetAtt createCredentials.CredentialsId
   ExternalId:
-    Description: Databricks external ID
+    Description: Databricks external ID.
     Value: !GetAtt createCredentials.ExternalId
   NetworkId:
-    Description: Databricks network ID
+    Description: Databricks network ID.
     Condition: CustomerManagedVPC
     Value: !GetAtt createNetworks.NetworkId 
   StorageConfigId:
-    Description: Storage configuration ID
+    Description: Storage configuration ID.
     Value: !GetAtt createStorageConfiguration.StorageConfigId
   WorkspaceURL:
-    Description: URL of the workspace
+    Description: URL of the workspace.
     Value: !Join
       - ''
       - - 'https://'
         - !GetAtt createWorkspace.DeploymentName
         - '.cloud.databricks.com'
   WorkspaceStatus:
-    Description: Status of the requested workspace
+    Description: Status of the requested workspace.
     Value: !GetAtt createWorkspace.WorkspaceStatus
   WorkspaceStatusMessage:
-    Description: Detailed status description of the requested workspace
-    Value: !GetAtt createWorkspace.WorkspaceStatusMsg  
+    Description: Detailed status description of the requested workspace.
+    Value: !GetAtt createWorkspace.WorkspaceStatusMsg
   PricingTier:
-    Description: The pricing tier of the workspace. See https://databricks.com/product/aws-pricing.
+    Description: Pricing tier of the workspace. For more information, see https://databricks.com/product/aws-pricing.
     Value: !GetAtt createWorkspace.PricingTier
   ClusterPolicyID:
-    Description: The cluster policy unique identifier   
+    Description: Unique identifier for the cluster policy.
     Value: !GetAtt createWorkspace.ClusterPolicyId
 
 Parameters:
   AccountId:
-    Description: "Your account must be on the E2 version of the platform. See https://docs.databricks.com/getting-started/overview.html#e2-architecture." 
+    Description: "Account must use the E2 version of the platform. For more information, see https://docs.databricks.com/getting-started/overview.html#e2-architecture." 
     AllowedPattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$'
     MinLength: '36'
     Type: String
     Default: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
   Username:
-    Description: "Your account email address, which is used for REST API authentication as your user name. This is case-sensitive. Use the same capitalization as when you sent it to your Databricks representative."
+    Description: "Account email for authenticating the REST API. Note that this value is case sensitive."
     AllowedPattern: '^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$'
     ConstraintDescription: Must be a valid email format.
     MinLength: '8'
     Type: String
   Password:
-    Description: "Your account password, which is used for REST API authentication. This is case-sensitive. Minimum length is 8 characters."
+    Description: "Account password for authenticating the REST API. The minimum length is 8 alphanumeric characters."
     MinLength: '8'
     NoEcho: 'true'
-    Type: String  
+    Type: String
   PricingTier:
-    Description: "Choose a pricing tier. If you keep this box blank, the API will default to the highest tier available to your account. See https://databricks.com/product/aws-pricing."
+    Description: "If you do not provide this, the API defaults to the highest pricing tier. For more information, see https://databricks.com/product/aws-pricing."
     AllowedValues:
        - STANDARD
        - PREMIUM 
@@ -162,12 +162,12 @@ Parameters:
     Type: String
     Default: ''
   DeploymentName:
-    Description: "Unique name that defines part of the workspace subdomain, such as <workspace-deployment-name>.cloud.databricks.com. Hyphens (-) are allowed but not as the first or last character. If your account has a deployment name prefix, the prefix (followed by a hyphen) is added before the deployment name. If your account has a deployment name prefix and you set DeploymentName to the reserved keyword EMPTY, DeploymentName is replaced by your account prefix. See https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-create-the-workspace. This value must be unique across all non-deleted deployments across all AWS regions."
+    Description: "Choose this value carefully. The deployment name defines part of the workspace subdomain (e.g., workspace-deployment-name.cloud.databricks.com). This value must be unique across all deployments in all AWS Regions. It cannot start or end with a hyphen. If your account has a deployment-name prefix, add the prefix followed by a hyphen. For more information, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-create-the-workspace."
     AllowedPattern: '^(([a-z0-9][a-z0-9-]*[a-z0-9])|([a-z0-9]))$'
-    ConstraintDescription: You must specify a valid subdomain for the workspace.
-    Type: String    
+    ConstraintDescription: You must enter a valid subdomain for the workspace.
+    Type: String
   AWSRegion:
-    Description: "AWS Region where the workspace will be created. Customer-managed keys to encrypt notebooks are not supported in Region us-west-1."
+    Description: "AWS Region where the workspace is created. Note that customer managed keys to encrypt notebooks are not supported in the us-west-1 Region."
     MinLength: '9'
     AllowedValues:
        - ap-northeast-1
@@ -183,44 +183,44 @@ Parameters:
        - us-west-2
     Type: String
   HIPAAparm:
-    Description: "Answering 'Yes' will create a cluster template you should use to create clusters in the HIPAA account"
+    Description: "Entering "Yes" creates a template for creating clusters in the HIPAA account."
     AllowedValues:
        - 'Yes'
        - 'No'
     Default: 'No'
     Type: String
   TagValue:
-    Description: "All new AWS objects get a tag with the key name. Enter a value for this tag so that you can identify all new AWS objects that this template creates. See https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html."
+    Description: "All new AWS objects get a tag with the key name. Enter a value to identify all new AWS objects that this template creates. For more information, see https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html."
     MinLength: '1'
     Type: String
-    Default: databricks-quickstart-cloud-formation  
+    Default: databricks-quickstart-cloud-formation
   IAMRole: 
-    Description: "Specify a unique cross-account IAM role name. This name must not already exist. For naming rules, see https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateRole.html."
+    Description: "Enter a unique cross-account IAM role name. For more information, see https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateRole.html."
     AllowedPattern: '[\w+=,@-]+'
     Type: String
     MinLength: '1'
     MaxLength: '64'
   BucketName:
-    Description: "Name of your new S3 root bucket. Use only alphanumeric characters. For naming rules, see https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html."
+    Description: "Name of your S3 root bucket. Enter only alphanumeric characters. For more information, see https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html."
     AllowedPattern: '(?=^.{3,63}$)(?!xn--)([a-z0-9](?:[a-z0-9-]*)[a-z0-9])$'
     MinLength: '3'
     MaxLength: '63'
     Type: String
-    ConstraintDescription: The Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
+    ConstraintDescription: Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
   VPCID:
-    Description: "ID for your VPC in which to create the new workspace. Set only if using the customer-managed VPC feature. Format is vpc-xxxxxxxxxxxxxxxx. See https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. If unspecified, Databricks creates the new workspace in a new VPC that Databricks creates."
-    Type: String  
+    Description: "ID of your VPC in which to create the new workspace. Only enter a value if you use the customer managed VPC feature. The format is vpc-xxxxxxxxxxxxxxxx. If unspecified, Databricks creates a new workspace in a new VPC. For more information, see https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html."
+    Type: String
     Default: '' 
   SecurityGroupIDs:
-    Description: "Names of one or more security groups in your VPC. The format is sg-xxxxxxxxxxxxxxxxx. To provide multiple IDs, separate with commas. Databricks must have access to at least one security group and no more than five security groups. You can reuse existing security groups rather than create new ones. See https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. Specify only if you have set a VPCID. Otherwise, keep blank."
-    Type: String  
+    Description: "Name of one or more VPC security groups. Only enter a value if you set VPCID. The format is sg-xxxxxxxxxxxxxxxxx. Use commas to separate multiple IDs. Databricks must have access to at least one security group but no more than five. You can reuse existing security groups. For more information, see https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html."
+    Type: String
     Default: '' 
   SubnetIDs:
-    Description: "At least two private-subnet IDs in your VPC, separated by commas. These subnets cannot be shared with other workspaces nor any other non-Databricks resources. Each subnet must have a netmask between /17 and /25. Subnets must be private. Subnets must have outbound access to the public network using a NAT gateway and internet gateway or similar customer-managed appliance infrastructure. The NAT gateway must be set up in its own subnet that routes quad-zero (0.0.0.0/0) traffic to an internet gateway or similar customer-managed appliance infrastructure. See https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. Specify only if you have set a VPCID. Otherwise, keep blank."
-    Type: String  
+    Description: "Enter at least two private subnet IDs. Only enter a value if you set VPCID. Subnets cannot be shared with other workspaces or non-Databricks resources. Each subnet must be private, have outbound access, and a netmask between /17 and /25. The NAT gateway must have its own subnet that routes 0.0.0.0/0 traffic to an internet gateway. For more information, see https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html."
+    Type: String
     Default: '' 
   KeyArn:
-    Description: "AWS KMS key ARN to encrypt and decrypt the workspace notebooks in the control plane. Set only if using the feature customer-managed key for notebooks. See https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html."
+    Description: "AWS KMS key ARN to encrypt and decrypt workspace notebooks in the control plane. Only enter a value if you use the customer managed key for notebooks. For more information, see https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html."
     Type: String
     Default: ''
   KeyAlias:
@@ -228,23 +228,23 @@ Parameters:
     Type: String
     Default: ''
   KeyUseCases:
-    Description: "Enter MANAGED_SERVICES, STORAGE or BOTH to configure customer-managed encryptioon keys. Refer to https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-configure-customer-managed-keys-optional for details"
-    Type: String   
+    Description: "Configures customer managed encryption keys. Acceptable values are MANAGED_SERVICES, STORAGE, or BOTH. For more information, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-configure-customer-managed-keys-optional."
+    Type: String 
   KeyReuseForClusterVolumes:
-    Description: "True or False. Set ONLY if the use case is set to STORAGE or BOTH"
+    Description: "Only enter a value if the use case is STORAGE or BOTH. Acceptable values are "True" and "False."
     Type: String
   QSS3BucketName:
-    Description: "S3 bucket that you created for your copy of Quick Start assets. Use this if you decide to customize the Quick Start. This bucket name can include numbers, lowercase letters, uppercase letters, and hyphens, but do not start or end with a hyphen (-)."
+    Description: "S3 bucket for Quick Start assets. Use this if you want to customize the Quick Start. The bucket name can include numbers, lowercase letters, uppercase letters, and hyphens, but it cannot start or end with a hyphen (-)."
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
     Default: aws-quickstart
     Type: String
     MinLength: '3'
     MaxLength: '63'
-    ConstraintDescription: The Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
+    ConstraintDescription: Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
   QSS3KeyPrefix:
-    Description: "S3 key prefix that is used to simulate a folder for your copy of Quick Start assets. Use this if you decide to customize the Quick Start. This prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slashes (/). See https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html."
+    Description: "S3 key prefix to simulate a directory for your Quick Start assets. Use this if you want to customize the Quick Start. The prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slashes (/). For more information, see https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html."
     AllowedPattern: '^[0-9a-zA-Z-/]*$'
-    Type: String  
+    Type: String
     Default: quickstart-databricks-unified-data-analytics-platform/
   
 
@@ -252,27 +252,27 @@ Conditions:
 # Set condition when VPC ID is provided by the user
   CustomerManagedVPC: !Not [!Equals [!Ref VPCID, '']]
 # Set condition when VPC ID is NOT provided by the user
-  CreateDBManagedVPC: !Equals [!Ref VPCID, '']  
+  CreateDBManagedVPC: !Equals [!Ref VPCID, '']
 # Set condition when AWS KMS key ID is provided by the user. 
   IsKMSKeyProvided: !Not [!Equals [!Ref KeyArn, '']]
-# Test for STORAGE CMK use case      
-  IsClusterVolumeSet: !Equals [!Ref KeyReuseForClusterVolumes, 'True']  
+# Test for STORAGE CMK use case
+  IsClusterVolumeSet: !Equals [!Ref KeyReuseForClusterVolumes, 'True']
 
 Rules:
 # 1. Validate the selected Region from drop-down matches the Region from the Console
   RunningTemplateFromDifferentRegionThanDropDown:
     Assertions:
     - Assert: !Equals [!Ref AWSRegion, !Ref 'AWS::Region']
-      AssertDescription: The region from the AWS Management Console MUST be the same as the selected region from the drop-down.
+      AssertDescription: Region from the AWS Management Console must match the selected Region from the drop-down menu.
 
 # 2. HIPAA supported regions, if HIPAA flaf is set
   SupportedHipaaRegions:
     RuleCondition: !Equals [!Ref HIPAAparm, 'Yes']
     Assertions:
     - Assert: !Contains [['us-east-1', 'us-east-2', 'ca-central-1'], !Ref AWSRegion]
-      AssertDescription: Can only create a workspace for HIPAA tier accounts in the us-east-1, us-east-2 and ca-central-1 regions.
+      AssertDescription: Creates a workspace for only HIPAA tier accounts in the us-east-1, us-east-2, and ca-central-1 Regions.
 
-# 3. Optional section. Ensure that the SubnetIds and SecurityGroupIds are provided, if the user provides a customer-managed VPC ID
+# 3. Optional section. Ensure that the SubnetIds and SecurityGroupIds are provided, if the user provides a customer managed VPC ID
   CustomerManagedVPC:
     RuleCondition: !Not [!Equals [!Ref VPCID, '']]
     Assertions:
@@ -286,7 +286,7 @@ Rules:
     RuleCondition: !Not [!Equals [!Ref KeyArn, '']]
     Assertions:
     - Assert: !Contains [['MANAGED_SERVICES', 'STORAGE', 'BOTH'],!Ref KeyUseCases]
-      AssertDescription: Valid values are MANAGED_SERVICES, STORAGE or BOTH when the role arn is provided
+      AssertDescription: Acceptable values are MANAGED_SERVICES, STORAGE, or BOTH when you provide a role ARN.
     
   KeyUseCases2:
     RuleCondition: !Or
@@ -294,13 +294,13 @@ Rules:
       - !Equals [!Ref KeyUseCases, 'BOTH']
     Assertions:
     - Assert: !Contains [['True', 'False'], !Ref KeyReuseForClusterVolumes]
-      AssertDescription: Must specify True or False when STORAGE or BOTH is selected as a use case. 
+      AssertDescription: 'Acceptable values are "True" and "False" when the use case is either STORAGE or BOTH.' 
  
   KeyUseCases3:
     RuleCondition: !Equals [!Ref KeyUseCases, 'MANAGED_SERVICES']
     Assertions: 
     - Assert: !Equals [!Ref KeyReuseForClusterVolumes, '']
-      AssertDescription: This value must be empty when MANAGED_SERVICES is specified
+      AssertDescription: Value must be null if MANAGED_SERVICES is specified.
 
 # 5. Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
 # ***********************************************************************************************************************
@@ -309,9 +309,9 @@ Rules:
   AWSQuickStartGitParametersSettings:
     Assertions:
     - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
-      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart
+      AssertDescription: 'QSS3BucketName must be aws-quickstart.'
     - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
-      AssertDescription: The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/
+      AssertDescription: 'QSS3KeyPrefix must be quickstart-databricks-unified-data-analytics-platform/.'
         
 Resources:
   # Cross-account access role for Databricks-created and managed VPC
@@ -323,7 +323,7 @@ Resources:
           ignore_checks:
             - EIAMPolicyWildcardResource
           ignore_reasons:
-            EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
+            EIAMPolicyWildcardResource: "Must manage databricks workspaces."
     Condition: CreateDBManagedVPC
     Properties:
       RoleName: !Ref IAMRole
@@ -430,7 +430,7 @@ Resources:
           Key: Name
           Value: !Sub '${TagValue}-IAMRole'
   
-  # Cross-account access role for customer-managed VPC
+  # Cross-account access role for customer managed VPC
   accessRoleCustomerManagedVPC:
     Type: 'AWS::IAM::Role'
     Metadata:
@@ -439,7 +439,7 @@ Resources:
           ignore_checks:
             - EIAMPolicyWildcardResource
           ignore_reasons:
-            EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
+            EIAMPolicyWildcardResource: "Must manage databricks workspaces."
     Condition: CustomerManagedVPC
     Properties:
       RoleName: !Ref IAMRole
@@ -544,7 +544,7 @@ Resources:
                   - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:subnet/*
                   - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:security-group/*
                   - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/*     
+                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/* 
               - Sid: EC2TerminateInstancesTag
                 Effect: Allow
                 Action:
@@ -553,7 +553,7 @@ Resources:
                   - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/*
                 Condition:
                   StringEquals:
-                    'ec2:ResourceTag/Vendor': 'Databricks'         
+                    'ec2:ResourceTag/Vendor': 'Databricks' 
               - Sid: EC2AttachDetachVolumeTag
                 Effect: Allow
                 Action:
@@ -564,7 +564,7 @@ Resources:
                   - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
                 Condition:
                   StringEquals:
-                    'ec2:ResourceTag/Vendor': 'Databricks'  
+                    'ec2:ResourceTag/Vendor': 'Databricks'
               - Sid: EC2CreateVolumeByTag
                 Effect: Allow
                 Action:
@@ -573,7 +573,7 @@ Resources:
                   - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/* 
                 Condition:
                   StringEquals:
-                    'aws:RequestTag/Vendor': 'Databricks'   
+                    'aws:RequestTag/Vendor': 'Databricks' 
               - Sid: EC2DeleteVolumeByTag
                 Effect: Allow
                 Action:
@@ -582,7 +582,7 @@ Resources:
                   - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/* 
                 Condition:
                   StringEquals:
-                    'ec2:ResourceTag/Vendor': 'Databricks'  
+                    'ec2:ResourceTag/Vendor': 'Databricks'
               - Effect: Allow
                 Action:
                   - 'iam:CreateServiceLinkedRole'
@@ -591,7 +591,7 @@ Resources:
                   - !Sub arn:${AWS::Partition}:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
                 Condition:
                   StringLike:
-                    'iam:AWSServiceName': spot.amazonaws.com                                               
+                    'iam:AWSServiceName': spot.amazonaws.com
             Version: 2012-10-17
           PolicyName: databricks-cross-account-iam-role-policy
       Tags:
@@ -615,10 +615,10 @@ Resources:
             Status: Enabled
             NoncurrentVersionExpirationInDays: 5
       VersioningConfiguration: 
-        Status: Enabled       
+        Status: Enabled
   bucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
-    Properties:     
+    Properties: 
       PolicyDocument:
         Id: MyPolicy
         Version: 2012-10-17
@@ -637,9 +637,9 @@ Resources:
             Resource:
               - !Sub 'arn:${AWS::Partition}:s3:::${assetsS3Bucket}/*'
               - !Sub 'arn:${AWS::Partition}:s3:::${assetsS3Bucket}'
-      Bucket: !Ref assetsS3Bucket                       
+      Bucket: !Ref assetsS3Bucket 
 
-  # Databricks API for configuring notebook encryption with a customer-managed AWS KMS, if provided
+  # Databricks API for configuring notebook encryption with a customer managed AWS KMS, if provided
   createCustomerManagedKey:
     Condition: IsKMSKeyProvided
     DependsOn: updateCustomManagedKeys
@@ -657,7 +657,7 @@ Resources:
           - ':'
           - - !Ref 'Username'
             - !Ref 'Password'
-      user_agent: 'databricks-CloudFormation-provider'      
+      user_agent: 'databricks-CloudFormation-provider'
 
   # Databricks API for workspace credentials
   createCredentials:
@@ -676,9 +676,9 @@ Resources:
           - ':'
           - - !Ref 'Username'
             - !Ref 'Password'
-      user_agent: 'databricks-CloudFormation-provider'      
+      user_agent: 'databricks-CloudFormation-provider'
 
-  # Databricks API for workspace storage configuration    
+  # Databricks API for workspace storage configuration
   createStorageConfiguration:
     Type: Custom::CreateStorageConfigurations
     Properties:
@@ -695,9 +695,9 @@ Resources:
           - ':'
           - - !Ref 'Username'
             - !Ref 'Password'
-      user_agent: 'databricks-CloudFormation-provider'      
+      user_agent: 'databricks-CloudFormation-provider'
 
-  # Databricks API for customer-managed VPC    
+  # Databricks API for customer managed VPC
   createNetworks:
     DependsOn: createStorageConfiguration
     Condition: CustomerManagedVPC
@@ -718,9 +718,9 @@ Resources:
           - ':'
           - - !Ref 'Username'
             - !Ref 'Password'
-      user_agent: 'databricks-CloudFormation-provider'      
+      user_agent: 'databricks-CloudFormation-provider'
 
-  # Databricks API for workspace creation    
+  # Databricks API for workspace creation
   createWorkspace:
     Type: Custom::CreateWorkspace
     Properties:
@@ -779,14 +779,14 @@ Resources:
     DependsOn: CopyZips
     Type: AWS::Lambda::Function
     Properties:
-      Description: Databricks Account API
+      Description: Databricks account API.
       Handler: rest_client.handler
       Runtime: python3.8
       Role: !GetAtt 'functionRole.Arn'
       Timeout: 900
       Code:
         S3Bucket: !Ref 'LambdaZipsBucket'
-        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'   
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip' 
   
   # Databricks lambda for updating the Security Group Ids 
   updateIAMRoleFunction:
@@ -794,14 +794,14 @@ Resources:
     DependsOn: CopyZips
     Type: AWS::Lambda::Function
     Properties:
-      Description: Update IAM Role policy document with the list of Security Group Ids
+      Description: Update IAM role policy document using the list of security group IDs.
       Handler: update_custommanagedvpc_iam_role.handler
       Runtime: python3.8
       Role: !GetAtt 'functionRole.Arn'
       Timeout: 60
       Code:
         S3Bucket: !Ref 'LambdaZipsBucket'
-        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'  
+        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'
 
   # Databricks CMK lambda
   updateKMSkeysFunction:
@@ -809,7 +809,7 @@ Resources:
     DependsOn: CopyZips
     Type: AWS::Lambda::Function
     Properties:
-      Description: Update CMK policy document for Storage
+      Description: UUpdate CMK policy document for storage.
       Handler: update_custommanaged_cmk_policy.handler
       Runtime: python3.8
       Role: !GetAtt 'functionRole.Arn'
@@ -847,7 +847,7 @@ Resources:
                 Action: 
                   - 'kms:GetKeyPolicy'
                   - 'kms:PutKeyPolicy'
-                Resource: '*'   
+                Resource: '*' 
         - PolicyName: iamUpdateRole
           PolicyDocument:
             Version: 2012-10-17
@@ -855,11 +855,11 @@ Resources:
               - Effect: Allow
                 Action: 
                   - 'iam:PutRolePolicy'
-                Resource: '*'  
+                Resource: '*'
       Tags:
         -
           Key: Name
-          Value: !Sub '${TagValue}-IAMRole'  
+          Value: !Sub '${TagValue}-IAMRole'
 
   # Resources to stage lambda.zip file
   LambdaZipsBucket:
@@ -905,13 +905,13 @@ Resources:
       Tags:
         -
           Key: Name
-          Value: !Sub '${TagValue}-IAMRole'            
+          Value: !Sub '${TagValue}-IAMRole'
 
 
   CopyZipsFunction:
     Type: AWS::Lambda::Function
     Properties:
-      Description: Copies objects from a source S3 bucket to a destination
+      Description: Copies objects from an S3 bucket to another destination.
       Handler: index.handler
       Runtime: python3.8
       Role: !GetAtt 'CopyZipsRole.Arn'
