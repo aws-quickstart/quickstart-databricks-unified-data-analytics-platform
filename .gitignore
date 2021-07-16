@@ -1,5 +1,5 @@
 taskcat_outputs*
 .DS_Store
-index.html
 index.adoc
 docs/generated/parameters/*
+.taskcat_overrides.yml

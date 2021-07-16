@@ -6,12 +6,12 @@
 //== Test the deployment
 // If steps are required to test the deployment, add them here. If not, remove the heading
 
-== Postdeployment steps
+== Post-deployment steps
 // If postdeployment steps are required, add them here. If not, remove the heading
 
-. When the status is *CREATE_COMPLETE* for the AWS CloudFormation stack, check the `WorkspaceStatus` output key value. It should be RUNNING. If it's any other value, see https://docs.databricks.com/administration-guide/multiworkspace/new-workspace-aws.html#troubleshoot-a-workspace-that-failed-to-deploy[Troubleshoot a workspace that failed to deploy^].
+. When the status is *CREATE_COMPLETE* for the AWS CloudFormation stack, check the `WorkspaceStatus` output key value. It should be *RUNNING*. For any other value, see https://docs.databricks.com/administration-guide/multiworkspace/new-workspace-aws.html#troubleshoot-a-workspace-that-failed-to-deploy[Troubleshoot a workspace that failed to deploy^].
 
-. Navigate to the workspace deployment name URL (_<deployment-name>_.cloud.databricks.com), and log in to the web application with your account user name and password.
+. Navigate to the workspace URL (for example, deployment-name.cloud.databricks.com), and log in to the web application.
 
 
 //== Best practices for using {partner-product-name} on AWS

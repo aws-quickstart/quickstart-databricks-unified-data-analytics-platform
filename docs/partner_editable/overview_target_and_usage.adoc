@@ -4,7 +4,6 @@
 
 This Quick Start reference deployment guide provides step-by-step instructions for deploying {partner-product-name} workspaces on the AWS Cloud.
 
-Databricks is a unified data-analytics platform for data engineering, machine learning, and collaborative data science. A https://docs.databricks.com/workspace/index.html[Databricks workspace^] is a software-as-a-service (SaaS) environment for accessing all your Databricks assets. The workspace organizes objects (notebooks, libraries, and experiments) into folders and provides access to data and computational resources, such as clusters and jobs.
+Databricks is a unified data-analytics platform for data engineering, machine learning, and collaborative data science. A https://docs.databricks.com/workspace/index.html[Data Science & Engineering workspace^] is a software as a service (SaaS) environment for accessing all your Databricks assets. The workspace organizes objects (that is, notebooks, libraries, and experiments) in directories and provides access to data and computational resources, such as clusters and jobs.
 
-
-This Quick Start is for IT infrastructure architects, administrators, and DevOps professionals who want to use the Databricks API to create Databricks workspaces on the AWS Cloud. This Quick Start creates a new workspace in your AWS account and sets up the environment for deploying more workspaces in the future.
+This Quick Start is for IT infrastructure architects, administrators, and DevOps professionals who want to use the Databricks API to create Databricks workspaces on the AWS Cloud. This Quick Start creates a new workspace in your AWS account and sets up the environment for deploying future workspaces.
