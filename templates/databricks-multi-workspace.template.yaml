@@ -1,7 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-This template creates Databricks workspace resources in your AWS account using the API account. The API account is required if you want to use either customer managed VPCs or customer managed keys for notebooks. For feature availability, contact your Databricks representative. (qs-1r0odiedc)
-
+  This template creates Databricks workspace resources in your AWS account using the API account. The API account is required if you want to use either customer managed VPCs or customer managed keys for notebooks. For feature availability, contact your Databricks representative. (qs-1r0odiedc)
 Metadata:
   QuickStartDocumentation:
     EntrypointName: "Parameters for deploying a workspace and creating a cross-account IAM role"
@@ -183,7 +182,7 @@ Parameters:
        - us-west-2
     Type: String
   HIPAAparm:
-    Description: "Entering "Yes" creates a template for creating clusters in the HIPAA account."
+    Description: 'Entering "Yes" creates a template for creating clusters in the HIPAA account.'
     AllowedValues:
        - 'Yes'
        - 'No'
@@ -231,7 +230,7 @@ Parameters:
     Description: "Configures customer managed encryption keys. Acceptable values are MANAGED_SERVICES, STORAGE, or BOTH. For more information, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-configure-customer-managed-keys-optional."
     Type: String 
   KeyReuseForClusterVolumes:
-    Description: "Only enter a value if the use case is STORAGE or BOTH. Acceptable values are "True" and "False."
+    Description: 'Only enter a value if the use case is STORAGE or BOTH. Acceptable values are "True" and "False.'
     Type: String
   QSS3BucketName:
     Description: "S3 bucket for Quick Start assets. Use this if you want to customize the Quick Start. The bucket name can include numbers, lowercase letters, uppercase letters, and hyphens, but it cannot start or end with a hyphen (-)."
