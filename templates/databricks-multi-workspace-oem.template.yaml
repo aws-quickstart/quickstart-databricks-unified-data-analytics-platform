@@ -335,7 +335,9 @@ Rules:
       AssertDescription: "The Authoritative User Full Name is a mandatory parameter"
 
 # 6. Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
+# ***********************************************************************************************************************
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
+# ***********************************************************************************************************************
   AWSQuickStartGitParametersSettings:
     Assertions:    
     - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
@@ -638,14 +640,7 @@ Resources:
         BlockPublicAcls       : true
         BlockPublicPolicy     : true
         IgnorePublicAcls      : true
-        RestrictPublicBuckets : true
-      LifecycleConfiguration:
-        Rules: 
-          - Id: DeleteContentAfter5days
-            Status: Enabled
-            NoncurrentVersionExpirationInDays: 5
-      VersioningConfiguration: 
-        Status: Enabled       
+        RestrictPublicBuckets : true     
   bucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:     

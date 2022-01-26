@@ -609,13 +609,6 @@ Resources:
         BlockPublicPolicy     : true
         IgnorePublicAcls      : true
         RestrictPublicBuckets : true
-      LifecycleConfiguration:
-        Rules: 
-          - Id: DeleteContentAfter5days
-            Status: Enabled
-            NoncurrentVersionExpirationInDays: 5
-      VersioningConfiguration: 
-        Status: Enabled
   bucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties: 
