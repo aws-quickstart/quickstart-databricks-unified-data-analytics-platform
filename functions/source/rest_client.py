@@ -476,7 +476,7 @@ def post_request(url, json_data, encodedbase64, user_agent, version):
     # extracting data in json format 
     data = resp.json() 
     
-    # Raise and Exception if the response is unsuccessful
+    # Raise an Exception if the response is unsuccessful
     resp.raise_for_status()
     
     print('Successful POST call!!')
