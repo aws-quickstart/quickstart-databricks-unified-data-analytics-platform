@@ -1,4 +1,5 @@
 # importing the requests library 
+from urllib import response
 import requests 
 from requests.exceptions import HTTPError
 import cfnresponse
@@ -20,9 +21,9 @@ def handler(event, context):
     print('Received event: %s' % json.dumps(event))
     status = cfnresponse.SUCCESS
     responseData = {}
+    resourcePhysicalId = None
 
     try:
-        # Do no do anything if requestType is DELETE
         if event['RequestType'] == 'Create':            
 
             if event['ResourceProperties']['action'] == 'CREATE_CUSTOMER_MANAGED_KEY':
@@ -36,6 +37,7 @@ def handler(event, context):
                                     event['ResourceProperties']['user_agent']
                                 )
                 responseData['CustomerManagedKeyId'] = post_result['customer_managed_key_id'] 
+                resourcePhysicalId = str(post_result['customer_managed_key_id'])
 
             if event['ResourceProperties']['action'] == 'CREATE_CREDENTIALS':
                 post_result = create_credentials(
@@ -47,6 +49,7 @@ def handler(event, context):
                                 )
                 responseData['CredentialsId'] = post_result['credentials_id']
                 responseData['ExternalId'] = post_result['aws_credentials']['sts_role']['external_id']
+                resourcePhysicalId = str(post_result['credentials_id'])
 
             if event['ResourceProperties']['action'] == 'CREATE_STORAGE_CONFIGURATIONS':
                 post_result = create_storage_configurations(
@@ -57,6 +60,8 @@ def handler(event, context):
                                     event['ResourceProperties']['user_agent']
                                 )
                 responseData['StorageConfigId'] = post_result['storage_configuration_id']
+                resourcePhysicalId = str(post_result['storage_configuration_id'])
+
             
             if event['ResourceProperties']['action'] == 'CREATE_NETWORKS':
                 post_result = create_networks(
@@ -69,6 +74,8 @@ def handler(event, context):
                                     event['ResourceProperties']['user_agent']
                                 )
                 responseData['NetworkId'] = post_result['network_id']
+                resourcePhysicalId = str(post_result['network_id'])
+
 
             if event['ResourceProperties']['action'] == 'CREATE_WORKSPACES':
                 post_result = create_workspaces(
@@ -93,8 +100,48 @@ def handler(event, context):
                 responseData['WorkspaceStatusMsg'] = post_result['workspace_status_message']
                 responseData['DeploymentName'] = post_result['deployment_name']
                 responseData['PricingTier'] = post_result['pricing_tier']
-                responseData['ClusterPolicyId'] = post_result['policy_id']                    
+                responseData['ClusterPolicyId'] = post_result['policy_id']   
+                resourcePhysicalId = str(post_result['workspace_id'])  
 
+                # Raise an exception if the workspace deployment has failed
+                if post_result['workspace_status'] == 'FAILED':
+                    status = cfnresponse.FAILED                 
+
+        elif event['RequestType'] == 'Delete':
+
+            if event['ResourceProperties']['action'] == 'CREATE_CUSTOMER_MANAGED_KEY':
+                delete_result = delete_customer_managed_key(
+                                    event['ResourceProperties']['accountId'],
+                                    event['ResourceProperties']['encodedbase64'],
+                                    event['PhysicalResourceId']
+                                )
+
+            if event['ResourceProperties']['action'] == 'CREATE_CREDENTIALS':
+                delete_result = delete_credentials(
+                                event['ResourceProperties']['accountId'],
+                                event['ResourceProperties']['encodedbase64'],
+                                event['PhysicalResourceId']
+                            )
+
+            if event['ResourceProperties']['action'] == 'CREATE_STORAGE_CONFIGURATIONS':
+                delete_result = delete_storage_configurations(
+                                    event['ResourceProperties']['accountId'],
+                                    event['ResourceProperties']['encodedbase64'],
+                                    event['PhysicalResourceId']
+                                    
+                            )
+            if event['ResourceProperties']['action'] == 'CREATE_NETWORKS':    
+                delete_result = delete_networks(
+                                    event['ResourceProperties']['accountId'],
+                                    event['ResourceProperties']['encodedbase64'],
+                                    event['PhysicalResourceId']
+                                )
+            if event['ResourceProperties']['action'] == 'CREATE_WORKSPACES':
+                delete_result = delete_workspaces(
+                                    event['ResourceProperties']['accountId'],
+                                    event['ResourceProperties']['encodedbase64'],
+                                    event['PhysicalResourceId']
+                                )      
         else:
             logging.debug('RequestType - {}'.format(event['RequestType']))
         
@@ -107,7 +154,8 @@ def handler(event, context):
         status = cfnresponse.FAILED
     finally:
         timer.cancel()
-        cfnresponse.send(event, context, status, responseData, None)
+        cfnresponse.send(event, context, status, responseData, resourcePhysicalId)
+        
 
 # POST - create customer managed key 
 def create_customer_managed_key(account_id, key_arn, key_alias, use_cases, reuse_key_for_cluster_volumes, encodedbase64, user_agent):
@@ -293,10 +341,6 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
         workspace_status_message = response['workspace_status_message'] 
         print('workspace_id - {}, status - {}, message - {}'.format(workspace_id, workspace_status, workspace_status_message))  
 
-    if workspace_status == 'FAILED':
-        print('workspace FAILED about to raise an exception')
-        raise Exception(workspace_status_message)
-
     if hipaa_parm == 'Yes':
         if workspace_status == 'RUNNING':
             # api-endpoint
@@ -344,6 +388,86 @@ def get_workspace(account_id, workspace_id, encodedbase64, user_agent):
     
     return response
 
+
+# DELETE Credentials
+def delete_credentials(accountId, encodedbase64, credentials_id):
+    
+    print ('Deleting Credentials = {}'.format(credentials_id))
+
+    # api-endpoint
+    URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+accountId+ "/credentials/"+credentials_id
+
+    response = requests.delete(URL, headers={"Authorization": "Basic %s" % encodedbase64})
+    
+    # Raise and Exception if the response is unsuccessful
+    response.raise_for_status()
+
+    print(response)
+    return response
+
+# DELETE Storage Configuration 
+def delete_storage_configurations(accountId, encodedbase64, storage_configuration_id):
+    
+    print('Deleting Storage Configuration id - {}'.format(storage_configuration_id))
+
+    # api-endpoint
+    URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+accountId+ "/storage-configurations/"+storage_configuration_id
+
+    response = requests.delete(URL, headers={"Authorization": "Basic %s" % encodedbase64})
+
+    # Raise and Exception if the response is unsuccessful
+    response.raise_for_status()
+
+    print(response)
+    return response
+
+# DELETE Network
+def delete_networks(accountId, encodedbase64, network_id):
+
+    print('Deleting network_id - {}'.format(network_id))
+    
+    # api-endpoint
+    URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+accountId+ "/networks/"+network_id
+
+    response = requests.delete(URL, headers={"Authorization": "Basic %s" % encodedbase64})
+
+    # Raise and Exception if the response is unsuccessful
+    response.raise_for_status()
+
+    print(response)
+    return response
+
+# DELETE Customer Managed Key
+def delete_customer_managed_key(accountId, encodedbase64, managed_services_customer_managed_key_id):
+
+    print('Deleting customer_managed_key_id - {}'.format(managed_services_customer_managed_key_id))
+
+    # api-endpoint
+    URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+accountId+ "/customer-managed-keys/"+managed_services_customer_managed_key_id
+
+    response = requests.delete(URL, headers={"Authorization": "Basic %s" % encodedbase64})
+
+    # Raise and Exception if the response is unsuccessful
+    response.raise_for_status()
+
+    print(response)
+    return response
+
+# DELETE workspace
+def delete_workspaces(accountId, encodedbase64, workspaceId):
+
+    print ('Deleting workspace = {}'.format(workspaceId))
+    # api-endpoint
+    URL = "https://accounts.cloud.databricks.com/api/2.0/accounts/"+accountId+"/workspaces/"+workspaceId
+
+    response = requests.delete(URL, headers={"Authorization": "Basic %s" % encodedbase64})
+
+    # Raise and Exception if the response is unsuccessful
+    response.raise_for_status()
+
+    print (response)
+    return response
+
 # POST request function
 def post_request(url, json_data, encodedbase64, user_agent, version):
     # sending post request and saving the response as response object
@@ -352,7 +476,7 @@ def post_request(url, json_data, encodedbase64, user_agent, version):
     # extracting data in json format 
     data = resp.json() 
     
-    # If the response was successful, no Exception will be raised
+    # Raise an Exception if the response is unsuccessful
     resp.raise_for_status()
     
     print('Successful POST call!!')
@@ -366,7 +490,7 @@ def get_request(url, encodedbase64, user_agent, version):
     # extracting data in json format 
     data = resp.json() 
     
-    # If the response was successful, no Exception will be raised
+    # Raise and Exception if the response is unsuccessful
     resp.raise_for_status()
     
     print('Successful GET call!!')

@@ -3,6 +3,14 @@ Description: >-
   This template creates resources for a Databricks workspace offered by an OEM Partner. The Account API is required if you want to use the following optional features: customer-managed VPCs and customer-managed keys for notebooks. Contact your Databricks representative to determine the availability of these features for your subscription and deployment type. (qs-1rrjcbj4k)
 
 Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W3005
+        - W8001
+        - W9001
+        - W9006 # temporary to get rid of warnings
+
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -193,6 +201,7 @@ Parameters:
     AllowedValues:
        - ap-northeast-1
        - ap-south-1
+       - ap-southeast-1
        - ap-southeast-2
        - ca-central-1
        - eu-central-1
@@ -334,7 +343,9 @@ Rules:
       AssertDescription: "The Authoritative User Full Name is a mandatory parameter"
 
 # 6. Assertion rule to prevent changing the QuickStart Bucket name and Prefix parameter
+# ***********************************************************************************************************************
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
+# ***********************************************************************************************************************
   AWSQuickStartGitParametersSettings:
     Assertions:    
     - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
@@ -351,8 +362,10 @@ Resources:
         config:
           ignore_checks:
             - EIAMPolicyWildcardResource
+            - EIAMAccountIDInPrincipal
           ignore_reasons:
             EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
+            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
     Condition: CreateDBManagedVPC
     Properties:
       RoleName: !Ref IAMRole
@@ -467,8 +480,10 @@ Resources:
         config:
           ignore_checks:
             - EIAMPolicyWildcardResource
+            - EIAMAccountIDInPrincipal
           ignore_reasons:
             EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
+            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
     Condition: CustomerManagedVPC
     Properties:
       RoleName: !Ref IAMRole
@@ -637,16 +652,16 @@ Resources:
         BlockPublicAcls       : true
         BlockPublicPolicy     : true
         IgnorePublicAcls      : true
-        RestrictPublicBuckets : true
-      LifecycleConfiguration:
-        Rules: 
-          - Id: DeleteContentAfter5days
-            Status: Enabled
-            NoncurrentVersionExpirationInDays: 5
-      VersioningConfiguration: 
-        Status: Enabled       
+        RestrictPublicBuckets : true     
   bucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMAccountIDInPrincipal
+          ignore_reasons:
+            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
     Properties:     
       PolicyDocument:
         Id: MyPolicy

@@ -42,7 +42,7 @@ If you use the customer managed VPC feature, you can specify your own VPC in you
 
 === S3 bucket in the customer account
 
-An Amazon Simple Storage Service (Amazon S3) bucket is created in the customer account with default encryption and bucket-versioning enabled. Amazon S3 blocks all public access and, using a lifecycle management rule, permanently deletes versions after five days.
+An Amazon Simple Storage Service (Amazon S3) bucket is created in the customer account with default encryption and blocking all public access. 
 
 IMPORTANT: Customers are responsible for backing up, securing, and encrypting customer data in the S3 bucket. Databricks is not responsible for data backups or any other customer data. This prevents Databricks from providing copies of data to unauthorized customers.
 
