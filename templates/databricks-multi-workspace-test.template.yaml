@@ -638,7 +638,7 @@ Resources:
           ignore_checks:
             - EIAMAccountIDInPrincipal
           ignore_reasons:
-            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy" 
+            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
     Properties:     
       PolicyDocument:
         Id: MyPolicy

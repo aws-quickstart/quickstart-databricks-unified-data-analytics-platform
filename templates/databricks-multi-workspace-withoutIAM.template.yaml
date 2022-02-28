@@ -9,6 +9,7 @@ Metadata:
         - W3005
         - W9001
         - W9006 # temporary to get rid of warnings
+
   QuickStartDocumentation:
     EntrypointName: "Parameters for deploying a workspace and using an existing cross-account IAM role"
   AWS::CloudFormation::Interface:
