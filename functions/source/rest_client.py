@@ -88,7 +88,6 @@ def handler(event, context):
                                     event['ResourceProperties']['encodedbase64'],
                                     event['ResourceProperties']['network_id'],
                                     event['ResourceProperties']['customer_managed_key_id'],
-                                    event['ResourceProperties']['pricing_tier'],
                                     event['ResourceProperties']['hipaa_parm'],
                                     event['ResourceProperties']['customer_name'],
                                     event['ResourceProperties']['authoritative_user_email'],
@@ -275,7 +274,7 @@ def create_networks(account_id, network_name, vpc_id, subnet_ids, security_group
     return response
 
 # POST - create workspace
-def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, encodedbase64, network_id, customer_managed_key_id, pricing_tier, hipaa_parm, customer_name, authoritative_user_email, authoritative_user_full_name, user_agent):
+def create_workspaces(account_id, workspace_name, deployment_name, aws_region, credentials_id, storage_config_id, encodedbase64, network_id, customer_managed_key_id, hipaa_parm, customer_name, authoritative_user_email, authoritative_user_full_name, user_agent):
     
     version = '1.2.0'
     # api-endpoint
@@ -286,8 +285,7 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
         "workspace_name": workspace_name, 
         "aws_region": aws_region, 
         "credentials_id": credentials_id, 
-        "storage_configuration_id": storage_config_id,
-        "pricing_tier": pricing_tier
+        "storage_configuration_id": storage_config_id
     }
 
     NETWORKDATA = {
@@ -319,8 +317,12 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
         DATA.update(MANAGEDKEYDATA)
 
     # Add deployment_name to the request object when provided, FYI Trial PAYG does not have a deployment_name or a deployment prefix
+    # Convert 'empty' to EMPTY 
     if deployment_name != '':
-        DATA.update(DEPLOYMENTDATA)
+        if deployment_name == 'empty':
+            DATA.update(DEPLOYMENTDATA.upper()) 
+        else:
+            DATA.update(DEPLOYMENTDATA)
 
     # Add customer_info to the request object when provided, for the OEM program
     if customer_name != '':
@@ -374,6 +376,9 @@ def create_workspaces(account_id, workspace_name, deployment_name, aws_region, c
         print(response)        
 
     return response
+
+def new_func():
+    return None
     
 
 # GET - get workspace
@@ -399,7 +404,7 @@ def delete_credentials(accountId, encodedbase64, credentials_id):
 
     response = requests.delete(URL, headers={"Authorization": "Basic %s" % encodedbase64})
     
-    # Raise and Exception if the response is unsuccessful
+    # Raise an Exception if the response is unsuccessful
     response.raise_for_status()
 
     print(response)
@@ -415,7 +420,7 @@ def delete_storage_configurations(accountId, encodedbase64, storage_configuratio
 
     response = requests.delete(URL, headers={"Authorization": "Basic %s" % encodedbase64})
 
-    # Raise and Exception if the response is unsuccessful
+    # Raise an Exception if the response is unsuccessful
     response.raise_for_status()
 
     print(response)
@@ -431,7 +436,7 @@ def delete_networks(accountId, encodedbase64, network_id):
 
     response = requests.delete(URL, headers={"Authorization": "Basic %s" % encodedbase64})
 
-    # Raise and Exception if the response is unsuccessful
+    # Raise an Exception if the response is unsuccessful
     response.raise_for_status()
 
     print(response)
@@ -447,7 +452,7 @@ def delete_customer_managed_key(accountId, encodedbase64, managed_services_custo
 
     response = requests.delete(URL, headers={"Authorization": "Basic %s" % encodedbase64})
 
-    # Raise and Exception if the response is unsuccessful
+    # Raise an Exception if the response is unsuccessful
     response.raise_for_status()
 
     print(response)
@@ -462,7 +467,7 @@ def delete_workspaces(accountId, encodedbase64, workspaceId):
 
     response = requests.delete(URL, headers={"Authorization": "Basic %s" % encodedbase64})
 
-    # Raise and Exception if the response is unsuccessful
+    # Raise an Exception if the response is unsuccessful
     response.raise_for_status()
 
     print (response)
@@ -490,7 +495,7 @@ def get_request(url, encodedbase64, user_agent, version):
     # extracting data in json format 
     data = resp.json() 
     
-    # Raise and Exception if the response is unsuccessful
+    # Raise an Exception if the response is unsuccessful
     resp.raise_for_status()
     
     print('Successful GET call!!')

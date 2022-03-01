@@ -178,6 +178,7 @@ Parameters:
     AllowedValues:
        - ap-northeast-1
        - ap-south-1
+       - ap-southeast-1
        - ap-southeast-2
        - ca-central-1
        - eu-central-1
@@ -263,6 +264,8 @@ Conditions:
   IsKMSKeyProvided: !Not [!Equals [!Ref KeyArn, '']]
 # Test for STORAGE CMK use case      
   IsClusterVolumeSet: !Equals [!Ref KeyReuseForClusterVolumes, 'True']  
+# Test for the OPTIONAL deployment name
+  IsDeploymentNameSet: !Not [!Equals [!Ref DeploymentName, '']] 
 
 Rules:
 # 1. Validate the selected Region from drop-down matches the Region from the Console

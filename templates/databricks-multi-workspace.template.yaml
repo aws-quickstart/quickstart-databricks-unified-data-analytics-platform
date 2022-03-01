@@ -19,8 +19,6 @@ Metadata:
           - AccountId
           - Username
           - Password
-          - PricingTier
-          - DeploymentName
           - AWSRegion
           - HIPAAparm
       - Label:
@@ -29,6 +27,10 @@ Metadata:
           - TagValue
           - IAMRole
           - BucketName
+      - Label:
+          default: "(Optional) Recommended to provide a unique deployment name for your workspace."    
+        Parameters:
+          - DeploymentName  
       - Label:
           default: "(Optional) Customer managed VPC configuration (requires the premium tier)"
         Parameters:
@@ -54,8 +56,6 @@ Metadata:
         default: Workspace account email
       Password:
         default: Workspace account password
-      PricingTier:
-        default: Pricing tier of the workspace
       DeploymentName:
         default: Workspace deployment name
       AWSRegion:
@@ -127,6 +127,9 @@ Outputs:
       - - 'https://'
         - !GetAtt createWorkspace.DeploymentName
         - '.cloud.databricks.com'
+  WorkspaceId:
+    Description: Workspace ID.
+    Value: !GetAtt createWorkspace.WorkspaceId
   WorkspaceStatus:
     Description: Status of the requested workspace.
     Value: !GetAtt createWorkspace.WorkspaceStatus
@@ -158,19 +161,8 @@ Parameters:
     MinLength: '8'
     NoEcho: 'true'
     Type: String
-  PricingTier:
-    Description: "If you do not provide this, the API defaults to the highest pricing tier. For more information, see https://databricks.com/product/aws-pricing."
-    AllowedValues:
-       - STANDARD
-       - PREMIUM 
-       - ENTERPRISE
-       - '' 
-    Type: String
-    Default: ''
   DeploymentName:
-    Description: "Choose this value carefully. The deployment name defines part of the workspace subdomain (e.g., workspace-deployment-name.cloud.databricks.com). This value must be unique across all deployments in all AWS Regions. It cannot start or end with a hyphen. If your account has a deployment-name prefix, add the prefix followed by a hyphen. For more information, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-create-the-workspace."
-    AllowedPattern: '^(([a-z0-9][a-z0-9-]*[a-z0-9])|([a-z0-9]))$'
-    ConstraintDescription: You must enter a valid subdomain for the workspace.
+    Description: "The deployment name defines part of the subdomain for the workspace. The workspace URL for web application and REST APIs is <deployment-name>.cloud.databricks.com. Accounts can have a deployment name prefix. Contact your Databricks representative to add an account deployment name prefix to your account. If your account has a non-empty deployment name prefix at workspace creation time, the workspace deployment name is updated so that it begins with the account prefix and a hyphen. If your account has a non-empty deployment name prefix and you set deployment_name to the reserved keyword EMPTY, deployment_name is the account prefix only. For more information, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-6-create-the-workspace"
     Type: String
   AWSRegion:
     Description: "AWS Region where the workspace is created. Note that customer managed keys to encrypt notebooks are not supported in the us-west-1 Region."
@@ -264,6 +256,8 @@ Conditions:
   IsKMSKeyProvided: !Not [!Equals [!Ref KeyArn, '']]
 # Test for STORAGE CMK use case
   IsClusterVolumeSet: !Equals [!Ref KeyReuseForClusterVolumes, 'True']
+# Test for the OPTIONAL deployment name
+  IsDeploymentNameSet: !Not [!Equals [!Ref DeploymentName, '']]
 
 Rules:
 # 1. Validate the selected Region from drop-down matches the Region from the Console
@@ -314,14 +308,14 @@ Rules:
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
 # ***********************************************************************************************************************
   AWSQuickStartGitParametersSettings:
-    Assertions:
+    Assertions:    
     - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
-      AssertDescription: 'QSS3BucketName must be aws-quickstart.'
+      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
     - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
-      AssertDescription: 'QSS3KeyPrefix must be quickstart-databricks-unified-data-analytics-platform/.'
-        
+      AssertDescription: "The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/"
+  
 Resources:
-  # Cross-account access role for Databricks-created and managed VPC
+  # Cross-account access role for Databricks created and managed VPC
   accessRoleDBManagedVPC:
     Type: 'AWS::IAM::Role'
     Metadata:
@@ -678,9 +672,9 @@ Resources:
       action: 'CREATE_CREDENTIALS'
       accountId: !Ref AccountId
       credentials_name: !Join
-        - '-'
-        - - !Ref DeploymentName
-          - 'credentials'
+          - '-'
+          - - !If [IsDeploymentNameSet, !Ref DeploymentName, !Ref AWS::StackName]
+            - 'credentials'
       role_arn: !If [CustomerManagedVPC, !GetAtt 'accessRoleCustomerManagedVPC.Arn', !GetAtt 'accessRoleDBManagedVPC.Arn']
       encodedbase64: 
         Fn::Base64: !Join
@@ -698,7 +692,7 @@ Resources:
       accountId: !Ref AccountId
       storage_config_name: !Join
         - '-'
-        - - !Ref 'DeploymentName'
+        - - !If [IsDeploymentNameSet, !Ref DeploymentName, !Ref AWS::StackName]
           - 'storage'
       s3bucket_name: !Ref assetsS3Bucket
       encodedbase64: 
@@ -719,7 +713,7 @@ Resources:
       accountId: !Ref AccountId
       network_name: !Join
         - '-'
-        - - !Ref 'DeploymentName'
+        - - !If [IsDeploymentNameSet, !Ref DeploymentName, !Ref AWS::StackName]
           - 'network'
       vpc_id: !Ref VPCID
       subnet_ids: !Ref SubnetIDs
@@ -740,7 +734,7 @@ Resources:
       accountId: !Ref AccountId
       workspace_name: !Join
         - '-'
-        - - !Ref 'DeploymentName'
+        - - !If [IsDeploymentNameSet, !Ref DeploymentName, !Ref AWS::StackName]
           - 'workspace'
       deployment_name: !Ref 'DeploymentName'
       aws_region: !Ref AWSRegion
@@ -753,7 +747,6 @@ Resources:
             - !Ref 'Password'
       network_id: !If [CustomerManagedVPC, !GetAtt 'createNetworks.NetworkId', '']
       customer_managed_key_id: !If [IsKMSKeyProvided, !GetAtt 'createCustomerManagedKey.CustomerManagedKeyId', '']
-      pricing_tier: !Ref PricingTier
       hipaa_parm: !Ref HIPAAparm
       customer_name: ''
       authoritative_user_email: ''
