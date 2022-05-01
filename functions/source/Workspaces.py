@@ -1,5 +1,7 @@
 from AccountApiSession import AccountApiSession
 import time
+import json
+import hipaa
 
 # The workspace object
 class Workspace:
@@ -25,7 +27,9 @@ class WorkspaceManager:
   # Creates a new workspace
   def create(self, name: str, region: str, credentialsId: str, storageConfigurationId: str,
     networkId: str = None, privateAccessSettingsId: str = None, deploymentName: str = None,
-    storageCustomerManagedKeyId: str = None, managedServicesCustomerManagedKeyId: str = None):
+    storageCustomerManagedKeyId: str = None, managedServicesCustomerManagedKeyId: str = None,
+    hipaaEnabled: bool = False,
+    oemCustomerName: str = None, oemAuthoritativeUserEmail: str = None, oemAuthoritativeUserFullName: str = None):
     postData = {
       "workspace_name": name,
       "aws_region": region,
@@ -37,6 +41,13 @@ class WorkspaceManager:
     if privateAccessSettingsId is not None: postData['private_access_settings_id'] = privateAccessSettingsId
     if storageCustomerManagedKeyId is not None: postData['storage_customer_managed_key_id'] = storageCustomerManagedKeyId
     if managedServicesCustomerManagedKeyId is not None: postData['managed_services_customer_managed_key_id'] = managedServicesCustomerManagedKeyId
+    if oemCustomerName is not None and oemAuthoritativeUserEmail is not None and oemAuthoritativeUserFullName is not None:
+      postData["external_customer_info"] = {
+        "customer_name": oemCustomerName,
+        "authoritative_user_email": oemAuthoritativeUserEmail,
+        "authoritative_user_full_name": oemAuthoritativeUserFullName
+      }
+
     # Issue the API call
     workspaceObject = Workspace(self.__apiSession.post('/workspaces', postData))
     # Wait for the workspace to start running
@@ -46,7 +57,18 @@ class WorkspaceManager:
         workspaceObject = self.get(workspaceObject.id)
         if workspaceObject.status == 'RUNNING': break
       except Exception as e:
-        print(str(e))
+        print(str(e))  
+    
+    if workspaceObject.status == 'RUNNING' and hipaaEnabled:
+
+      # Eventually the following block should go into a ClusterPolicyManager class
+      workspaceApiSession = self.__apiSession.workspaceApiSession(workspaceObject.deploymentName)
+      workspacePostData = {
+        "name": "Default Cluster Policy (HIPAA)",
+        "definition": json.dumps(hipaa.clusterPolicy)
+      }
+      _ = workspaceApiSession.post('/policies/clusters/create', workspacePostData)
+
     return workspaceObject
 
 

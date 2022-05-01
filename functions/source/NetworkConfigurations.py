@@ -35,16 +35,16 @@ class NetworkConfiguratiosnManager:
     return NetworkConfiguration(self.__apiSession.post('/networks', postData))
 
 
-  # Deletes an existing credential configuration using its id
+  # Deletes an existing network configuration using its id
   def delete(self, networkId: str):
     self.__apiSession.delete('/networks/' + networkId)
 
 
-  # Retrieves an existing credential configuration using its id
+  # Retrieves an existing network configuration using its id
   def get(self, networkId: str):
     return NetworkConfiguration(self.__apiSession.get('/networks/' + networkId))
 
 
-  # Retrieves the list of existing credential configurations
+  # Retrieves the list of existing network configurations
   def list(self):
     return [ NetworkConfiguration(objectData) for objectData in self.__apiSession.get('/networks') ]

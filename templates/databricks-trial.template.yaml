@@ -42,9 +42,7 @@ Metadata:
 Outputs:
   DBManagedVPCIAMRoleARN:
     Description: ARN of the cross-account IAM role
-    Value: !GetAtt 
-      - accessRoleDBManagedVPC
-      - Arn
+    Value: !GetAtt accessRoleDBManagedVPC.Arn
   S3BucketName:
     Description: Name of the S3 root bucket
     Value: !Ref assetsS3Bucket
@@ -59,11 +57,7 @@ Outputs:
     Value: !GetAtt createStorageConfiguration.StorageConfigId
   WorkspaceURL:
     Description: URL of the workspace
-    Value: !Join
-      - ''
-      - - 'https://'
-        - !GetAtt createWorkspace.DeploymentName
-        - '.cloud.databricks.com'
+    Value: !Sub https://${createWorkspace.DeploymentName}.cloud.databricks.com
   WorkspaceStatus:
     Description: Status of the requested workspace
     Value: !GetAtt createWorkspace.WorkspaceStatus
@@ -156,17 +150,12 @@ Resources:
         Statement:
           - Action: 'sts:AssumeRole'
             Condition:
-              StringEquals: 
-                'sts:ExternalId': !Sub '${AccountId}'
+              "StringEquals":
+                "sts:ExternalId": !Ref AccountId
             Effect: Allow
             Principal:
-              AWS: !Join 
-                - ''
-                - - 'arn:aws:iam::'
-                  - '414351767826'
-                  - ':root'
-            Sid: ''
-        Version: 2012-10-17
+              "AWS": "414351767826"
+        Version: '2012-10-17'
       Path: /
       Policies:
         - PolicyDocument:
@@ -284,80 +273,54 @@ Resources:
             Principal:
               AWS: arn:aws:iam::414351767826:root
             Action:
-              - 's3:GetObject'
-              - 's3:GetObjectVersion'
-              - 's3:PutObject'
-              - 's3:DeleteObject'
-              - 's3:ListBucket'
-              - 's3:GetBucketLocation'
+              - s3:GetObject
+              - s3:GetObjectVersion
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:ListBucket
+              - s3:GetBucketLocation
             Resource:
-              - !Sub 'arn:${AWS::Partition}:s3:::${assetsS3Bucket}/*'
-              - !Sub 'arn:${AWS::Partition}:s3:::${assetsS3Bucket}'
+              - !Sub arn:${AWS::Partition}:s3:::${assetsS3Bucket}/*
+              - !Sub arn:${AWS::Partition}:s3:::${assetsS3Bucket}
       Bucket: !Ref assetsS3Bucket                       
 
-  # Databricks API for workspace credentials
+  # Workspace credentials
   createCredentials:
     Type: Custom::CreateCredentials
     Properties:
-      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
-      action: 'CREATE_CREDENTIALS'
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_CREDENTIALS
       accountId: !Ref AccountId
-      credentials_name: !Join
-        - '-'
-        - - !Ref WorkspaceName
-          - 'credentials'
-      role_arn: !GetAtt 'accessRoleDBManagedVPC.Arn'
-      encodedbase64: 
-        Fn::Base64: !Join
-          - ':'
-          - - !Ref 'Username'
-            - !Ref 'Password'
-      user_agent: 'databricks-CloudFormation-Trial-provider'      
+      username: !Ref Username
+      password: !Ref Password
+      credentials_name: !Sub ${WorkspaceName}-credentials
+      role_arn: !GetAtt accessRoleDBManagedVPC.Arn
 
-  # Databricks API for workspace storage configuration    
+  # Workspace storage configuration    
   createStorageConfiguration:
     Type: Custom::CreateStorageConfigurations
     Properties:
-      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
-      action: 'CREATE_STORAGE_CONFIGURATIONS'
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_STORAGE_CONFIGURATIONS
       accountId: !Ref AccountId
-      storage_config_name: !Join
-        - '-'
-        - - !Ref 'WorkspaceName'
-          - 'storage'
+      username: !Ref Username
+      password: !Ref Password
+      storage_config_name: !Sub ${WorkspaceName}-storage
       s3bucket_name: !Ref assetsS3Bucket
-      encodedbase64: 
-        Fn::Base64: !Join
-          - ':'
-          - - !Ref 'Username'
-            - !Ref 'Password'
-      user_agent: 'databricks-CloudFormation-Trial-provider'           
 
-  # Databricks API for workspace creation    
+  # Databricks Workspace    
   createWorkspace:
     Type: Custom::CreateWorkspace
     Properties:
-      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
-      action: 'CREATE_WORKSPACES'
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_WORKSPACES
       accountId: !Ref AccountId
-      workspace_name: !Ref 'WorkspaceName'
-      deployment_name: ''
+      username: !Ref Username
+      password: !Ref Password
+      workspace_name: !Ref WorkspaceName
       aws_region: !Ref AWSRegion
       credentials_id: !GetAtt createCredentials.CredentialsId
       storage_config_id: !GetAtt createStorageConfiguration.StorageConfigId
-      encodedbase64: 
-        Fn::Base64: !Join
-          - ':'
-          - - !Ref 'Username'
-            - !Ref 'Password'
-      network_id: ''
-      customer_managed_key_id: ''
-      pricing_tier: ''
-      hipaa_parm: ''
-      customer_name: ''
-      authoritative_user_email: ''
-      authoritative_user_full_name: ''
-      user_agent: 'databricks-CloudFormation-Trial-provider'
 
   databricksApiFunction:
     DependsOn: CopyZips
@@ -369,8 +332,8 @@ Resources:
       Role: !GetAtt 'functionRole.Arn'
       Timeout: 900
       Code:
-        S3Bucket: !Ref 'LambdaZipsBucket'
-        S3Key: 'quickstart-databricks-unified-data-analytics-platform/functions/packages/lambda.zip'   
+        S3Bucket: !Ref LambdaZipsBucket
+        S3Key: quickstart-databricks-unified-data-analytics-platform/functions/packages/lambda.zip
 
   # IAM Role for lambda function execution
   functionRole:

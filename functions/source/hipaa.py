@@ -1,4 +1,4 @@
-{
+clusterPolicy = {
   "node_type_id": {
     "type": "allowlist",
     "values": [
