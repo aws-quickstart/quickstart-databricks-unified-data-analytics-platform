@@ -10,7 +10,8 @@ class AccountApiSession(BaseDatabricksApiSession):
     baseURL = 'https://accounts.cloud.databricks.com/api/2.0/accounts/' + accountId
     self.__userName = userName
     self.__password = password
-    headers = make_headers(basic_auth = self.__userName + ':' + self.__password) | {'Content-Type': 'application/json'}
+    headers = make_headers(basic_auth = self.__userName + ':' + self.__password)
+    headers['Content-Type'] = 'application/json'
     self.__userAgent = userAgent
     if userAgent is not None:
       headers['User-Agent'] = userAgent

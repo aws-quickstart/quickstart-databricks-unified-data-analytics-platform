@@ -12,7 +12,7 @@ class Workspace:
     self.storageConfigurationId = data['storage_configuration_id']
     self.region = data['aws_region']
     self.status = data['workspace_status']
-    self.networkId = data['network_id'] if 'network_id' else None
+    self.networkId = data['network_id'] if 'network_id' in data else None
     self.privateAccessSettingsId = data['private_access_settings_id'] if 'private_access_settings_id' in data else None
     self.deploymentName = data['deployment_name'] if 'deployment_name' in data else None
     self.pricingTier = data['pricing_tier'] if 'pricing_tier' in data else None

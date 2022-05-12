@@ -155,7 +155,7 @@ def handler(event, context):
                 physicalResourceId = workspace.id
             # deletion
             elif event['RequestType'] == 'Delete':
-                networkManager.workspaceManager(physicalResourceId)
+                workspaceManager.delete(physicalResourceId)
         
     except Exception as e:
         reason = str(e)
