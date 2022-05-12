@@ -692,6 +692,7 @@ Resources:
       key_alias: !Ref KeyAlias
       use_cases: !Ref KeyUseCases
       reuse_key_for_cluster_volumes: !Ref KeyReuseForClusterVolumes
+      user_agent: 'databricks-CloudFormation-OEM-provider'
 
   # Databricks API for workspace credentials
   createCredentials:
@@ -704,6 +705,7 @@ Resources:
       password: !Ref Password
       credentials_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-credentials', !Sub '${AWS::StackName}-credentials']
       role_arn: !If [CustomerManagedVPC, !GetAtt 'accessRoleCustomerManagedVPC.Arn', !GetAtt 'accessRoleDBManagedVPC.Arn']
+      user_agent: 'databricks-CloudFormation-OEM-provider'
 
   # Databricks API for workspace storage configuration
   createStorageConfiguration:
@@ -716,6 +718,7 @@ Resources:
       password: !Ref Password
       storage_config_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-storage', !Sub '${AWS::StackName}-storage']
       s3bucket_name: !Ref assetsS3Bucket
+      user_agent: 'databricks-CloudFormation-OEM-provider'
 
   # Databricks API for network configuration
   createNetworks:
@@ -732,6 +735,7 @@ Resources:
       vpc_id: !Ref VPCID
       subnet_ids: !Ref SubnetIDs
       security_group_ids: !Ref SecurityGroupIDs
+      user_agent: 'databricks-CloudFormation-OEM-provider'
 
   # Databricks API for workspace creation    
   createWorkspace:
@@ -753,7 +757,8 @@ Resources:
       customer_name: !Ref CustomerName
       authoritative_user_email: !Ref AuthoritativeUserEmail
       authoritative_user_full_name: !Ref AuthoritativeUserFullName
-  
+      user_agent: 'databricks-CloudFormation-OEM-provider'
+
   # Customer managed VPC - Create databricks-cross-account-iam-role-policy-sg policy 
   updateIAMSecurityGroupIds:
     Condition: CustomerManagedVPC 

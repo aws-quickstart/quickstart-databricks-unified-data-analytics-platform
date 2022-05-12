@@ -295,6 +295,7 @@ Resources:
       password: !Ref Password
       credentials_name: !Sub ${WorkspaceName}-credentials
       role_arn: !GetAtt accessRoleDBManagedVPC.Arn
+      user_agent: 'databricks-CloudFormation-Trial-provider'
 
   # Workspace storage configuration    
   createStorageConfiguration:
@@ -307,6 +308,7 @@ Resources:
       password: !Ref Password
       storage_config_name: !Sub ${WorkspaceName}-storage
       s3bucket_name: !Ref assetsS3Bucket
+      user_agent: 'databricks-CloudFormation-Trial-provider'
 
   # Databricks Workspace    
   createWorkspace:
@@ -321,6 +323,7 @@ Resources:
       aws_region: !Ref AWSRegion
       credentials_id: !GetAtt createCredentials.CredentialsId
       storage_config_id: !GetAtt createStorageConfiguration.StorageConfigId
+      user_agent: 'databricks-CloudFormation-Trial-provider'
 
   databricksApiFunction:
     DependsOn: CopyZips
