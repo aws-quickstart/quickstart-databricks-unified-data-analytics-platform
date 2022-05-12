@@ -99,45 +99,37 @@ Outputs:
   CustomerManagedVPCIAMRoleARN:
     Description: ARN of the customer-managed cross-account IAM role
     Condition: CustomerManagedVPC
-    Value: !GetAtt 
-      - accessRoleCustomerManagedVPC
-      - Arn
+    Value: !GetAtt accessRoleCustomerManagedVPC.Arn
   DBManagedVPCIAMRoleARN:
     Description: ARN of the cross-account IAM role
     Condition: CreateDBManagedVPC
-    Value: !GetAtt 
-      - accessRoleDBManagedVPC
-      - Arn
+    Value: !GetAtt accessRoleDBManagedVPC.Arn
   S3BucketName:
     Description: Name of the S3 root bucket
     Value: !Ref assetsS3Bucket
   CustomerManagedKeyId:
     Description: ID of the created customer-managed key object  
     Condition: IsKMSKeyProvided
-    Value: !GetAtt createCustomerManagedKey.CustomerManagedKeyId
+    Value: !Ref createCustomerManagedKey
   CredentialsId:
     Description: Credential ID
-    Value: !GetAtt createCredentials.CredentialsId
+    Value: !Ref createCredentials
   ExternalId:
     Description: Databricks external ID
     Value: !GetAtt createCredentials.ExternalId
   NetworkId:
     Description: Databricks network ID
     Condition: CustomerManagedVPC
-    Value: !GetAtt createNetworks.NetworkId 
+    Value: !Ref createNetworks 
   StorageConfigId:
     Description: Storage configuration ID
-    Value: !GetAtt createStorageConfiguration.StorageConfigId
+    Value: !Ref createStorageConfiguration
   WorkspaceURL:
     Description: URL of the workspace
-    Value: !Join
-      - ''
-      - - 'https://'
-        - !GetAtt createWorkspace.DeploymentName
-        - '.cloud.databricks.com'
+    Value: !Sub https://${createWorkspace.DeploymentName}.cloud.databricks.com'
   WorkspaceId:
     Description: Workspace ID.
-    Value: !GetAtt createWorkspace.WorkspaceId      
+    Value: !Ref createWorkspace
   WorkspaceStatus:
     Description: Status of the requested workspace
     Value: !GetAtt createWorkspace.WorkspaceStatus
@@ -341,7 +333,7 @@ Rules:
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
 # ***********************************************************************************************************************
   AWSQuickStartGitParametersSettings:
-    Assertions:    
+    Assertions:
     - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
       AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
     - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
@@ -749,10 +741,10 @@ Resources:
       workspace_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-workspace', !Sub '${AWS::StackName}-workspace']
       deployment_name: !Ref DeploymentName
       aws_region: !Ref AWSRegion
-      credentials_id: !GetAtt createCredentials.CredentialsId
-      storage_config_id: !GetAtt createStorageConfiguration.StorageConfigId
-      network_id: !If [CustomerManagedVPC, !GetAtt 'createNetworks.NetworkId', !Ref AWS::NoValue]
-      customer_managed_key_id: !If [IsKMSKeyProvided, !GetAtt 'createCustomerManagedKey.CustomerManagedKeyId', !Ref AWS::NoValue]
+      credentials_id: !Ref  createCredentials
+      storage_config_id: !Ref createStorageConfiguration
+      network_id: !If [CustomerManagedVPC, !Ref createNetworks, !Ref AWS::NoValue]
+      customer_managed_key_id: !If [IsKMSKeyProvided, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       hipaa_parm: !Ref HIPAAparm
       customer_name: !Ref CustomerName
       authoritative_user_email: !Ref AuthoritativeUserEmail

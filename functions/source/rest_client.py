@@ -69,6 +69,7 @@ def handler(event, context):
                     roleArn = event['ResourceProperties']['role_arn']
                 )
                 physicalResourceId = credentialsConfiguration.id
+                responseData['ExternalId'] = credentialsConfiguration.externalId
             # deletion
             elif event['RequestType'] == 'Delete':
                 credentialsManager.delete(physicalResourceId)
@@ -152,11 +153,18 @@ def handler(event, context):
                     oemAuthoritativeUserEmail = event['ResourceProperties']['authoritative_user_email'] if 'authoritative_user_email' in event['ResourceProperties'] else None,
                     oemAuthoritativeUserFullName = event['ResourceProperties']['authoritative_user_full_name'] if 'authoritative_user_full_name' in event['ResourceProperties'] else None
                 )
-                physicalResourceId = workspace.id
+                physicalResourceId = str(workspace.id)
+                responseData['DeploymentName'] = workspace.deploymentName
+                responseData['WorkspaceStatus'] = workspace.status
+                responseData['WorkspaceStatusMsg'] = workspace.statusMessage
+                responseData['PricingTier'] = workspace.pricingTier
+                responseData['ClusterPolicyId'] = workspace.clusterPolicyId
+                # Check if the workspace is running
+                if workspace.status != 'RUNNING': raise Exception(workspace.statusMessage)
             # deletion
             elif event['RequestType'] == 'Delete':
-                workspaceManager.delete(physicalResourceId)
-        
+                workspaceManager.delete(int(physicalResourceId))
+
     except Exception as e:
         reason = str(e)
         logging.exception(reason)

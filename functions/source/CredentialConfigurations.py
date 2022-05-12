@@ -6,6 +6,7 @@ class CredentialConfiguration:
     self.id = data['credentials_id']
     self.name = data['credentials_name']
     self.roleArn = data['aws_credentials']['sts_role']['role_arn']
+    self.externalId = data['aws_credentials']['sts_role']['external_id']
 
 
 # A class to manage credential configuration objects

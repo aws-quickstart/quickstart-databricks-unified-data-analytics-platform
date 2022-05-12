@@ -102,26 +102,26 @@ Outputs:
   CustomerManagedKeyId:
     Description: ID of the customer managed key object
     Condition: IsKMSKeyProvided
-    Value: !GetAtt createCustomerManagedKey.CustomerManagedKeyId
+    Value: !Ref createCustomerManagedKey
   CredentialsId:
     Description: Credential ID
-    Value: !GetAtt createCredentials.CredentialsId
+    Value: !Ref createCredentials
   ExternalId:
     Description: Databricks external ID
     Value: !GetAtt createCredentials.ExternalId
   NetworkId:
     Description: Databricks network ID
     Condition: CustomerManagedVPC
-    Value: !GetAtt createNetworks.NetworkId 
+    Value: !Ref createNetworks 
   StorageConfigId:
     Description: Storage configuration ID
-    Value: !GetAtt createStorageConfiguration.StorageConfigId
+    Value: !Ref createStorageConfiguration
   WorkspaceURL:
     Description: URL of the workspace
     Value: !Sub https://${createWorkspace.DeploymentName}.cloud.databricks.com'
   WorkspaceId:
     Description: Workspace ID
-    Value: !GetAtt createWorkspace.WorkspaceId
+    Value: !Ref createWorkspace
   WorkspaceStatus:
     Description: Status of the requested workspace
     Value: !GetAtt createWorkspace.WorkspaceStatus
@@ -301,7 +301,7 @@ Rules:
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
 # ***********************************************************************************************************************
   AWSQuickStartGitParametersSettings:
-    Assertions:    
+    Assertions:
     - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
       AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
     - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
@@ -698,10 +698,10 @@ Resources:
       workspace_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-workspace', !Sub '${AWS::StackName}-workspace']
       deployment_name: !Ref DeploymentName
       aws_region: !Ref AWSRegion
-      credentials_id: !GetAtt createCredentials.CredentialsId
-      storage_config_id: !GetAtt createStorageConfiguration.StorageConfigId
-      network_id: !If [CustomerManagedVPC, !GetAtt 'createNetworks.NetworkId', !Ref AWS::NoValue]
-      customer_managed_key_id: !If [IsKMSKeyProvided, !GetAtt 'createCustomerManagedKey.CustomerManagedKeyId', !Ref AWS::NoValue]
+      credentials_id: !Ref createCredentials
+      storage_config_id: !Ref createStorageConfiguration
+      network_id: !If [CustomerManagedVPC, !Ref createNetworks, !Ref AWS::NoValue]
+      customer_managed_key_id: !If [IsKMSKeyProvided, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       hipaa_parm: !Ref HIPAAparm
       user_agent: 'databricks-CloudFormation-provider'
   
