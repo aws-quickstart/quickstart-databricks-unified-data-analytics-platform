@@ -21,6 +21,8 @@ def checkForMissingProperties(event, propertyList: list):
 
 
 def handler(event, context):
+    # User Agent version
+    userAgentVersion = '1.5.0'
 
     # Check for the existence of an action key and support for the action
     supportedActions = (
@@ -52,7 +54,8 @@ def handler(event, context):
         apiSession = AccountApiSession(
             event['ResourceProperties']['accountId'],
             event['ResourceProperties']['username'],
-            event['ResourceProperties']['password']
+            event['ResourceProperties']['password'],
+            event['ResourceProperties']['user_agent'] + ' - ' + userAgentVersion if 'user_agent' in event['ResourceProperties'] else None
         )
 
         # Credentials configuration
