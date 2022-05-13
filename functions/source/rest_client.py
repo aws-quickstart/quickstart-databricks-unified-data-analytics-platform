@@ -46,7 +46,7 @@ def handler(event, context):
     status = cfnresponse.SUCCESS
     reason = None
     responseData = {}
-    physicalResourceId = event['PhysicalResourceId'] if 'PhysicalResourceId' in event else None
+    physicalResourceId: str = event['PhysicalResourceId'] if 'PhysicalResourceId' in event else None
 
     try:
         # Create the Account API session
@@ -122,8 +122,8 @@ def handler(event, context):
                 networkConfiguration = networkManager.create(
                     name = event['ResourceProperties']['network_name'],
                     vpcId = event['ResourceProperties']['vpc_id'],
-                    subnetIds = event['ResourceProperties']['subnet_ids'].split(','),
-                    securityGroupIds = event['ResourceProperties']['security_group_ids'].split(','),
+                    subnetIds = [i.strip() for i in event['ResourceProperties']['subnet_ids'].split(',')],
+                    securityGroupIds = [i.strip() for i in event['ResourceProperties']['security_group_ids'].split(',')],
                     restAccessEndpointId = event['ResourceProperties']['rest_access_endpoint_id'] if 'rest_access_endpoint_id' in event['ResourceProperties'] else None,
                     relayAccessEndpointId = event['ResourceProperties']['relay_access_endpoint_id'] if 'relay_access_endpoint_id' in event['ResourceProperties'] else None
                 )
@@ -145,7 +145,7 @@ def handler(event, context):
                     storageConfigurationId = event['ResourceProperties']['storage_config_id'],
                     networkId = event['ResourceProperties']['network_id'] if 'network_id' in event['ResourceProperties'] else None,
                     privateAccessSettingsId = event['ResourceProperties']['private_access_settings_id'] if 'private_access_settings_id' in event['ResourceProperties'] else None,
-                    deploymentName = event['ResourceProperties']['deployment_name'] if 'deployment_name' in event['ResourceProperties'] else None,
+                    deploymentName = event['ResourceProperties']['deployment_name'] if 'deployment_name' in event['ResourceProperties'] and event['ResourceProperties']['deployment_name'] != '' else None,
                     storageCustomerManagedKeyId = event['ResourceProperties']['storage_customer_managed_key_id'] if 'storage_customer_managed_key_id' in event['ResourceProperties'] else None,
                     managedServicesCustomerManagedKeyId = event['ResourceProperties']['managed_services_customer_managed_key_id'] if 'managed_services_customer_managed_key_id' in event['ResourceProperties'] else None,
                     hipaaEnabled = (event['ResourceProperties']['hipaa_parm'] == 'True') if 'hipaa_parm' in event['ResourceProperties'] else False,
@@ -163,7 +163,8 @@ def handler(event, context):
                 if workspace.status != 'RUNNING': raise Exception(workspace.statusMessage)
             # deletion
             elif event['RequestType'] == 'Delete':
-                workspaceManager.delete(int(physicalResourceId))
+                if physicalResourceId.isnumeric():
+                    workspaceManager.delete(int(physicalResourceId))
 
     except Exception as e:
         reason = str(e)
