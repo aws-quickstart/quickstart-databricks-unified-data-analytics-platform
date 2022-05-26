@@ -273,7 +273,7 @@ Parameters:
 Conditions:
   # Condition to check if a VPC ID is provided by the user
   CustomerManagedVPC: !Not [!Equals [!Ref VPCID, '']]
-   # Condition to check if a VPC ID is not provided by the user
+  # Condition to check if a VPC ID is not provided by the user
   CreateDBManagedVPC: !Equals [!Ref VPCID, '']
   # Condition to check if an AWS KMS key ID is provided by the user
   IsKMSKeyProvided: !Not [!Equals [!Ref KeyArn, '']]
@@ -340,12 +340,12 @@ Rules:
 # ***********************************************************************************************************************
 # This rule must be COMMENTED if it is intended to clone the git repo to make modifications prior to promote the changes
 # ***********************************************************************************************************************
-  AWSQuickStartGitParametersSettings:
-    Assertions:    
-    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
-      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
-    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
-      AssertDescription: "The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/"
+#  AWSQuickStartGitParametersSettings:
+#    Assertions:    
+#    - Assert: !Equals ['aws-quickstart', !Ref QSS3BucketName]
+#      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
+#    - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
+#      AssertDescription: "The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/"
         
 Resources:
   # Cross-account access role for Databricks created and managed VPC
