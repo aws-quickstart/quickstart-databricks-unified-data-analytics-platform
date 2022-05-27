@@ -95,30 +95,26 @@ Outputs:
   CustomerManagedKeyId:
     Description: ID of the customer managed key object.
     Condition: IsKMSKeyProvided
-    Value: !GetAtt createCustomerManagedKey.CustomerManagedKeyId
+    Value: !Ref createCustomerManagedKey
   CredentialsId:
     Description: Credential ID.
-    Value: !GetAtt createCredentials.CredentialsId
+    Value: !Ref createCredentials
   ExternalId:
     Description: Databricks external ID.
     Value: !GetAtt createCredentials.ExternalId
   NetworkId:
     Description: Databricks network ID.
     Condition: CustomerManagedVPC
-    Value: !GetAtt createNetworks.NetworkId
+    Value: !Ref createNetworks
   StorageConfigId:
     Description: Storage configuration ID.
-    Value: !GetAtt createStorageConfiguration.StorageConfigId
+    Value: !Ref createStorageConfiguration
   WorkspaceURL:
     Description: URL of the workspace.
-    Value: !Join
-      - ''
-      - - 'https://'
-        - !GetAtt createWorkspace.DeploymentName
-        - '.cloud.databricks.com'
+    Value: !Sub https://${createWorkspace.DeploymentName}.cloud.databricks.com'
   WorkspaceId:
     Description: Workspace ID.
-    Value: !GetAtt createWorkspace.WorkspaceId      
+    Value: !Ref createWorkspace
   WorkspaceStatus:
     Description: Status of the requested workspace.
     Value: !GetAtt createWorkspace.WorkspaceStatus
@@ -351,107 +347,77 @@ Resources:
     DependsOn: updateCustomManagedKeys
     Type: Custom::CreateCustomerManagedKey
     Properties:
-      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
-      action: 'CREATE_CUSTOMER_MANAGED_KEY'
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_CUSTOMER_MANAGED_KEY
       accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
       key_arn: !Ref KeyArn
       key_alias: !Ref KeyAlias
       use_cases: !Ref KeyUseCases
       reuse_key_for_cluster_volumes: !Ref KeyReuseForClusterVolumes
-      encodedbase64:
-        Fn::Base64: !Join
-          - ':'
-          - - !Ref 'Username'
-            - !Ref 'Password'
       user_agent: 'databricks-CloudFormation-provider'
 
   # Databricks API for workspace credentials
   createCredentials:
     Type: Custom::CreateCredentials
     Properties:
-      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
-      action: 'CREATE_CREDENTIALS'
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_CREDENTIALS
       accountId: !Ref AccountId
-      credentials_name: !Join
-        - '-'
-        - - !If [IsDeploymentNameSet, !Ref DeploymentName, !Ref AWS::StackName]
-          - 'credentials'
-      role_arn: !Ref 'IAMArn'
-      encodedbase64:
-        Fn::Base64: !Join
-          - ':'
-          - - !Ref 'Username'
-            - !Ref 'Password'
+      username: !Ref Username
+      password: !Ref Password
+      credentials_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-credentials', !Sub '${AWS::StackName}-credentials']
+      role_arn: !Ref IAMArn
       user_agent: 'databricks-CloudFormation-provider'
 
   # Databricks API for workspace storage configuration
   createStorageConfiguration:
     Type: Custom::CreateStorageConfigurations
     Properties:
-      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
-      action: 'CREATE_STORAGE_CONFIGURATIONS'
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_STORAGE_CONFIGURATIONS
       accountId: !Ref AccountId
-      storage_config_name: !Join
-        - '-'
-        - - !If [IsDeploymentNameSet, !Ref DeploymentName, !Ref AWS::StackName]
-          - 'storage'
+      username: !Ref Username
+      password: !Ref Password
+      storage_config_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-storage', !Sub '${AWS::StackName}-storage']
       s3bucket_name: !Ref assetsS3Bucket
-      encodedbase64:
-        Fn::Base64: !Join
-          - ':'
-          - - !Ref 'Username'
-            - !Ref 'Password'
       user_agent: 'databricks-CloudFormation-provider'
 
-  # Databricks API for customer managed VPC
+  # Databricks API for network configuration
   createNetworks:
     DependsOn: createStorageConfiguration
     Condition: CustomerManagedVPC
-    Type: Custom::CreateNetworks
+    Type: Custom::createNetworks
     Properties:
-      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
-      action: 'CREATE_NETWORKS'
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_NETWORKS
       accountId: !Ref AccountId
-      network_name: !Join
-        - '-'
-        - - !If [IsDeploymentNameSet, !Ref DeploymentName, !Ref AWS::StackName]
-          - 'network'
+      username: !Ref Username
+      password: !Ref Password
+      network_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-network', !Sub '${AWS::StackName}-network']
       vpc_id: !Ref VPCID
       subnet_ids: !Ref SubnetIDs
       security_group_ids: !Ref SecurityGroupIDs
-      encodedbase64:
-        Fn::Base64: !Join
-          - ':'
-          - - !Ref 'Username'
-            - !Ref 'Password'
       user_agent: 'databricks-CloudFormation-provider'
 
   # Databricks API for workspace creation
   createWorkspace:
     Type: Custom::CreateWorkspace
     Properties:
-      ServiceToken: !GetAtt 'databricksApiFunction.Arn'
-      action: 'CREATE_WORKSPACES'
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_WORKSPACES
       accountId: !Ref AccountId
-      workspace_name: !Join
-        - '-'
-        - - !If [IsDeploymentNameSet, !Ref DeploymentName, !Ref AWS::StackName]
-          - 'workspace'
-      deployment_name: !Ref 'DeploymentName'
+      username: !Ref Username
+      password: !Ref Password
+      workspace_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-workspace', !Sub '${AWS::StackName}-workspace']
+      deployment_name: !Ref DeploymentName
       aws_region: !Ref AWSRegion
-      credentials_id: !GetAtt createCredentials.CredentialsId
-      storage_config_id: !GetAtt createStorageConfiguration.StorageConfigId
-      encodedbase64:
-        Fn::Base64: !Join
-          - ':'
-          - - !Ref 'Username'
-            - !Ref 'Password'
-      network_id: !If [CustomerManagedVPC, !GetAtt 'createNetworks.NetworkId', '']
-      customer_managed_key_id: !If [IsKMSKeyProvided,!GetAtt 'createCustomerManagedKey.CustomerManagedKeyId', '']
+      credentials_id: !Ref createCredentials
+      storage_config_id: !Ref createStorageConfiguration
+      network_id: !If [CustomerManagedVPC, !Ref createNetworks, !Ref AWS::NoValue]
+      customer_managed_key_id: !If [IsKMSKeyProvided, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       hipaa_parm: !Ref HIPAAparm
-      customer_name: ''
-      authoritative_user_email: ''
-      authoritative_user_full_name: ''
       user_agent: 'databricks-CloudFormation-provider'
 
   # Customer managed Keys - Update policy for S3 and EBS volumes 
@@ -460,7 +426,7 @@ Resources:
     DependsOn: updateKMSkeysFunction
     Type: Custom::updateCustomManagedKeys
     Properties:
-      ServiceToken: !GetAtt 'updateKMSkeysFunction.Arn'
+      ServiceToken: !GetAtt updateKMSkeysFunction.Arn
       key_id: !Ref KeyArn
       arn_credentials: !If [ClusterVolumeSet, !Ref 'IAMArn', '']
       use_cases: !Ref KeyUseCases
@@ -474,11 +440,11 @@ Resources:
       Description: Databricks account API.
       Handler: rest_client.handler
       Runtime: python3.8
-      Role: !Ref 'IAMArnLambda'
+      Role: !Ref IAMArnLambda
       Timeout: 900
       Code:
-        S3Bucket: !Ref 'LambdaZipsBucket'
-        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'
+        S3Bucket: !Ref LambdaZipsBucket
+        S3Key: !Sub ${QSS3KeyPrefix}functions/packages/lambda.zip
   
   # Databricks CMK lambda
   updateKMSkeysFunction:
@@ -489,11 +455,11 @@ Resources:
       Description: Update CMK policy document for storage.
       Handler: update_custommanaged_cmk_policy.handler
       Runtime: python3.8
-      Role: !Ref 'IAMArnLambda'
+      Role: !Ref IAMArnLambda
       Timeout: 60
       Code:
-        S3Bucket: !Ref 'LambdaZipsBucket'
-        S3Key: !Sub '${QSS3KeyPrefix}functions/packages/lambda.zip'
+        S3Bucket: !Ref LambdaZipsBucket
+        S3Key: !Sub ${QSS3KeyPrefix}functions/packages/lambda.zip
 
   # Resources to stage lambda.zip file
   LambdaZipsBucket:
@@ -501,10 +467,10 @@ Resources:
   CopyZips:
     Type: Custom::CopyZips
     Properties:
-      ServiceToken: !GetAtt 'CopyZipsFunction.Arn'
-      DestBucket: !Ref 'LambdaZipsBucket'
-      SourceBucket: !Ref 'QSS3BucketName'
-      Prefix: !Ref 'QSS3KeyPrefix'
+      ServiceToken: !GetAtt CopyZipsFunction.Arn
+      DestBucket: !Ref LambdaZipsBucket
+      SourceBucket: !Ref QSS3BucketName
+      Prefix: !Ref QSS3KeyPrefix
       Objects:
         - functions/packages/lambda.zip
 
