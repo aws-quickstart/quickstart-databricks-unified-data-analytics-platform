@@ -268,7 +268,7 @@ Parameters:
 Conditions:
   # Condition to check if a VPC ID is provided by the user
   CustomerManagedVPC: !Not [!Equals [!Ref VPCID, '']]
-   # Condition to check if a VPC ID is not provided by the user
+  # Condition to check if a VPC ID is not provided by the user
   CreateDBManagedVPC: !Equals [!Ref VPCID, '']
   # Condition to check if an AWS KMS key ID is provided by the user
   IsKMSKeyProvided: !Not [!Equals [!Ref KeyArn, '']]
