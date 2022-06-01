@@ -148,7 +148,7 @@ def handler(event, context):
                     deploymentName = event['ResourceProperties']['deployment_name'] if 'deployment_name' in event['ResourceProperties'] and event['ResourceProperties']['deployment_name'] != '' else None,
                     storageCustomerManagedKeyId = event['ResourceProperties']['storage_customer_managed_key_id'] if 'storage_customer_managed_key_id' in event['ResourceProperties'] else None,
                     managedServicesCustomerManagedKeyId = event['ResourceProperties']['managed_services_customer_managed_key_id'] if 'managed_services_customer_managed_key_id' in event['ResourceProperties'] else None,
-                    hipaaEnabled = (event['ResourceProperties']['hipaa_parm'] == 'True') if 'hipaa_parm' in event['ResourceProperties'] else False,
+                    hipaaEnabled = (event['ResourceProperties']['hipaa_parm'] in ('Yes', 'yes', 'True', 'true')) if 'hipaa_parm' in event['ResourceProperties'] else False,
                     oemCustomerName = event['ResourceProperties']['customer_name'] if 'customer_name' in event['ResourceProperties'] else None,
                     oemAuthoritativeUserEmail = event['ResourceProperties']['authoritative_user_email'] if 'authoritative_user_email' in event['ResourceProperties'] else None,
                     oemAuthoritativeUserFullName = event['ResourceProperties']['authoritative_user_full_name'] if 'authoritative_user_full_name' in event['ResourceProperties'] else None
