@@ -218,9 +218,11 @@ Parameters:
   KeyUseCases:
     Description: "Configures customer managed encryption keys. Acceptable values are MANAGED_SERVICES, STORAGE, or BOTH. For more information, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-5-configure-customer-managed-keys-optional."
     Type: String
+    Default: ''
   KeyReuseForClusterVolumes:
     Description: 'Only enter a value if the use case is STORAGE or BOTH. Acceptable values are "True" and "False."'
     Type: String
+    Default: ''
   QSS3BucketName:
     Description: "S3 bucket for Quick Start assets. Use this if you want to customize the Quick Start. The bucket name can include numbers, lowercase letters, uppercase letters, and hyphens, but it cannot start or end with a hyphen (-)."
     AllowedPattern: '(?=^.{3,63}$)(?!xn--)([a-z0-9](?:[a-z0-9-]*)[a-z0-9])$'
@@ -238,6 +240,8 @@ Parameters:
 Conditions:
   # Set condition when VPC ID is provided by the user
   CustomerManagedVPC: !Not [!Equals [!Ref VPCID, '']]
+  # Set condition when VPC ID is NOT provided by the user
+  CreateDBManagedVPC: !Equals [!Ref VPCID, '']
   # Set condition when AWS KMS key ID is provided by the user.
   IsKMSKeyProvided: !Not [!Equals [!Ref KeyArn, '']]
   # Test for MANAGED_SERVICES CMK use case
@@ -305,7 +309,257 @@ Rules:
       AssertDescription: "QSS3KeyPrefix must be set to quickstart-databricks-unified-data-analytics-platform/."
        
 
-Resources: 
+Resources:
+  # The VPC
+  DBSVpc:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: 10.52.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksVPC
+  # Internet gateway
+  DBSVpcIgw:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::InternetGateway
+    DependsOn: DBSVpc
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksVpcIgw
+  #... attached to the VPC
+  DBSVpcIgwAttachment:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !GetAtt DBSVpcIgw.InternetGatewayId
+      VpcId: !Ref DBSVpc
+  # The subnet and route table for the NAT Gateway
+  DBSNatSubnet:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksNatSubnet
+  # The private subnets for the Databricks clusters
+  DBSClusterSubnet1:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.160.0/19
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet1
+  DBSClusterSubnet2:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.224.0/19
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet2
+  DBSClusterSubnet3:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.192.0/19
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet3
+  # The Elastic IP for the NAT Gateway
+  ElasticIPForNat:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::EIP
+    Properties: 
+      Domain: vpc
+      Tags: 
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksNatElasticIP
+  # The NAT gateway
+  DBSNat:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      AllocationId: !GetAtt ElasticIPForNat.AllocationId
+      ConnectivityType: public
+      SubnetId: !Ref DBSNatSubnet
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksNat
+  # The route table attached to the nat subnet
+  DBSNatRouteTable:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      VpcId: !Ref DBSVpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksNatRouteTable
+  # Routes to the internet
+  RouteToInternetInNatRouteTable:
+    Condition: CreateDBManagedVPC
+    DependsOn: DBSVpcIgwAttachment
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref DBSNatRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref DBSVpcIgw
+  # Associate the route table to the subnet
+  NatSubnetRouteTableAssociation:
+    Condition: CreateDBManagedVPC
+    DependsOn: RouteToInternetInNatRouteTable
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DBSNatRouteTable
+      SubnetId: !Ref DBSNatSubnet
+  # The route table for the private subnets
+  DBSPrivateRouteTable:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref DBSVpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksPrivateRouteTable
+  RouteToInternetInPrivateRouteTable:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref DBSPrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref DBSNat
+  PrivateSubnet1RouteTableAssociation:
+    Condition: CreateDBManagedVPC
+    DependsOn: RouteToInternetInPrivateRouteTable
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DBSPrivateRouteTable
+      SubnetId: !Ref DBSClusterSubnet1
+  PrivateSubnet2RouteTableAssociation:
+    Condition: CreateDBManagedVPC
+    DependsOn: RouteToInternetInPrivateRouteTable
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DBSPrivateRouteTable
+      SubnetId: !Ref DBSClusterSubnet2
+  PrivateSubnet3RouteTableAssociation:
+    Condition: CreateDBManagedVPC
+    DependsOn: RouteToInternetInPrivateRouteTable
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DBSPrivateRouteTable
+      SubnetId: !Ref DBSClusterSubnet3
+  # The S3 gateway endpoint
+  S3GatewayEndpoint:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      VpcId: !Ref DBSVpc
+      RouteTableIds:
+        - !Ref DBSPrivateRouteTable
+  # The security group for the workspace
+  DBSWorkspaceSecurityGroup:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupName: !Sub ${AWS::StackName}-DBSWorkspaceSG
+      VpcId: !Ref DBSVpc
+      GroupDescription: Allow access from within the same security group
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DBSWorkspaceSG
+  # Allow all access from the same security group
+  DBSWorkspaceSecurityGroupDefaultTcpIngress:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties: 
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow all tcp inbound access from the same security group
+      SourceSecurityGroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+  DBSWorkspaceSecurityGroupDefaultUdpIngress:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties: 
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow all udp inbound access from the same security group
+      SourceSecurityGroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      IpProtocol: udp
+      FromPort: 0
+      ToPort: 65535
+  DBSWorkspaceSecurityGroupDefaultTcpEgress:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow all tcp output access from the same security group
+      DestinationSecurityGroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+  DBSWorkspaceSecurityGroupDefaultUdpEgress:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow all udp output access from the same security group
+      DestinationSecurityGroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      IpProtocol: udp
+      FromPort: 0
+      ToPort: 65535
+  DBSWorkspaceSecurityGroupEgressForHttps:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow accessing Databricks infrastructure, cloud data sources, and library repositories
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+  DBSWorkspaceSecurityGroupEgressForMetastore:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow accessing the Databricks metastore
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 3306
+      ToPort: 3306
+
+  WaitForVpc:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Metadata:
+      VpcReady: !If
+        - CreateDBManagedVPC
+        - - !Ref NatSubnetRouteTableAssociation
+          - !Ref PrivateSubnet1RouteTableAssociation
+          - !Ref PrivateSubnet2RouteTableAssociation
+          - !Ref PrivateSubnet3RouteTableAssociation
+        - !Ref AWS::NoValue
+
   # S3 root bucket requirements
   assetsS3Bucket:
     Type: AWS::S3::Bucket
@@ -391,9 +645,8 @@ Resources:
 
   # Databricks API for network configuration
   createNetworks:
-    DependsOn: createStorageConfiguration
-    Condition: CustomerManagedVPC
     Type: Custom::createNetworks
+    DependsOn: WaitForVpc
     Properties:
       ServiceToken: !GetAtt databricksApiFunction.Arn
       action: CREATE_NETWORKS
@@ -401,9 +654,12 @@ Resources:
       username: !Ref Username
       password: !Ref Password
       network_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-network', !Sub '${AWS::StackName}-network']
-      vpc_id: !Ref VPCID
-      subnet_ids: !Ref SubnetIDs
-      security_group_ids: !Ref SecurityGroupIDs
+      vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
+      subnet_ids: !If
+        - CreateDBManagedVPC
+        - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+        - !Ref SubnetIDs
+      security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
       user_agent: 'databricks-CloudFormation-provider'
 
   # Databricks API for workspace creation
@@ -420,7 +676,7 @@ Resources:
       aws_region: !Ref AWSRegion
       credentials_id: !Ref createCredentials
       storage_config_id: !Ref createStorageConfiguration
-      network_id: !If [CustomerManagedVPC, !Ref createNetworks, !Ref AWS::NoValue]
+      network_id: !Ref createNetworks
       managed_services_customer_managed_key_id: !If [IsKeyForManagedServicesUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       storage_customer_managed_key_id: !If [IsKeyForStorageUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       hipaa_parm: !Ref HIPAAparm
