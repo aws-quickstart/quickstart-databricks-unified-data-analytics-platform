@@ -88,14 +88,9 @@ Metadata:
         default: Quick Start S3 key prefix
 
 Outputs:
-  CustomerManagedVPCIAMRoleARN:
-    Description: ARN of the customer managed cross-account IAM role
-    Condition: CustomerManagedVPC
-    Value: !GetAtt accessRoleCustomerManagedVPC.Arn
-  DBManagedVPCIAMRoleARN:
+  CrossAccountRoleARN:
     Description: ARN of the cross-account IAM role
-    Condition: CreateDBManagedVPC
-    Value: !GetAtt accessRoleDBManagedVPC.Arn
+    Value: !GetAtt crossAccountAccessRole.Arn
   S3BucketName:
     Description: Name of the S3 root bucket
     Value: !Ref assetsS3Bucket
@@ -315,120 +310,258 @@ Rules:
       AssertDescription: "The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/"
   
 Resources:
-  # Cross-account access role for Databricks created and managed VPC
-  accessRoleDBManagedVPC:
-    Type: 'AWS::IAM::Role'
-    Metadata:
-      cfn-lint:
-        config:
-          ignore_checks:
-            - EIAMPolicyWildcardResource
-            - EIAMAccountIDInPrincipal
-          ignore_reasons:
-            EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
-            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
+  # The VPC
+  DBSVpc:
     Condition: CreateDBManagedVPC
-    Properties:
-      RoleName: !Ref IAMRole
-      AssumeRolePolicyDocument:
-        Statement:
-          - Action: 'sts:AssumeRole'
-            Condition:
-              StringEquals: 
-                'sts:ExternalId': !Sub '${AccountId}'
-            Effect: Allow
-            Principal:
-              "AWS": '414351767826'
-        Version: '2012-10-17'
-      Path: /
-      Policies:
-        - PolicyDocument:
-            Statement:
-              - Sid: Stmt1403287045000
-                Effect: Allow
-                Action:
-                  - 'ec2:AllocateAddress'
-                  - 'ec2:AssociateDhcpOptions'
-                  - 'ec2:AssociateIamInstanceProfile'
-                  - 'ec2:AssociateRouteTable'
-                  - 'ec2:AttachInternetGateway'
-                  - 'ec2:AttachVolume'
-                  - 'ec2:AuthorizeSecurityGroupEgress'
-                  - 'ec2:AuthorizeSecurityGroupIngress'
-                  - 'ec2:CancelSpotInstanceRequests'
-                  - 'ec2:CreateDhcpOptions'
-                  - 'ec2:CreateInternetGateway'
-                  - 'ec2:CreateKeyPair'
-                  - 'ec2:CreateNatGateway'
-                  - 'ec2:CreatePlacementGroup'
-                  - 'ec2:CreateRoute'
-                  - 'ec2:CreateRouteTable'
-                  - 'ec2:CreateSecurityGroup'
-                  - 'ec2:CreateSubnet'
-                  - 'ec2:CreateTags'
-                  - 'ec2:CreateVolume'
-                  - 'ec2:CreateVpc'
-                  - 'ec2:CreateVpcEndpoint'
-                  - 'ec2:DeleteDhcpOptions'
-                  - 'ec2:DeleteInternetGateway'
-                  - 'ec2:DeleteKeyPair'
-                  - 'ec2:DeleteNatGateway'
-                  - 'ec2:DeletePlacementGroup'
-                  - 'ec2:DeleteRoute'
-                  - 'ec2:DeleteRouteTable'
-                  - 'ec2:DeleteSecurityGroup'
-                  - 'ec2:DeleteSubnet'
-                  - 'ec2:DeleteTags'
-                  - 'ec2:DeleteVolume'
-                  - 'ec2:DeleteVpc'
-                  - 'ec2:DeleteVpcEndpoints'
-                  - 'ec2:DescribeAvailabilityZones'
-                  - 'ec2:DescribeIamInstanceProfileAssociations'
-                  - 'ec2:DescribeInstanceStatus'
-                  - 'ec2:DescribeInstances'
-                  - 'ec2:DescribeInternetGateways'
-                  - 'ec2:DescribeNatGateways'
-                  - 'ec2:DescribePlacementGroups'
-                  - 'ec2:DescribePrefixLists'
-                  - 'ec2:DescribeReservedInstancesOfferings'
-                  - 'ec2:DescribeRouteTables'
-                  - 'ec2:DescribeSecurityGroups'
-                  - 'ec2:DescribeSpotInstanceRequests'
-                  - 'ec2:DescribeSpotPriceHistory'
-                  - 'ec2:DescribeSubnets'
-                  - 'ec2:DescribeVolumes'
-                  - 'ec2:DescribeVpcs'
-                  - 'ec2:DetachInternetGateway'
-                  - 'ec2:DisassociateIamInstanceProfile'
-                  - 'ec2:DisassociateRouteTable'
-                  - 'ec2:ModifyVpcAttribute'
-                  - 'ec2:ReleaseAddress'
-                  - 'ec2:ReplaceIamInstanceProfileAssociation'
-                  - 'ec2:ReplaceRoute'
-                  - 'ec2:RequestSpotInstances'
-                  - 'ec2:RevokeSecurityGroupEgress'
-                  - 'ec2:RevokeSecurityGroupIngress'
-                  - 'ec2:RunInstances'
-                  - 'ec2:TerminateInstances'
-                Resource:
-                  - '*'
-              - Effect: Allow
-                Action:
-                  - 'iam:CreateServiceLinkedRole'
-                  - 'iam:PutRolePolicy'
-                Resource:
-                  - !Sub 'arn:${AWS::Partition}:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot'
-                Condition:
-                  StringLike:
-                    'iam:AWSServiceName': spot.amazonaws.com
-            Version: '2012-10-17'
-          PolicyName: databricks-cross-account-iam-role-policy
+    Type: AWS::EC2::VPC
+    Properties: 
+      CidrBlock: 10.52.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
       Tags:
         - Key: Name
-          Value: !Sub '${TagValue}-IAMRole'
+          Value: !Sub ${AWS::StackName}-DatabricksVPC
+  # Internet gateway
+  DBSVpcIgw:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::InternetGateway
+    DependsOn: DBSVpc
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksVpcIgw
+  #... attached to the VPC
+  DBSVpcIgwAttachment:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !GetAtt DBSVpcIgw.InternetGatewayId
+      VpcId: !Ref DBSVpc
+  # The subnet and route table for the NAT Gateway
+  DBSNatSubnet:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksNatSubnet
+  # The private subnets for the Databricks clusters
+  DBSClusterSubnet1:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.160.0/19
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet1
+  DBSClusterSubnet2:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.224.0/19
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet2
+  DBSClusterSubnet3:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.192.0/19
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet3
+  # The Elastic IP for the NAT Gateway
+  ElasticIPForNat:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::EIP
+    Properties: 
+      Domain: vpc
+      Tags: 
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksNatElasticIP
+  # The NAT gateway
+  DBSNat:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      AllocationId: !GetAtt ElasticIPForNat.AllocationId
+      ConnectivityType: public
+      SubnetId: !Ref DBSNatSubnet
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksNat
+  # The route table attached to the nat subnet
+  DBSNatRouteTable:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      VpcId: !Ref DBSVpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksNatRouteTable
+  # Routes to the internet
+  RouteToInternetInNatRouteTable:
+    Condition: CreateDBManagedVPC
+    DependsOn: DBSVpcIgwAttachment
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref DBSNatRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref DBSVpcIgw
+  # Associate the route table to the subnet
+  NatSubnetRouteTableAssociation:
+    Condition: CreateDBManagedVPC
+    DependsOn: RouteToInternetInNatRouteTable
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DBSNatRouteTable
+      SubnetId: !Ref DBSNatSubnet
+  # The route table for the private subnets
+  DBSPrivateRouteTable:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref DBSVpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksPrivateRouteTable
+  RouteToInternetInPrivateRouteTable:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref DBSPrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref DBSNat
+  PrivateSubnet1RouteTableAssociation:
+    Condition: CreateDBManagedVPC
+    DependsOn: RouteToInternetInPrivateRouteTable
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DBSPrivateRouteTable
+      SubnetId: !Ref DBSClusterSubnet1
+  PrivateSubnet2RouteTableAssociation:
+    Condition: CreateDBManagedVPC
+    DependsOn: RouteToInternetInPrivateRouteTable
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DBSPrivateRouteTable
+      SubnetId: !Ref DBSClusterSubnet2
+  PrivateSubnet3RouteTableAssociation:
+    Condition: CreateDBManagedVPC
+    DependsOn: RouteToInternetInPrivateRouteTable
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref DBSPrivateRouteTable
+      SubnetId: !Ref DBSClusterSubnet3
+  # The S3 gateway endpoint
+  S3GatewayEndpoint:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      VpcId: !Ref DBSVpc
+      RouteTableIds:
+        - !Ref DBSPrivateRouteTable
+  # The security group for the workspace
+  DBSWorkspaceSecurityGroup:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupName: !Sub ${AWS::StackName}-DBSWorkspaceSG
+      VpcId: !Ref DBSVpc
+      GroupDescription: Allow access from within the same security group
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DBSWorkspaceSG
+  # Allow all access from the same security group
+  DBSWorkspaceSecurityGroupDefaultTcpIngress:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties: 
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow all tcp inbound access from the same security group
+      SourceSecurityGroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+  DBSWorkspaceSecurityGroupDefaultUdpIngress:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties: 
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow all udp inbound access from the same security group
+      SourceSecurityGroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      IpProtocol: udp
+      FromPort: 0
+      ToPort: 65535
+  DBSWorkspaceSecurityGroupDefaultTcpEgress:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow all tcp output access from the same security group
+      DestinationSecurityGroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+  DBSWorkspaceSecurityGroupDefaultUdpEgress:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow all udp output access from the same security group
+      DestinationSecurityGroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      IpProtocol: udp
+      FromPort: 0
+      ToPort: 65535
+  DBSWorkspaceSecurityGroupEgressForHttps:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow accessing Databricks infrastructure, cloud data sources, and library repositories
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+  DBSWorkspaceSecurityGroupEgressForMetastore:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow accessing the Databricks metastore
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 3306
+      ToPort: 3306
+
+  WaitForVpc:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Metadata:
+      VpcReady: !If
+        - CreateDBManagedVPC
+        - - !Ref NatSubnetRouteTableAssociation
+          - !Ref PrivateSubnet1RouteTableAssociation
+          - !Ref PrivateSubnet2RouteTableAssociation
+          - !Ref PrivateSubnet3RouteTableAssociation
+        - !Ref AWS::NoValue
   
-  # Cross-account access role for customer managed VPC
-  accessRoleCustomerManagedVPC:
+  # Cross-account access role
+  crossAccountAccessRole:
     Type: 'AWS::IAM::Role'
     Metadata:
       cfn-lint:
@@ -439,7 +572,6 @@ Resources:
           ignore_reasons:
             EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
             EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
-    Condition: CustomerManagedVPC
     Properties:
       RoleName: !Ref IAMRole
       AssumeRolePolicyDocument:
@@ -527,7 +659,10 @@ Resources:
                   - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:security-group/*
                 Condition:
                   StringEquals:
-                    'ec2:vpc' : !Sub 'arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${VPCID}'
+                    'ec2:vpc' : !If
+                      - CreateDBManagedVPC
+                      - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${DBSVpc}
+                      - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${VPCID}
               - Sid: AllowEc2RunInstanceOtherResources
                 Effect: Allow
                 Action:
@@ -593,19 +728,25 @@ Resources:
                   - ec2:AuthorizeSecurityGroupIngress
                   - ec2:RevokeSecurityGroupEgress
                   - ec2:RevokeSecurityGroupIngress
-                Resource: !Split [',', !GetAtt SecurityGroupArns.PrefixedListString]
+                Resource: !If
+                  - CreateDBManagedVPC
+                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/${DBSWorkspaceSecurityGroup}
+                  - !Split [',', !GetAtt SecurityGroupArns.PrefixedListString]
                 Condition:
                   StringEquals:
-                    "ec2:vpc": !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${VPCID}
+                    'ec2:vpc' : !If
+                      - CreateDBManagedVPC
+                      - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${DBSVpc}
+                      - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${VPCID}
             Version: 2012-10-17
           PolicyName: databricks-cross-account-iam-role-policy
       Tags:
-        -
-          Key: Name
+        - Key: Name
           Value: !Sub '${TagValue}-IAMRole'
 
   SecurityGroupArns:
     Type: Custom::SecurityGroupArns
+    Condition: CustomerManagedVPC
     Properties:
       ServiceToken: !GetAtt AppendPrefixToListFunction.Arn
       Prefix: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:security-group/
@@ -678,7 +819,7 @@ Resources:
       username: !Ref Username
       password: !Ref Password
       credentials_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-credentials', !Sub '${AWS::StackName}-credentials']
-      role_arn: !If [CustomerManagedVPC, !GetAtt 'accessRoleCustomerManagedVPC.Arn', !GetAtt 'accessRoleDBManagedVPC.Arn']
+      role_arn: !GetAtt crossAccountAccessRole.Arn
       user_agent: 'databricks-CloudFormation-provider'
 
   # Databricks API for workspace storage configuration
@@ -696,9 +837,8 @@ Resources:
 
   # Databricks API for network configuration
   createNetworks:
-    DependsOn: createStorageConfiguration
-    Condition: CustomerManagedVPC
     Type: Custom::createNetworks
+    DependsOn: WaitForVpc
     Properties:
       ServiceToken: !GetAtt databricksApiFunction.Arn
       action: CREATE_NETWORKS
@@ -706,9 +846,12 @@ Resources:
       username: !Ref Username
       password: !Ref Password
       network_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-network', !Sub '${AWS::StackName}-network']
-      vpc_id: !Ref VPCID
-      subnet_ids: !Ref SubnetIDs
-      security_group_ids: !Ref SecurityGroupIDs
+      vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
+      subnet_ids: !If
+        - CreateDBManagedVPC
+        - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+        - !Ref SubnetIDs
+      security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
       user_agent: 'databricks-CloudFormation-provider'
 
   # Databricks API for workspace creation
@@ -725,7 +868,7 @@ Resources:
       aws_region: !Ref AWSRegion
       credentials_id: !Ref createCredentials
       storage_config_id: !Ref createStorageConfiguration
-      network_id: !If [CustomerManagedVPC, !Ref createNetworks, !Ref AWS::NoValue]
+      network_id: !Ref createNetworks
       managed_services_customer_managed_key_id: !If [IsKeyForManagedServicesUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       storage_customer_managed_key_id: !If [IsKeyForStorageUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       hipaa_parm: !Ref HIPAAparm
@@ -738,7 +881,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt updateKMSkeysFunction.Arn
       key_id: !Ref KeyArn
-      arn_credentials: !If [CreateDBManagedVPC, !GetAtt accessRoleDBManagedVPC.Arn, !GetAtt accessRoleCustomerManagedVPC.Arn]
+      arn_credentials: !GetAtt crossAccountAccessRole.Arn
       use_cases: !Ref KeyUseCases
       reuse_key_for_cluster_volumes: !Ref KeyReuseForClusterVolumes
 
