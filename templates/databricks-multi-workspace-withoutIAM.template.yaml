@@ -149,6 +149,7 @@ Parameters:
   DeploymentName:
     Description: "The deployment name defines part of the subdomain for the workspace. The workspace URL for web application and REST APIs is <deployment-name>.cloud.databricks.com. Accounts can have a deployment name prefix. Contact your Databricks representative to add an account deployment name prefix to your account. If your account has a non-empty deployment name prefix at workspace creation time, the workspace deployment name is updated so that it begins with the account prefix and a hyphen. If your account has a non-empty deployment name prefix and you set deployment_name to the reserved keyword EMPTY, deployment_name is the account prefix only. For more information, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-6-create-the-workspace"
     Type: String
+    Default: ''
   AWSRegion:
     Description: "AWS Region where the workspace is created. Note that customer managed keys to encrypt notebooks are not supported in the us-west-1 and ap-northeast-2 regions."
     AllowedValues:
@@ -235,13 +236,17 @@ Parameters:
 
 
 Conditions:
-# Set condition when VPC ID is provided by the user
+  # Set condition when VPC ID is provided by the user
   CustomerManagedVPC: !Not [!Equals [!Ref VPCID, '']]
-# Set condition when AWS KMS key ID is provided by the user.
+  # Set condition when AWS KMS key ID is provided by the user.
   IsKMSKeyProvided: !Not [!Equals [!Ref KeyArn, '']]
-# Test for Cluster Volume parameter is set
+  # Test for MANAGED_SERVICES CMK use case
+  IsKeyForManagedServicesUseCase: !And [!Not [!Equals [!Ref KeyArn, '']], !Or [!Equals ['MANAGED_SERVICES',!Ref KeyUseCases], !Equals ['BOTH', !Ref KeyUseCases]]]
+  # Test for STORAGE CMK use case
+  IsKeyForStorageUseCase: !And [!Not [!Equals [!Ref KeyArn, '']], !Or [!Equals ['STORAGE',!Ref KeyUseCases], !Equals ['BOTH', !Ref KeyUseCases]]]
+  # Test for ClusterReuse use case of storage
   ClusterVolumeSet: !Equals [!Ref KeyReuseForClusterVolumes, 'True'] 
-# Test for the OPTIONAL deployment name
+  # Test for the OPTIONAL deployment name
   IsDeploymentNameSet: !Not [!Equals [!Ref DeploymentName, '']]
 
 Rules:
@@ -416,7 +421,8 @@ Resources:
       credentials_id: !Ref createCredentials
       storage_config_id: !Ref createStorageConfiguration
       network_id: !If [CustomerManagedVPC, !Ref createNetworks, !Ref AWS::NoValue]
-      customer_managed_key_id: !If [IsKMSKeyProvided, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
+      managed_services_customer_managed_key_id: !If [IsKeyForManagedServicesUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
+      storage_customer_managed_key_id: !If [IsKeyForStorageUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       hipaa_parm: !Ref HIPAAparm
       user_agent: 'databricks-CloudFormation-provider'
 

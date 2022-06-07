@@ -244,15 +244,19 @@ Parameters:
   
 
 Conditions:
-# Set condition when VPC ID is provided by the user
+  # Set condition when VPC ID is provided by the user
   CustomerManagedVPC: !Not [!Equals [!Ref VPCID, '']]
-# Set condition when VPC ID is NOT provided by the user
+  # Set condition when VPC ID is NOT provided by the user
   CreateDBManagedVPC: !Equals [!Ref VPCID, '']
-# Set condition when AWS KMS key ID is provided by the user. 
+  # Set condition when AWS KMS key ID is provided by the user. 
   IsKMSKeyProvided: !Not [!Equals [!Ref KeyArn, '']]
-# Test for STORAGE CMK use case
+  # Test for MANAGED_SERVICES CMK use case
+  IsKeyForManagedServicesUseCase: !And [!Not [!Equals [!Ref KeyArn, '']], !Or [!Equals ['MANAGED_SERVICES',!Ref KeyUseCases], !Equals ['BOTH', !Ref KeyUseCases]]]
+  # Test for STORAGE CMK use case
+  IsKeyForStorageUseCase: !And [!Not [!Equals [!Ref KeyArn, '']], !Or [!Equals ['STORAGE',!Ref KeyUseCases], !Equals ['BOTH', !Ref KeyUseCases]]]
+  # Test for ClusterReuse use case of storage
   IsClusterVolumeSet: !Equals [!Ref KeyReuseForClusterVolumes, 'True']
-# Test for the OPTIONAL deployment name
+  # Test for the OPTIONAL deployment name
   IsDeploymentNameSet: !Not [!Equals [!Ref DeploymentName, '']]
 
 Rules:
@@ -722,7 +726,8 @@ Resources:
       credentials_id: !Ref createCredentials
       storage_config_id: !Ref createStorageConfiguration
       network_id: !If [CustomerManagedVPC, !Ref createNetworks, !Ref AWS::NoValue]
-      customer_managed_key_id: !If [IsKMSKeyProvided, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
+      managed_services_customer_managed_key_id: !If [IsKeyForManagedServicesUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
+      storage_customer_managed_key_id: !If [IsKeyForStorageUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       hipaa_parm: !Ref HIPAAparm
       user_agent: 'databricks-CloudFormation-provider'
   

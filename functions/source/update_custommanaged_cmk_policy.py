@@ -110,7 +110,6 @@ def update_key_policy(kmsClient, key_id, arn_credentials, reuse_key_for_cluster_
     global databricks_s3bucketonly_statement
     current_key_policy = json.loads(get_key_policy(kmsClient, key_id))
     statements = current_key_policy['Statement']
-    print('no. of statements in current policy are : {}'.format(len(statements)))
 
     # update the kms policy statement
     if reuse_key_for_cluster_volumes == 'True':
@@ -121,10 +120,7 @@ def update_key_policy(kmsClient, key_id, arn_credentials, reuse_key_for_cluster_
     else:
         statements.append(databricks_s3bucketonly_statement1)
         statements.append(databricks_s3bucketonly_statement2) 
-
-    print('no. of statements in new policy are : {}'.format(len(statements)))
     current_key_policy['Statement'] = statements
-    print('new policy is : {}'.format(json.dumps(current_key_policy)))  
     
     # Update new statements in current key policy
     _ = kmsClient.put_key_policy(
