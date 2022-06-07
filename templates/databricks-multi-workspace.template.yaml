@@ -549,6 +549,72 @@ Resources:
       FromPort: 3306
       ToPort: 3306
 
+  # The STS VPC endpoint
+  STSInterfaceEndpoint:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.sts
+      VpcEndpointType: Interface
+      VpcId: !Ref DBSVpc
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      SubnetIds:
+        - !Ref DBSClusterSubnet1
+        - !Ref DBSClusterSubnet2
+        - !Ref DBSClusterSubnet3
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              "AWS": !Ref AWS::AccountId
+            Action:
+              - sts:AssumeRole
+              - sts:GetAccessKeyInfo
+              - sts:GetSessionToken
+              - sts:DecodeAuthorizationMessage
+              - sts:TagSession
+            Resource: "*"
+          - Effect: Allow
+            Principal:
+              "AWS":
+                - arn:aws:iam::414351767826:user/databricks-datasets-readonly-user
+                - "414351767826"
+            Action:
+              - sts:AssumeRole
+              - sts:GetSessionToken
+              - sts:TagSession
+            Resource: "*"
+
+  # The Kinesis endpoint
+  KinesisInterfaceEndpoint:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.kinesis-streams
+      VpcEndpointType: Interface
+      VpcId: !Ref DBSVpc
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      SubnetIds:
+        - !Ref DBSClusterSubnet1
+        - !Ref DBSClusterSubnet2
+        - !Ref DBSClusterSubnet3
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              "AWS":
+                - "414351767826"
+                - !Ref AWS::AccountId
+            Action:
+              - kinesis:PutRecord
+              - kinesis:PutRecords
+              - kinesis:DescribeStream
+            Resource: !Sub arn:aws:kinesis:${AWS::Region}:414351767826:stream/*
+
   WaitForVpc:
     Type: AWS::CloudFormation::WaitConditionHandle
     Metadata:
