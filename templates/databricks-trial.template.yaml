@@ -647,6 +647,7 @@ Resources:
       vpc_id: !Ref DBSVpc
       subnet_ids: !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
       security_group_ids: !Ref DBSWorkspaceSecurityGroup
+      user_agent: databricks-CloudFormation-Trial-provider
 
   BackendVpcEnpoint:
     Condition: IsPrivateLinkEnabled
@@ -662,6 +663,7 @@ Resources:
       vpc_id: !Ref DBSVpc
       subnet_ids: !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
       security_group_ids: !Ref DBSWorkspaceSecurityGroup
+      user_agent: databricks-CloudFormation-Trial-provider
 
   # Databricks API for network configuration
   createNetworks:
@@ -694,6 +696,7 @@ Resources:
       private_access_settings_name:  !Sub ${AWS::StackName}_privateAccessSettings
       public_access_enabled: true
       allowed_vpc_endpoint_ids: !Ref WorkspaceVpcEnpoint
+      user_agent: databricks-CloudFormation-Trial-provider
 
   # Databricks Workspace
   createWorkspace:
