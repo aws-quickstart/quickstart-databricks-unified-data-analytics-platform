@@ -6,8 +6,6 @@ import cfnresponse
 
 # boto client
 
-client = boto3.client('kms')
-
 databricks_s3bucketonly_statement1 = {
   "Sid": "Allow Databricks to use KMS key for DBFS",
   "Effect": "Allow",
@@ -98,8 +96,8 @@ databricks_s3bucketandEBS_statement3 = {
   }
 }
 
-def get_key_policy(key_id):
-    response = client.get_key_policy(
+def get_key_policy(kmsClient, key_id):
+    response = kmsClient.get_key_policy(
         KeyId=key_id,
         PolicyName='default'
     )
@@ -107,12 +105,11 @@ def get_key_policy(key_id):
     print('kms key policy is: '+ str(key_policy))
     return(key_policy)
 
-def update_key_policy(key_id, arn_credentials, reuse_key_for_cluster_volumes):
+def update_key_policy(kmsClient, key_id, arn_credentials, reuse_key_for_cluster_volumes):
     global databricks_s3bucketandEBS_statement
     global databricks_s3bucketonly_statement
-    current_key_policy = json.loads(get_key_policy(key_id))
+    current_key_policy = json.loads(get_key_policy(kmsClient, key_id))
     statements = current_key_policy['Statement']
-    print('no. of statements in current policy are : {}'.format(len(statements)))
 
     # update the kms policy statement
     if reuse_key_for_cluster_volumes == 'True':
@@ -123,13 +120,10 @@ def update_key_policy(key_id, arn_credentials, reuse_key_for_cluster_volumes):
     else:
         statements.append(databricks_s3bucketonly_statement1)
         statements.append(databricks_s3bucketonly_statement2) 
-
-    print('no. of statements in new policy are : {}'.format(len(statements)))
     current_key_policy['Statement'] = statements
-    print('new policy is : {}'.format(json.dumps(current_key_policy)))  
     
     # Update new statements in current key policy
-    response = client.put_key_policy(
+    _ = kmsClient.put_key_policy(
         KeyId=key_id,
         PolicyName='default',
         Policy=json.dumps(current_key_policy)
@@ -148,6 +142,8 @@ def handler(event, context):
     print('Received event: %s' % json.dumps(event))
     status = cfnresponse.SUCCESS
     
+    kmsClient = boto3.client('kms')
+
     try:
         key_id = event['ResourceProperties']['key_id']
         arn_credentials = event['ResourceProperties']['arn_credentials']
@@ -157,7 +153,7 @@ def handler(event, context):
         if event['RequestType'] == 'Create':
             #  Nothing to do if MANAGED_SERVICES is the use case
             if use_cases == 'STORAGE' or 'BOTH':
-                update_key_policy(key_id, arn_credentials, reuse_key_for_cluster_volumes)
+                update_key_policy(kmsClient, key_id, arn_credentials, reuse_key_for_cluster_volumes)
         
     except Exception as e:
         logging.error('Exception: %s' % e, exc_info=True)
