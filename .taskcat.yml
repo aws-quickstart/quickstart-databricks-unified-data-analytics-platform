@@ -28,7 +28,7 @@ tests:
       Password: 'Override'
       PricingTier: 'ENTERPRISE'
       DeploymentName: 'qsdeploy'
-      AWSRegion: 'us-west-1'
+      AWSRegion: 'us-west-2'
       TagValue: 'qstest'
       IAMRole: 'qstest-iam'
       BucketName: db-$[taskcat_autobucket]
@@ -37,7 +37,7 @@ tests:
       KeyReuseForClusterVolumes: ''
       QSS3BucketName: $[taskcat_autobucket]
     regions:
-    - us-west-1
+    - us-west-2
     template: templates/tests/databricks-multi-workspace-test.template.yaml
   # xacctest:
   #   parameters:
