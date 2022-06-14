@@ -38,7 +38,7 @@ tests:
       QSS3BucketName: $[taskcat_autobucket]
     regions:
     - us-west-1
-    template: templates/databricks-multi-workspace.template.yaml
+    template: tests/databricks-multi-workspace-test.template.yaml
   # xacctest:
   #   parameters:
   #     ExternalID: 'databricks'
