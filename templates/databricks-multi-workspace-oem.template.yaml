@@ -367,7 +367,7 @@ Resources:
       EnableDnsSupport: true
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DatabricksVPC
+          Value: !Sub ${TagValue}-DatabricksVPC
   # Internet gateway
   DBSVpcIgw:
     Condition: CreateDBManagedVPC
@@ -376,7 +376,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DatabricksVpcIgw
+          Value: !Sub ${TagValue}-DatabricksVpcIgw
   #... attached to the VPC
   DBSVpcIgwAttachment:
     Condition: CreateDBManagedVPC
@@ -395,7 +395,7 @@ Resources:
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DatabricksNatSubnet
+          Value: !Sub ${TagValue}-DatabricksNatSubnet
   # The private subnets for the Databricks clusters
   DBSClusterSubnet1:
     Condition: CreateDBManagedVPC
@@ -407,7 +407,7 @@ Resources:
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet1
+          Value: !Sub ${TagValue}-DatabricksClusterSubnet1
   DBSClusterSubnet2:
     Condition: CreateDBManagedVPC
     Type: AWS::EC2::Subnet
@@ -418,7 +418,7 @@ Resources:
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet2
+          Value: !Sub ${TagValue}-DatabricksClusterSubnet2
   DBSClusterSubnet3:
     Condition: CreateDBManagedVPC
     Type: AWS::EC2::Subnet
@@ -429,7 +429,7 @@ Resources:
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet3
+          Value: !Sub ${TagValue}-DatabricksClusterSubnet3
   # The Elastic IP for the NAT Gateway
   ElasticIPForNat:
     Condition: CreateDBManagedVPC
@@ -438,7 +438,7 @@ Resources:
       Domain: vpc
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DatabricksNatElasticIP
+          Value: !Sub ${TagValue}-DatabricksNatElasticIP
   # The NAT gateway
   DBSNat:
     Condition: CreateDBManagedVPC
@@ -449,7 +449,7 @@ Resources:
       SubnetId: !Ref DBSNatSubnet
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DatabricksNat
+          Value: !Sub ${TagValue}-DatabricksNat
   # The route table attached to the nat subnet
   DBSNatRouteTable:
     Condition: CreateDBManagedVPC
@@ -458,7 +458,7 @@ Resources:
       VpcId: !Ref DBSVpc
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DatabricksNatRouteTable
+          Value: !Sub ${TagValue}-DatabricksNatRouteTable
   # Routes to the internet
   RouteToInternetInNatRouteTable:
     Condition: CreateDBManagedVPC
@@ -484,7 +484,7 @@ Resources:
       VpcId: !Ref DBSVpc
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DatabricksPrivateRouteTable
+          Value: !Sub ${TagValue}-DatabricksPrivateRouteTable
   RouteToInternetInPrivateRouteTable:
     Condition: CreateDBManagedVPC
     Type: AWS::EC2::Route
@@ -528,12 +528,12 @@ Resources:
     Condition: CreateDBManagedVPC
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub ${AWS::StackName}-DBSWorkspaceSG
+      GroupName: !Sub ${TagValue}-DBSWorkspaceSG
       VpcId: !Ref DBSVpc
       GroupDescription: Allow access from within the same security group
       Tags:
         - Key: Name
-          Value: !Sub ${AWS::StackName}-DBSWorkspaceSG
+          Value: !Sub ${TagValue}-DBSWorkspaceSG
   # Allow all access from the same security group
   DBSWorkspaceSecurityGroupDefaultTcpIngress:
     Condition: CreateDBManagedVPC
@@ -941,7 +941,7 @@ Resources:
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
-      credentials_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-credentials', !Sub '${AWS::StackName}-credentials']
+      credentials_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-credentials', !Sub '${TagValue}-credentials']
       role_arn: !GetAtt crossAccountAccessRole.Arn
       user_agent: 'databricks-CloudFormation-OEM-provider'
 
@@ -954,7 +954,7 @@ Resources:
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
-      storage_config_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-storage', !Sub '${AWS::StackName}-storage']
+      storage_config_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-storage', !Sub '${TagValue}-storage']
       s3bucket_name: !Ref assetsS3Bucket
       user_agent: 'databricks-CloudFormation-OEM-provider'
 
@@ -969,7 +969,7 @@ Resources:
       username: !Ref Username
       password: !Ref Password
       aws_region: !Ref AWSRegion
-      endpoint_name: !Sub ${AWS::StackName}_workspaceVpcEndpoint
+      endpoint_name: !Sub ${TagValue}_workspaceVpcEndpoint
       vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
       subnet_ids: !If
         - CreateDBManagedVPC
@@ -989,7 +989,7 @@ Resources:
       username: !Ref Username
       password: !Ref Password
       aws_region: !Ref AWSRegion
-      endpoint_name: !Sub ${AWS::StackName}_backendVpcEndpoint
+      endpoint_name: !Sub ${TagValue}_backendVpcEndpoint
       vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
       subnet_ids: !If
         - CreateDBManagedVPC
@@ -1008,7 +1008,7 @@ Resources:
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
-      network_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-network', !Sub '${AWS::StackName}-network']
+      network_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-network', !Sub '${TagValue}-network']
       vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
       subnet_ids: !If
         - CreateDBManagedVPC
@@ -1030,7 +1030,7 @@ Resources:
       username: !Ref Username
       password: !Ref Password
       aws_region: !Ref AWSRegion
-      private_access_settings_name:  !Sub ${AWS::StackName}_privateAccessSettings
+      private_access_settings_name:  !Sub ${TagValue}_privateAccessSettings
       public_access_enabled: true
       allowed_vpc_endpoint_ids: !Ref WorkspaceVpcEnpoint
 
@@ -1043,7 +1043,7 @@ Resources:
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
-      workspace_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-workspace', !Sub '${AWS::StackName}-workspace']
+      workspace_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-workspace', !Sub '${TagValue}-workspace']
       deployment_name: !Ref DeploymentName
       aws_region: !Ref AWSRegion
       credentials_id: !Ref createCredentials
