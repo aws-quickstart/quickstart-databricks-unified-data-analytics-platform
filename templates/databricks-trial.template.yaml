@@ -22,7 +22,11 @@ Metadata:
           default: "Required IAM role and S3 bucket configuration"  
         Parameters:
           - IAMRole
-          - BucketName    
+          - BucketName
+      - Label:
+          default: AWS PrivateLink Configuration
+        Parameters:
+          - PrivateLinkMode
     ParameterLabels:
       AccountId:
         default: Databricks account ID
@@ -33,11 +37,13 @@ Metadata:
       WorkspaceName:
         default: Workspace name
       AWSRegion:
-        default: AWS Region of the Databricks workspace   
+        default: AWS Region of the Databricks workspace
       IAMRole:
         default: Cross-account IAM role name
       BucketName:
         default: Root S3 bucket name   
+      PrivateLinkMode:
+        default: AWS PrivateLink mode
 
 Outputs:
   DBManagedVPCIAMRoleARN:
@@ -122,7 +128,16 @@ Parameters:
     MaxLength: '63'
     Type: String
     ConstraintDescription: The Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
- 
+  PrivateLinkMode:
+    Description: "Specify whether endpoints should be set up for the Databricks VPC endpoint services"
+    Type: String
+    AllowedValues:
+      - 'Enabled'
+      - 'Disabled'
+    Default: 'Disabled'
+
+Conditions:
+  IsPrivateLinkEnabled: !Equals [!Ref PrivateLinkMode, 'Enabled']
 
 Rules:
 # Validate the selected Region from the drop-down matches the Region from the Console
@@ -182,7 +197,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties: 
       VpcId: !Ref DBSVpc
-      CidrBlock: 10.52.224.0/19
+      CidrBlock: 10.52.192.0/19
       AvailabilityZone: !Select [1, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -192,7 +207,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties: 
       VpcId: !Ref DBSVpc
-      CidrBlock: 10.52.192.0/19
+      CidrBlock: 10.52.224.0/19
       AvailabilityZone: !Select [2, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -345,6 +360,16 @@ Resources:
       IpProtocol: tcp
       FromPort: 3306
       ToPort: 3306
+  DBSWorkspaceSecurityGroupEgressForPrivateLink:
+    Condition: IsPrivateLinkEnabled
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      Description: Allow accessing the Databricks control plane using private link
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp
+      FromPort: 6666
+      ToPort: 6666
 
   # The STS VPC endpoint
   STSInterfaceEndpoint:
@@ -608,6 +633,38 @@ Resources:
       s3bucket_name: !Ref assetsS3Bucket
       user_agent: databricks-CloudFormation-Trial-provider
 
+  WorkspaceVpcEnpoint:
+    Condition: IsPrivateLinkEnabled
+    Type: Custom::WorkspaceVpcEnpoint
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_WORKSPACE_VPC_ENPDPOINT
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      aws_region: !Ref AWSRegion
+      endpoint_name: !Sub ${AWS::StackName}_workspaceVpcEndpoint
+      vpc_id: !Ref DBSVpc
+      subnet_ids: !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+      security_group_ids: !Ref DBSWorkspaceSecurityGroup
+      user_agent: databricks-CloudFormation-Trial-provider
+
+  BackendVpcEnpoint:
+    Condition: IsPrivateLinkEnabled
+    Type: Custom::BackendVpcEnpoint
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_BACKEND_VPC_ENPDPOINT
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      aws_region: !Ref AWSRegion
+      endpoint_name: !Sub ${AWS::StackName}_backendVpcEndpoint
+      vpc_id: !Ref DBSVpc
+      subnet_ids: !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+      security_group_ids: !Ref DBSWorkspaceSecurityGroup
+      user_agent: databricks-CloudFormation-Trial-provider
+
   # Databricks API for network configuration
   createNetworks:
     Type: Custom::createNetworks
@@ -622,6 +679,23 @@ Resources:
       vpc_id: !Ref DBSVpc
       subnet_ids: !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
       security_group_ids: !Ref DBSWorkspaceSecurityGroup
+      relay_access_endpoint_id: !If [IsPrivateLinkEnabled, !Ref BackendVpcEnpoint, !Ref AWS::NoValue]
+      rest_access_endpoint_id: !If [IsPrivateLinkEnabled, !Ref WorkspaceVpcEnpoint, !Ref AWS::NoValue]
+      user_agent: databricks-CloudFormation-Trial-provider
+
+  PrivateAccessConfiguration:
+    Condition: IsPrivateLinkEnabled
+    Type: Custom::PrivateAccessConfiguration
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_PRIVATE_ACCESS_CONFIGURATION
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      aws_region: !Ref AWSRegion
+      private_access_settings_name:  !Sub ${AWS::StackName}_privateAccessSettings
+      public_access_enabled: true
+      allowed_vpc_endpoint_ids: !Ref WorkspaceVpcEnpoint
       user_agent: databricks-CloudFormation-Trial-provider
 
   # Databricks Workspace
@@ -638,6 +712,7 @@ Resources:
       credentials_id: !Ref createCredentials
       storage_config_id: !Ref createStorageConfiguration
       network_id: !Ref createNetworks
+      private_access_settings_id: !If [IsPrivateLinkEnabled, !Ref PrivateAccessConfiguration, !Ref AWS::NoValue]
       user_agent: databricks-CloudFormation-Trial-provider
 
   databricksApiFunction:
@@ -667,9 +742,41 @@ Resources:
       ManagedPolicyArns:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 
         - !Sub arn:${AWS::Partition}:iam::aws:policy/IAMFullAccess 
+      Policies: !If
+        - IsPrivateLinkEnabled
+        - - PolicyName: PoliciesForPrivateLinkSetup
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Sid: AllowEndpointCreation
+                  Effect: Allow
+                  Action:
+                    - ec2:CreateVpcEndpoint
+                    - ec2:CreateTags
+                    - ec2:DeleteVpcEndpoints
+                    - ec2:ModifyVpcEndpoint
+                  Resource:
+                    - arn:aws:ec2:*:*:vpc/*
+                    - arn:aws:ec2:*:*:security-group/*
+                    - arn:aws:ec2:*:*:subnet/*
+                    - arn:aws:ec2:*:*:vpc-endpoint/*
+                - Sid: AllowDescribes
+                  Effect: Allow
+                  Action:
+                    - ec2:DescribeVpcEndpoints
+                    - ec2:DescribeVpcs
+                  Resource: '*'
+                - Sid: AllowVPCAssociationWithHostedZone
+                  Effect: Allow
+                  Action:
+                    - route53:AssociateVPCWithHostedZone
+                    - route53:DisassociateVPCFromHostedZone
+                  Resource:
+                    - arn:aws:route53:::hostedzone/*
+                    - arn:aws:ec2:*:*:vpc/*
+        - !Ref AWS::NoValue
       Tags:
-        -
-          Key: Name
+        - Key: Name
           Value: 'databricks-CloudFormation-Trial-provider'
 
   # Resources to stage lambda.zip file
@@ -717,7 +824,6 @@ Resources:
         -
           Key: Name
           Value: 'databricks-CloudFormation-Trial-provider'
-
 
   CopyZipsFunction:
     Type: AWS::Lambda::Function
