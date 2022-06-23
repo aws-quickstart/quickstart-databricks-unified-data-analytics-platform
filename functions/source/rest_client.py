@@ -8,6 +8,8 @@ from StorageConfigurations import StorageConfigurationsManager
 from ManagedKeysConfigurations import ManagedKeysConfigurationsManager
 from NetworkConfigurations import NetworkConfiguratiosnManager
 from Workspaces import WorkspaceManager
+from VpcEndpoints import VpcEndpointsManager
+from PrivateAccessSettings import PrivateAccessSettingsManager
 
 def timeout(event, context):
     logging.error('Execution is about to time out, sending failure response to CloudFormation')
@@ -30,7 +32,10 @@ def handler(event, context):
         'CREATE_STORAGE_CONFIGURATIONS',
         'CREATE_CUSTOMER_MANAGED_KEY',
         'CREATE_NETWORKS',
-        'CREATE_WORKSPACES'
+        'CREATE_WORKSPACES',
+        'CREATE_WORKSPACE_VPC_ENPDPOINT',
+        'CREATE_BACKEND_VPC_ENPDPOINT',
+        'CREATE_PRIVATE_ACCESS_CONFIGURATION'
     )
     if 'action' not in event['ResourceProperties'] or event['ResourceProperties']['action'] not in supportedActions:
         cfnresponse.send(event, context, cfnresponse.FAILED, {}, None, reason = 'No supported action specified')
@@ -113,6 +118,28 @@ def handler(event, context):
             elif event['RequestType'] == 'Delete':
                 keyManager.delete(physicalResourceId)
 
+        # PrivateLink VPC endpoints
+        elif action in ('CREATE_WORKSPACE_VPC_ENPDPOINT', 'CREATE_BACKEND_VPC_ENPDPOINT'):
+            endpointManager = VpcEndpointsManager(apiSession)
+            # creation
+            if event['RequestType'] == 'Create':
+                checkForMissingProperties(event, ['aws_region', 'endpoint_name', 'vpc_id', 'subnet_ids', 'security_group_ids'])
+                endpoint = None
+                endpointName = event['ResourceProperties']['endpoint_name']
+                aws_region = event['ResourceProperties']['aws_region']
+                vpcId = event['ResourceProperties']['vpc_id']
+                subnetIds = [i.strip() for i in event['ResourceProperties']['subnet_ids'].split(',')]
+                securityGroupIds = [i.strip() for i in event['ResourceProperties']['security_group_ids'].split(',')]
+                tags = {'Name': endpointName}
+                if action == 'CREATE_WORKSPACE_VPC_ENPDPOINT':
+                    endpoint = endpointManager.createForRestAccess(endpointName, aws_region, vpcId, subnetIds, securityGroupIds, tags)
+                else:
+                    endpoint = endpointManager.createForRelayAccess(endpointName, aws_region, vpcId, subnetIds, securityGroupIds, tags)
+                physicalResourceId = endpoint.id
+            # deletion
+            elif event['RequestType'] == 'Delete':
+                endpointManager.delete(physicalResourceId)
+
         # Network configuration
         elif action == 'CREATE_NETWORKS':
             networkManager = NetworkConfiguratiosnManager(apiSession)
@@ -131,6 +158,24 @@ def handler(event, context):
             # deletion
             elif event['RequestType'] == 'Delete':
                 networkManager.delete(physicalResourceId)
+
+        # Private Access Configuration
+        elif action == 'CREATE_PRIVATE_ACCESS_CONFIGURATION':
+            privateAccessSettingsManager = PrivateAccessSettingsManager(apiSession)
+            # creation
+            if event['RequestType'] == 'Create':
+                checkForMissingProperties(event, ['aws_region', 'private_access_settings_name', 'public_access_enabled', 'allowed_vpc_endpoint_ids'])
+                privateAccessSettings = privateAccessSettingsManager.create(
+                    name = event['ResourceProperties']['private_access_settings_name'],
+                    region = event['ResourceProperties']['aws_region'],
+                    publicAccessEnabled = event['ResourceProperties']['public_access_enabled'],
+                    privateAccessLevel = 'ENDPOINT',
+                    allowedVpcEndpointIds = [i.strip() for i in event['ResourceProperties']['allowed_vpc_endpoint_ids'].split(',')]
+                )
+                physicalResourceId = privateAccessSettings.id
+            # deletion
+            elif event['RequestType'] == 'Delete':
+                privateAccessSettingsManager.delete(physicalResourceId)
 
         # Workspace
         elif action == 'CREATE_WORKSPACES':
