@@ -171,7 +171,7 @@ Resources:
     Properties:
       InternetGatewayId: !GetAtt DBSVpcIgw.InternetGatewayId
       VpcId: !Ref DBSVpc
-  # The subnet and route table for the NAT Gateway
+  # The subnet for the NAT Gateway
   DBSNatSubnet:
     Type: AWS::EC2::Subnet
     Properties: 
@@ -182,6 +182,37 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-DatabricksNatSubnet
+  # The subnets for the VPC Endpoints
+  DBSEndpointSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.6.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksEndpointSubnet1
+  DBSEndpointSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.7.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksEndpointSubnet2
+  DBSEndpointSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.8.0/24
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksEndpointSubnet3
   # The private subnets for the Databricks clusters
   DBSClusterSubnet1:
     Type: AWS::EC2::Subnet
@@ -346,7 +377,7 @@ Resources:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
-      Description: Allow accessing Databricks infrastructure, cloud data sources, and library repositories
+      Description: Allow accessing external services using HTTPS
       CidrIp: 0.0.0.0/0
       IpProtocol: tcp
       FromPort: 443
@@ -360,16 +391,6 @@ Resources:
       IpProtocol: tcp
       FromPort: 3306
       ToPort: 3306
-  DBSWorkspaceSecurityGroupEgressForPrivateLink:
-    Condition: IsPrivateLinkEnabled
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
-      Description: Allow accessing the Databricks control plane using private link
-      CidrIp: 0.0.0.0/0
-      IpProtocol: tcp
-      FromPort: 6666
-      ToPort: 6666
 
   # The STS VPC endpoint
   STSInterfaceEndpoint:
@@ -382,9 +403,9 @@ Resources:
       SecurityGroupIds:
         - !GetAtt DBSWorkspaceSecurityGroup.GroupId
       SubnetIds:
-        - !Ref DBSClusterSubnet1
-        - !Ref DBSClusterSubnet2
-        - !Ref DBSClusterSubnet3
+        - !Ref DBSEndpointSubnet1
+        - !Ref DBSEndpointSubnet2
+        - !Ref DBSEndpointSubnet3
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -419,9 +440,9 @@ Resources:
       SecurityGroupIds:
         - !GetAtt DBSWorkspaceSecurityGroup.GroupId
       SubnetIds:
-        - !Ref DBSClusterSubnet1
-        - !Ref DBSClusterSubnet2
-        - !Ref DBSClusterSubnet3
+        - !Ref DBSEndpointSubnet1
+        - !Ref DBSEndpointSubnet2
+        - !Ref DBSEndpointSubnet3
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -645,7 +666,7 @@ Resources:
       aws_region: !Ref AWSRegion
       endpoint_name: !Sub ${AWS::StackName}_workspaceVpcEndpoint
       vpc_id: !Ref DBSVpc
-      subnet_ids: !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+      subnet_ids: !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
       security_group_ids: !Ref DBSWorkspaceSecurityGroup
       user_agent: databricks-CloudFormation-Trial-provider
 
@@ -661,7 +682,7 @@ Resources:
       aws_region: !Ref AWSRegion
       endpoint_name: !Sub ${AWS::StackName}_backendVpcEndpoint
       vpc_id: !Ref DBSVpc
-      subnet_ids: !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+      subnet_ids: !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
       security_group_ids: !Ref DBSWorkspaceSecurityGroup
       user_agent: databricks-CloudFormation-Trial-provider
 

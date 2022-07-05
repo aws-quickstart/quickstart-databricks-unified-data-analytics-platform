@@ -38,9 +38,10 @@ Metadata:
           - SubnetIDs
           - SecurityGroupIDs
       - Label:
-          default: (Optional) AWS PrivateLink Configuration (requires the premium tier)
+          default: (Optional) AWS PrivateLink Configuration (requires the premium tier). In preview - requires activation by Databricks for your account.
         Parameters:
           - PrivateLinkMode
+          - PrivateLinkSubnetIds
       - Label:
           default: (Optional) Customer managed key configuration for notebooks (requires the enterprise tier)
         Parameters:
@@ -80,6 +81,8 @@ Metadata:
         default: Security group IDs
       PrivateLinkMode:
         default: AWS PrivateLink mode
+      PrivateLinkSubnetIds:
+        default: Subnet Ids for the VPC endpoints
       KeyArn:
         default: ARN for the customer managed AWS KMS key
       KeyAlias:
@@ -208,7 +211,7 @@ Parameters:
   SecurityGroupIDs:
     Description: Name of one or more VPC security groups. Only enter a value if you set VPCID. The format is sg-xxxxxxxxxxxxxxxxx. Use commas to separate multiple IDs. Databricks must have access to at least one security group but no more than five. You can reuse existing security groups. For more information, see https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html.
     Type: String
-    Default: '' 
+    Default: ''
   SubnetIDs:
     Description: Enter at least two private subnet IDs. Only enter a value if you set VPCID. Subnets cannot be shared with other workspaces or non-Databricks resources. Each subnet must be private, have outbound access, and a netmask between /17 and /25. The NAT gateway must have its own subnet that routes 0.0.0.0/0 traffic to an internet gateway. For more information, see https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html.
     Type: String
@@ -220,6 +223,10 @@ Parameters:
       - 'Enabled'
       - 'Disabled'
     Default: 'Disabled'
+  PrivateLinkSubnetIds:
+    Description: Enter at least two subnet IDs. Only enter a value if you set VPCID. Subnets cannot be shared with other workspaces or non-Databricks resources. Each subnet must be private with a netmask between /17 and /25
+    Type: String
+    Default: ''
   KeyArn:
     Description: AWS KMS key ARN to encrypt and decrypt workspace notebooks in the control plane. Only enter a value if you use the customer managed key for notebooks. For more information, see https://docs.databricks.com/security/keys/customer-managed-keys-notebook-aws.html.
     Type: String
@@ -268,8 +275,6 @@ Conditions:
   IsDeploymentNameSet: !Not [!Equals [!Ref DeploymentName, '']]
   # Test for PrivateLink
   IsPrivateLinkEnabled: !Equals [!Ref PrivateLinkMode, 'Enabled']
-  # Test for PrivateLink when VPC is to be created
-  IsPrivateLinkEnabledWhenCreateDBManagedVPC: !And [!Equals [!Ref PrivateLinkMode, 'Enabled'], !Equals [!Ref VPCID, '']]
 
 Rules:
 # 1. Validate the selected Region from drop-down matches the Region from the Console
@@ -311,7 +316,7 @@ Rules:
  
   KeyUseCases3:
     RuleCondition: !Equals [!Ref KeyUseCases, 'MANAGED_SERVICES']
-    Assertions: 
+    Assertions:
     - Assert: !Equals [!Ref KeyReuseForClusterVolumes, '']
       AssertDescription: Value must be null if MANAGED_SERVICES is specified.
 
@@ -325,7 +330,14 @@ Rules:
       AssertDescription: The QSS3BucketName MUST be set to aws-quickstart  
     - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
       AssertDescription: "The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/"
-  
+
+# 6. Optional Section. Ensure that the SubnetIds for the endpoints are provided if the user has asked for PrivateLink and provides a VPC
+  PrivateLinkForCustomerManagedVPC:
+    RuleCondition: !And [!Not [!Equals [!Ref VPCID, '']], !Equals [!Ref PrivateLinkMode, 'Enabled']]
+    Assertions: 
+      - Assert: !Not [!Equals ['', !Ref PrivateLinkSubnetIds]]
+        AssertDescription: PrivateLinkSubnetIds is required when VPCID is provided and PrivateLink is enabled
+
 Resources:
   # The VPC
   DBSVpc:
@@ -354,7 +366,7 @@ Resources:
     Properties:
       InternetGatewayId: !GetAtt DBSVpcIgw.InternetGatewayId
       VpcId: !Ref DBSVpc
-  # The subnet and route table for the NAT Gateway
+  # The subnet for the NAT Gateway
   DBSNatSubnet:
     Condition: CreateDBManagedVPC
     Type: AWS::EC2::Subnet
@@ -366,6 +378,40 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${TagValue}-DatabricksNatSubnet
+  # The subnets for the VPC Endpoints
+  DBSEndpointSubnet1:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.6.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${TagValue}-DatabricksEndpointSubnet1
+  DBSEndpointSubnet2:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.7.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${TagValue}-DatabricksEndpointSubnet2
+  DBSEndpointSubnet3:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.8.0/24
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${TagValue}-DatabricksEndpointSubnet3
   # The private subnets for the Databricks clusters
   DBSClusterSubnet1:
     Condition: CreateDBManagedVPC
@@ -383,7 +429,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties: 
       VpcId: !Ref DBSVpc
-      CidrBlock: 10.52.224.0/19
+      CidrBlock: 10.52.192.0/19
       AvailabilityZone: !Select [1, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -394,7 +440,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties: 
       VpcId: !Ref DBSVpc
-      CidrBlock: 10.52.192.0/19
+      CidrBlock: 10.52.224.0/19
       AvailabilityZone: !Select [2, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -565,16 +611,6 @@ Resources:
       IpProtocol: tcp
       FromPort: 3306
       ToPort: 3306
-  DBSWorkspaceSecurityGroupEgressForPrivateLink:
-    Condition: IsPrivateLinkEnabledWhenCreateDBManagedVPC
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !GetAtt DBSWorkspaceSecurityGroup.GroupId
-      Description: Allow accessing the Databricks control plane using private link
-      CidrIp: 0.0.0.0/0
-      IpProtocol: tcp
-      FromPort: 6666
-      ToPort: 6666
 
   # The STS VPC endpoint
   STSInterfaceEndpoint:
@@ -588,9 +624,9 @@ Resources:
       SecurityGroupIds:
         - !GetAtt DBSWorkspaceSecurityGroup.GroupId
       SubnetIds:
-        - !Ref DBSClusterSubnet1
-        - !Ref DBSClusterSubnet2
-        - !Ref DBSClusterSubnet3
+        - !Ref DBSEndpointSubnet1
+        - !Ref DBSEndpointSubnet2
+        - !Ref DBSEndpointSubnet3
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -626,9 +662,9 @@ Resources:
       SecurityGroupIds:
         - !GetAtt DBSWorkspaceSecurityGroup.GroupId
       SubnetIds:
-        - !Ref DBSClusterSubnet1
-        - !Ref DBSClusterSubnet2
-        - !Ref DBSClusterSubnet3
+        - !Ref DBSEndpointSubnet1
+        - !Ref DBSEndpointSubnet2
+        - !Ref DBSEndpointSubnet3
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -943,8 +979,8 @@ Resources:
       vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
       subnet_ids: !If
         - CreateDBManagedVPC
-        - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
-        - !Ref SubnetIDs
+        - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
+        - !Ref PrivateLinkSubnetIds
       security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
       user_agent: databricks-CloudFormation-provider
 
@@ -963,8 +999,8 @@ Resources:
       vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
       subnet_ids: !If
         - CreateDBManagedVPC
-        - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
-        - !Ref SubnetIDs
+        - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
+        - !Ref PrivateLinkSubnetIds
       security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
       user_agent: databricks-CloudFormation-provider
 
