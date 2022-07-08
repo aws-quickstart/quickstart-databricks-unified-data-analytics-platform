@@ -253,6 +253,9 @@ Conditions:
   IsClusterVolumeSet: !Equals [!Ref KeyReuseForClusterVolumes, 'True']
   # Test for the OPTIONAL deployment name
   IsDeploymentNameSet: !Not [!Equals [!Ref DeploymentName, '']]
+  # Checks if the region supports 3 availability zones
+  IsThirdAvailabilityZoneSupported: !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]
+  CreateDBManagedVPCWithThreeAvailabilityZones: !And [!Equals [!Ref VPCID, ''], !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]]
 
 Rules:
 # 1. Validate the selected Region from drop-down matches the Region from the Console
@@ -349,6 +352,40 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-DatabricksNatSubnet
+  # The subnets for the VPC Endpoints
+  DBSEndpointSubnet1:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.6.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksEndpointSubnet1
+  DBSEndpointSubnet2:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.7.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksEndpointSubnet2
+  DBSEndpointSubnet3:
+    Condition: CreateDBManagedVPCWithThreeAvailabilityZones
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.8.0/24
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksEndpointSubnet3
   # The private subnets for the Databricks clusters
   DBSClusterSubnet1:
     Condition: CreateDBManagedVPC
@@ -373,7 +410,7 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet2
   DBSClusterSubnet3:
-    Condition: CreateDBManagedVPC
+    Condition: CreateDBManagedVPCWithThreeAvailabilityZones
     Type: AWS::EC2::Subnet
     Properties: 
       VpcId: !Ref DBSVpc
@@ -460,7 +497,7 @@ Resources:
       RouteTableId: !Ref DBSPrivateRouteTable
       SubnetId: !Ref DBSClusterSubnet2
   PrivateSubnet3RouteTableAssociation:
-    Condition: CreateDBManagedVPC
+    Condition: CreateDBManagedVPCWithThreeAvailabilityZones
     DependsOn: RouteToInternetInPrivateRouteTable
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -561,9 +598,9 @@ Resources:
       SecurityGroupIds:
         - !GetAtt DBSWorkspaceSecurityGroup.GroupId
       SubnetIds:
-        - !Ref DBSClusterSubnet1
-        - !Ref DBSClusterSubnet2
-        - !Ref DBSClusterSubnet3
+        - !Ref DBSEndpointSubnet1
+        - !Ref DBSEndpointSubnet2
+        - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -599,9 +636,9 @@ Resources:
       SecurityGroupIds:
         - !GetAtt DBSWorkspaceSecurityGroup.GroupId
       SubnetIds:
-        - !Ref DBSClusterSubnet1
-        - !Ref DBSClusterSubnet2
-        - !Ref DBSClusterSubnet3
+        - !Ref DBSEndpointSubnet1
+        - !Ref DBSEndpointSubnet2
+        - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -623,7 +660,7 @@ Resources:
         - - !Ref NatSubnetRouteTableAssociation
           - !Ref PrivateSubnet1RouteTableAssociation
           - !Ref PrivateSubnet2RouteTableAssociation
-          - !Ref PrivateSubnet3RouteTableAssociation
+          - !If [IsThirdAvailabilityZoneSupported, !Ref PrivateSubnet3RouteTableAssociation, !Ref AWS::NoValue]
         - !Ref AWS::NoValue
   
   # Cross-account access role
@@ -915,7 +952,10 @@ Resources:
       vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
       subnet_ids: !If
         - CreateDBManagedVPC
-        - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+        - !If
+          - IsThirdAvailabilityZoneSupported
+          - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+          - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}
         - !Ref SubnetIDs
       security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
       user_agent: 'databricks-CloudFormation-provider'

@@ -137,7 +137,10 @@ Parameters:
     Default: 'Disabled'
 
 Conditions:
+  # Checks if private link has been enabled
   IsPrivateLinkEnabled: !Equals [!Ref PrivateLinkMode, 'Enabled']
+  # Checks if the region supports 3 availability zones
+  IsThirdAvailabilityZoneSupported: !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]
 
 Rules:
 # Validate the selected Region from the drop-down matches the Region from the Console
@@ -204,6 +207,7 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-DatabricksEndpointSubnet2
   DBSEndpointSubnet3:
+    Condition: IsThirdAvailabilityZoneSupported
     Type: AWS::EC2::Subnet
     Properties: 
       VpcId: !Ref DBSVpc
@@ -235,6 +239,7 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet2
   DBSClusterSubnet3:
+    Condition: IsThirdAvailabilityZoneSupported
     Type: AWS::EC2::Subnet
     Properties: 
       VpcId: !Ref DBSVpc
@@ -312,6 +317,7 @@ Resources:
       RouteTableId: !Ref DBSPrivateRouteTable
       SubnetId: !Ref DBSClusterSubnet2
   PrivateSubnet3RouteTableAssociation:
+    Condition: IsThirdAvailabilityZoneSupported
     DependsOn: RouteToInternetInPrivateRouteTable
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -405,7 +411,7 @@ Resources:
       SubnetIds:
         - !Ref DBSEndpointSubnet1
         - !Ref DBSEndpointSubnet2
-        - !Ref DBSEndpointSubnet3
+        - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -442,7 +448,7 @@ Resources:
       SubnetIds:
         - !Ref DBSEndpointSubnet1
         - !Ref DBSEndpointSubnet2
-        - !Ref DBSEndpointSubnet3
+        - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -463,7 +469,7 @@ Resources:
         - !Ref NatSubnetRouteTableAssociation
         - !Ref PrivateSubnet1RouteTableAssociation
         - !Ref PrivateSubnet2RouteTableAssociation
-        - !Ref PrivateSubnet3RouteTableAssociation
+        - !If [IsThirdAvailabilityZoneSupported, !Ref PrivateSubnet3RouteTableAssociation, !Ref AWS::NoValue]
 
   # Cross-account access role for Databricks-created and -managed VPC
   accessRoleDBManagedVPC:
@@ -666,7 +672,10 @@ Resources:
       aws_region: !Ref AWSRegion
       endpoint_name: !Sub ${AWS::StackName}_workspaceVpcEndpoint
       vpc_id: !Ref DBSVpc
-      subnet_ids: !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
+      subnet_ids: !If
+        - IsThirdAvailabilityZoneSupported
+        - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
+        - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
       security_group_ids: !Ref DBSWorkspaceSecurityGroup
       user_agent: databricks-CloudFormation-Trial-provider
 
@@ -682,7 +691,10 @@ Resources:
       aws_region: !Ref AWSRegion
       endpoint_name: !Sub ${AWS::StackName}_backendVpcEndpoint
       vpc_id: !Ref DBSVpc
-      subnet_ids: !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
+      subnet_ids: !If
+        - IsThirdAvailabilityZoneSupported
+        - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
+        - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
       security_group_ids: !Ref DBSWorkspaceSecurityGroup
       user_agent: databricks-CloudFormation-Trial-provider
 
@@ -698,7 +710,10 @@ Resources:
       password: !Ref Password
       network_name: !Sub ${AWS::StackName}-network
       vpc_id: !Ref DBSVpc
-      subnet_ids: !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+      subnet_ids: !If
+        - IsThirdAvailabilityZoneSupported
+        - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+        - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}
       security_group_ids: !Ref DBSWorkspaceSecurityGroup
       relay_access_endpoint_id: !If [IsPrivateLinkEnabled, !Ref BackendVpcEnpoint, !Ref AWS::NoValue]
       rest_access_endpoint_id: !If [IsPrivateLinkEnabled, !Ref WorkspaceVpcEnpoint, !Ref AWS::NoValue]

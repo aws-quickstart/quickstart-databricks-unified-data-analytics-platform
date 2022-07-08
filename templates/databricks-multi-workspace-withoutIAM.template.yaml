@@ -224,7 +224,7 @@ Parameters:
       - 'Disabled'
     Default: 'Disabled'
   PrivateLinkSubnetIds:
-    Description: Enter at least two subnet IDs. Only enter a value if you set VPCID. Subnets cannot be shared with other workspaces or non-Databricks resources. Each subnet must be private with a netmask between /17 and /25
+    Description: Enter at least two subnet IDs. Only enter a value if you set VPCID. Each subnet must be private with a netmask between /17 and /25
     Type: String
     Default: ''
   KeyArn:
@@ -274,6 +274,9 @@ Conditions:
   IsDeploymentNameSet: !Not [!Equals [!Ref DeploymentName, '']]
   # Test for PrivateLink
   IsPrivateLinkEnabled: !Equals [!Ref PrivateLinkMode, 'Enabled']
+  # Checks if the region supports 3 availability zones
+  IsThirdAvailabilityZoneSupported: !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]
+  CreateDBManagedVPCWithThreeAvailabilityZones: !And [!Equals [!Ref VPCID, ''], !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]]
 
 Rules:
 # 1. Validate the selected Region from drop-down matches the Region from the Console
@@ -401,7 +404,7 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-DatabricksEndpointSubnet2
   DBSEndpointSubnet3:
-    Condition: CreateDBManagedVPC
+    Condition: CreateDBManagedVPCWithThreeAvailabilityZones
     Type: AWS::EC2::Subnet
     Properties: 
       VpcId: !Ref DBSVpc
@@ -435,7 +438,7 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet2
   DBSClusterSubnet3:
-    Condition: CreateDBManagedVPC
+    Condition: CreateDBManagedVPCWithThreeAvailabilityZones
     Type: AWS::EC2::Subnet
     Properties: 
       VpcId: !Ref DBSVpc
@@ -522,7 +525,7 @@ Resources:
       RouteTableId: !Ref DBSPrivateRouteTable
       SubnetId: !Ref DBSClusterSubnet2
   PrivateSubnet3RouteTableAssociation:
-    Condition: CreateDBManagedVPC
+    Condition: CreateDBManagedVPCWithThreeAvailabilityZones
     DependsOn: RouteToInternetInPrivateRouteTable
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -625,7 +628,7 @@ Resources:
       SubnetIds:
         - !Ref DBSEndpointSubnet1
         - !Ref DBSEndpointSubnet2
-        - !Ref DBSEndpointSubnet3
+        - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -663,7 +666,7 @@ Resources:
       SubnetIds:
         - !Ref DBSEndpointSubnet1
         - !Ref DBSEndpointSubnet2
-        - !Ref DBSEndpointSubnet3
+        - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -685,7 +688,7 @@ Resources:
         - - !Ref NatSubnetRouteTableAssociation
           - !Ref PrivateSubnet1RouteTableAssociation
           - !Ref PrivateSubnet2RouteTableAssociation
-          - !Ref PrivateSubnet3RouteTableAssociation
+          - !If [IsThirdAvailabilityZoneSupported, !Ref PrivateSubnet3RouteTableAssociation, !Ref AWS::NoValue]
         - !Ref AWS::NoValue
 
   # S3 root bucket requirements
@@ -786,7 +789,10 @@ Resources:
       vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
       subnet_ids: !If
         - CreateDBManagedVPC
-        - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
+        - !If
+          - IsThirdAvailabilityZoneSupported
+          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
+          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
         - !Ref PrivateLinkSubnetIds
       security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
 
@@ -805,7 +811,10 @@ Resources:
       vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
       subnet_ids: !If
         - CreateDBManagedVPC
-        - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
+        - !If
+          - IsThirdAvailabilityZoneSupported
+          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
+          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
         - !Ref PrivateLinkSubnetIds
       security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
 
@@ -823,7 +832,10 @@ Resources:
       vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
       subnet_ids: !If
         - CreateDBManagedVPC
-        - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+        - !If
+          - IsThirdAvailabilityZoneSupported
+          - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+          - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}
         - !Ref SubnetIDs
       security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
       relay_access_endpoint_id: !If [IsPrivateLinkEnabled, !Ref BackendVpcEnpoint, !Ref AWS::NoValue]
