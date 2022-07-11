@@ -17,7 +17,6 @@ Metadata:
           - Username
           - Password
           - WorkspaceName
-          - AWSRegion
       - Label:
           default: "Required IAM role and S3 bucket configuration"  
         Parameters:
@@ -36,8 +35,6 @@ Metadata:
         default: Databricks account password  
       WorkspaceName:
         default: Workspace name
-      AWSRegion:
-        default: AWS Region of the Databricks workspace
       IAMRole:
         default: Cross-account IAM role name
       BucketName:
@@ -97,24 +94,6 @@ Parameters:
     MinLength: '1'
     MaxLength: '64'
     Type: String    
-  AWSRegion:
-    Description: "AWS Region where the workspace will be created."
-    MinLength: '9'
-    AllowedValues:
-       - ap-northeast-1
-       - ap-northeast-2
-       - ap-south-1
-       - ap-southeast-1
-       - ap-southeast-2
-       - ca-central-1
-       - eu-central-1
-       - eu-west-1
-       - eu-west-2
-       - us-east-1
-       - us-east-2
-       - us-west-1
-       - us-west-2
-    Type: String  
   IAMRole:
     Description: "Specify a unique cross-account IAM role name. For naming rules, see https://docs.aws.amazon.com/IAM/latest/APIReference/API_CreateRole.html."
     AllowedPattern: '[\w+=,@-]+'
@@ -143,11 +122,25 @@ Conditions:
   IsThirdAvailabilityZoneSupported: !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]
 
 Rules:
-# Validate the selected Region from the drop-down matches the Region from the Console
-  RunningTemplateFromDifferentRegionThanDropDown:
+  # Check whether the current AWS region is supported
+  SupportedRegion:
     Assertions:
-    - Assert: !Equals [!Ref AWSRegion, !Ref 'AWS::Region']
-      AssertDescription: "The region from the AWS Management Console MUST be the same as the selected region from the drop-down."
+    - Assert: !Contains
+      - - ap-northeast-1
+        - ap-northeast-2
+        - ap-south-1
+        - ap-southeast-1
+        - ap-southeast-2
+        - ca-central-1
+        - eu-central-1
+        - eu-west-1
+        - eu-west-2
+        - us-east-1
+        - us-east-2
+        - us-west-1
+        - us-west-2
+      - !Ref AWS::Region
+      AssertDescription: The current AWS region is not supported for E2 deployment. Switch to one of those listed under https://docs.databricks.com/administration-guide/cloud-configurations/aws/regions.html
 
 Resources:
   # The VPC
@@ -669,7 +662,7 @@ Resources:
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
-      aws_region: !Ref AWSRegion
+      aws_region: !Ref AWS::Region
       endpoint_name: !Sub ${AWS::StackName}_workspaceVpcEndpoint
       vpc_id: !Ref DBSVpc
       subnet_ids: !If
@@ -688,7 +681,7 @@ Resources:
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
-      aws_region: !Ref AWSRegion
+      aws_region: !Ref AWS::Region
       endpoint_name: !Sub ${AWS::StackName}_backendVpcEndpoint
       vpc_id: !Ref DBSVpc
       subnet_ids: !If
@@ -728,7 +721,7 @@ Resources:
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
-      aws_region: !Ref AWSRegion
+      aws_region: !Ref AWS::Region
       private_access_settings_name:  !Sub ${AWS::StackName}_privateAccessSettings
       public_access_enabled: true
       allowed_vpc_endpoint_ids: !Ref WorkspaceVpcEnpoint
@@ -744,7 +737,7 @@ Resources:
       username: !Ref Username
       password: !Ref Password
       workspace_name: !Ref WorkspaceName
-      aws_region: !Ref AWSRegion
+      aws_region: !Ref AWS::Region
       credentials_id: !Ref createCredentials
       storage_config_id: !Ref createStorageConfiguration
       network_id: !Ref createNetworks
