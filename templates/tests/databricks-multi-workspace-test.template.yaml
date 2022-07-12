@@ -817,23 +817,6 @@ Resources:
                 Condition:
                   StringLike:
                     'iam:AWSServiceName': spot.amazonaws.com
-              - Sid: VpcNonresourceSpecificActions
-                Effect: Allow
-                Action:
-                  - ec2:AuthorizeSecurityGroupEgress
-                  - ec2:AuthorizeSecurityGroupIngress
-                  - ec2:RevokeSecurityGroupEgress
-                  - ec2:RevokeSecurityGroupIngress
-                Resource: !If
-                  - CreateDBManagedVPC
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/${DBSWorkspaceSecurityGroup}
-                  - !Split [',', !GetAtt SecurityGroupArns.PrefixedListString]
-                Condition:
-                  StringEquals:
-                    'ec2:vpc' : !If
-                      - CreateDBManagedVPC
-                      - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${DBSVpc}
-                      - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${VPCID}
             Version: 2012-10-17
           PolicyName: databricks-cross-account-iam-role-policy
       Tags:
