@@ -813,7 +813,7 @@ Resources:
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
-      workspace_deployment_name: !GetAtt createWorkspace.DeploymentName
+      workspace_id: !Ref createWorkspace
       instance_profile_arn: !GetAtt DefaultInstanceProfile.Arn
       user_agent: databricks-CloudFormation-Trial-provider
 

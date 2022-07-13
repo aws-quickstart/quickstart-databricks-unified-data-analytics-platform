@@ -18,9 +18,15 @@ class WorkspaceManager:
     return response['policy_id']
 
   # Registers an instance profile
-  def addInstanceProfile(self, instanceProfileArn):
+  def addInstanceProfile(self, instanceProfileArn: str, registerForSQL: bool = False):
     postData = {"instance_profile_arn": instanceProfileArn}
     _ = self.__workspaceApiSession.post('/instance-profiles/add', postData)
+
+    if registerForSQL:
+      configData = self.__workspaceApiSession.get('/sql/config/warehouses')
+      configData["instance_profile_arn"] = instanceProfileArn
+      _ = self.__workspaceApiSession.put('/sql/config/warehouses', configData)
+  
     return instanceProfileArn
   
   # Creates a starter cluster

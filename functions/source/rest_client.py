@@ -226,9 +226,17 @@ def handler(event, context):
         # Adding an instance profile
         elif action == 'REGISTER_INSTANCE_PROFILE':
             if event['RequestType'] == 'Create':
-                checkForMissingProperties(event, ['workspace_deployment_name', 'instance_profile_arn'])
-                workspaceManager = WorkspaceManager(apiSession, event['ResourceProperties']['workspace_deployment_name'])
-                physicalResourceId = workspaceManager.addInstanceProfile(event['ResourceProperties']['instance_profile_arn'])
+                checkForMissingProperties(event, ['workspace_id', 'instance_profile_arn'])
+                # Retrieve the workspace object for its deployment name and its pricing tier
+                workspacesManager = WorkspacesManager(apiSession)
+                workspaceObject = workspacesManager.get(int(event['ResourceProperties']['workspace_id']))
+                pricingTier = workspaceObject.pricingTier
+                registerForSQL = (pricingTier is not None) and (pricingTier != 'STANDARD')
+                workspaceManager = WorkspaceManager(apiSession, workspaceObject.deploymentName)
+                physicalResourceId = workspaceManager.addInstanceProfile(
+                    event['ResourceProperties']['instance_profile_arn'],
+                    registerForSQL
+                )
         
         # Creating a Starter cluster
         elif action == 'CREATE_STARTER_CLUSTER':
