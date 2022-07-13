@@ -30,7 +30,11 @@ Metadata:
       - Label:
           default: (Optional) Recommended to provide a unique deployment name for your workspace.
         Parameters:
-          - DeploymentName     
+          - DeploymentName
+      - Label:
+          default: (Optional) Analysing existing data with your workspace
+        Parameters:
+          - ExistingInstanceProfileArn
       - Label:
           default: (Optional) Customer managed VPC configuration (premium tier required)
         Parameters:
@@ -71,6 +75,8 @@ Metadata:
         default: ARN of the existing IAM role with Lambda- and S3-access permissions
       BucketName:
         default: Root S3 bucket name
+      ExistingInstanceProfileArn:
+        default: Existing Instance Profile ARN 
       VPCID:
         default: VPC ID
       SubnetIDs:
@@ -184,6 +190,10 @@ Parameters:
     MaxLength: '63'
     Type: String
     ConstraintDescription: Name of workspace root bucket. This name can include numbers, lowercase letters, uppercase letters, and hyphens, but do not start or end with a hyphen (-)."
+  ExistingInstanceProfileArn:
+    Description: The ARN of an existing instance profile for Databricks to attach to the Spark cluster nodes and the SQL Warehouses.
+    Type: String
+    Default: ''
   VPCID:
     Description: "VPC ID for creating your workspace. Only enter a value if you use the customer managed VPC feature. The format is vpc-xxxxxxxxxxxxxxxx. For more information, see https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. If unspecified, Databricks creates a new workspace in a new VPC."
     Type: String
@@ -257,6 +267,8 @@ Conditions:
   # Checks if the region supports 3 availability zones
   IsThirdAvailabilityZoneSupported: !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]
   CreateDBManagedVPCWithThreeAvailabilityZones: !And [!Equals [!Ref VPCID, ''], !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]]
+  # Checks whether it should register an instance profile
+  RegisterInstanceProfile: !Not [!Equals [!Ref ExistingInstanceProfileArn, '']]
   # Checks whether a HIPAA cluster policy should be created
   ShouldCreateHipaaClusterPolicy: !Equals [!Ref HIPAAparm, 'Yes']
 
@@ -873,6 +885,20 @@ Resources:
       storage_customer_managed_key_id: !If [IsKeyForStorageUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       user_agent: databricks-CloudFormation-provider
 
+  # Registers the instance profile
+  registerInstanceProfile:
+    Condition: RegisterInstanceProfile
+    Type: Custom::RegisterInstanceProfile
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: REGISTER_INSTANCE_PROFILE
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      workspace_id: !Ref createWorkspace
+      instance_profile_arn: !Ref ExistingInstanceProfileArn
+      user_agent: databricks-CloudFormation-provider
+
   # Creates a HIPAA cluster policy
   createHipaaClusterPolicy:
     Condition: ShouldCreateHipaaClusterPolicy
@@ -896,6 +922,7 @@ Resources:
       username: !Ref Username
       password: !Ref Password
       workspace_deployment_name: !GetAtt createWorkspace.DeploymentName
+      instance_profile_arn: !If [RegisterInstanceProfile, !Ref ExistingInstanceProfileArn, !Ref AWS::NoValue]
       policy_id: !If [ShouldCreateHipaaClusterPolicy, !Ref createHipaaClusterPolicy, !Ref AWS::NoValue]
       user_agent: databricks-CloudFormation-provider
 
