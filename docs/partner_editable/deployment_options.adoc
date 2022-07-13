@@ -14,28 +14,22 @@ IMPORTANT: Choose the first option if you can create an IAM role in your account
             "Sid": "S3SourceBucket",
             "Effect": "Allow",
             "Action": [
-                "s3:Get*",
+                "s3:GetObject",
                 "s3:List*"
             ],
-            "Resource": [
-                "arn:aws:s3:::aws-quickstart/*",
-                "arn:aws:s3:::aws-quickstart"
-            ]
+            "Resource": "arn:aws:s3:::aws-quickstart/*"
         }
 ----
 +
-. Configure the inline policy to allow for managing the S3 buckets: 
+. Configure the inline policy to allow for managing the S3 bucket used to host the code of the Lambda function: 
 +
 ----
        {
             "Sid": "S3Buckets",
             "Effect": "Allow",
             "Action": [
-                "s3:GetBucket*",
-                "s3:PutBucket*",
-                "s3:CreateBucket",
-                "s3:ListBucket",
-                "s3:Delete*"
+                "s3:PutObject",
+                "s3:DeleteObject"
             ],
             "Resource": "arn:aws:s3:::<S3 prefix optional or *>"
         }

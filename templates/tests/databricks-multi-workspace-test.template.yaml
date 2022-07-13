@@ -235,6 +235,8 @@ Conditions:
   # Checks if the region supports 3 availability zones
   IsThirdAvailabilityZoneSupported: !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]
   CreateDBManagedVPCWithThreeAvailabilityZones: !And [!Equals [!Ref VPCID, ''], !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]]
+  # Checks whether a HIPAA cluster policy should be created
+  ShouldCreateHipaaClusterPolicy: !Equals [!Ref HIPAAparm, 'Yes']
 
 Rules:
 # 1. Check whether the current AWS region is supported
@@ -953,9 +955,21 @@ Resources:
       network_id: !Ref createNetworks
       managed_services_customer_managed_key_id: !If [IsKeyForManagedServicesUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       storage_customer_managed_key_id: !If [IsKeyForStorageUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
-      hipaa_parm: !Ref HIPAAparm
       user_agent: 'databricks-CloudFormation-provider'
   
+  # Creates a HIPAA cluster policy
+  createHipaaClusterPolicy:
+    Condition: ShouldCreateHipaaClusterPolicy
+    Type: Custom::CreateHipaaClusterPolicy
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_HIPAA_CLUSTER_POLICY
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      workspace_deployment_name: !GetAtt createWorkspace.DeploymentName
+      user_agent: databricks-CloudFormation-provider
+
   # Customer managed Keys - Update Storage policy for S3 and EBS volumes 
   updateCustomManagedKeys:
     Condition: IsKMSKeyProvided

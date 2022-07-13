@@ -7,7 +7,8 @@ from CredentialConfigurations import CredentialConfigurationsManager
 from StorageConfigurations import StorageConfigurationsManager
 from ManagedKeysConfigurations import ManagedKeysConfigurationsManager
 from NetworkConfigurations import NetworkConfiguratiosnManager
-from Workspaces import WorkspaceManager
+from Workspaces import WorkspacesManager
+from WorkspaceManager import WorkspaceManager
 from VpcEndpoints import VpcEndpointsManager
 from PrivateAccessSettings import PrivateAccessSettingsManager
 
@@ -35,7 +36,10 @@ def handler(event, context):
         'CREATE_WORKSPACES',
         'CREATE_WORKSPACE_VPC_ENPDPOINT',
         'CREATE_BACKEND_VPC_ENPDPOINT',
-        'CREATE_PRIVATE_ACCESS_CONFIGURATION'
+        'CREATE_PRIVATE_ACCESS_CONFIGURATION',
+        'CREATE_HIPAA_CLUSTER_POLICY',
+        'REGISTER_INSTANCE_PROFILE',
+        'CREATE_STARTER_CLUSTER'
     )
     if 'action' not in event['ResourceProperties'] or event['ResourceProperties']['action'] not in supportedActions:
         cfnresponse.send(event, context, cfnresponse.FAILED, {}, None, reason = 'No supported action specified')
@@ -179,11 +183,11 @@ def handler(event, context):
 
         # Workspace
         elif action == 'CREATE_WORKSPACES':
-            workspaceManager = WorkspaceManager(apiSession)
+            workspacesManager = WorkspacesManager(apiSession)
             # creation
             if event['RequestType'] == 'Create':
                 checkForMissingProperties(event, ['workspace_name', 'aws_region', 'credentials_id', 'storage_config_id'])
-                workspace = workspaceManager.create(
+                workspace = workspacesManager.create(
                     name = event['ResourceProperties']['workspace_name'],
                     region = event['ResourceProperties']['aws_region'],
                     credentialsId = event['ResourceProperties']['credentials_id'],
@@ -193,7 +197,6 @@ def handler(event, context):
                     deploymentName = event['ResourceProperties']['deployment_name'] if 'deployment_name' in event['ResourceProperties'] and event['ResourceProperties']['deployment_name'] != '' else None,
                     storageCustomerManagedKeyId = event['ResourceProperties']['storage_customer_managed_key_id'] if 'storage_customer_managed_key_id' in event['ResourceProperties'] else None,
                     managedServicesCustomerManagedKeyId = event['ResourceProperties']['managed_services_customer_managed_key_id'] if 'managed_services_customer_managed_key_id' in event['ResourceProperties'] else None,
-                    hipaaEnabled = (event['ResourceProperties']['hipaa_parm'] in ('Yes', 'yes', 'True', 'true')) if 'hipaa_parm' in event['ResourceProperties'] else False,
                     oemCustomerName = event['ResourceProperties']['customer_name'] if 'customer_name' in event['ResourceProperties'] else None,
                     oemAuthoritativeUserEmail = event['ResourceProperties']['authoritative_user_email'] if 'authoritative_user_email' in event['ResourceProperties'] else None,
                     oemAuthoritativeUserFullName = event['ResourceProperties']['authoritative_user_full_name'] if 'authoritative_user_full_name' in event['ResourceProperties'] else None
@@ -209,8 +212,37 @@ def handler(event, context):
             # deletion
             elif event['RequestType'] == 'Delete':
                 if physicalResourceId.isnumeric():
-                    workspaceManager.delete(int(physicalResourceId))
+                    workspacesManager.delete(int(physicalResourceId))
 
+        #### Workspace actions
+
+        # Adding the HIPAA cluster policy
+        elif action == 'CREATE_HIPAA_CLUSTER_POLICY':
+            if event['RequestType'] == 'Create':
+                checkForMissingProperties(event, ['workspace_deployment_name'])
+                workspaceManager = WorkspaceManager(apiSession, event['ResourceProperties']['workspace_deployment_name'])
+                physicalResourceId = workspaceManager.addHipaaClusterPolicy()
+
+        # Adding an instance profile
+        elif action == 'REGISTER_INSTANCE_PROFILE':
+            if event['RequestType'] == 'Create':
+                checkForMissingProperties(event, ['workspace_deployment_name', 'instance_profile_arn'])
+                workspaceManager = WorkspaceManager(apiSession, event['ResourceProperties']['workspace_deployment_name'])
+                physicalResourceId = workspaceManager.addInstanceProfile(event['ResourceProperties']['instance_profile_arn'])
+        
+        # Creating a Starter cluster
+        elif action == 'CREATE_STARTER_CLUSTER':
+            checkForMissingProperties(event, ['workspace_deployment_name'])
+            workspaceManager = WorkspaceManager(apiSession, event['ResourceProperties']['workspace_deployment_name'])
+            if event['RequestType'] == 'Create':
+                physicalResourceId = workspaceManager.createStarterCluster(
+                    instanceProfileArn = event['ResourceProperties']['instance_profile_arn'] if 'instance_profile_arn' in event['ResourceProperties'] else None,
+                    policyId = event['ResourceProperties']['policy_id'] if 'policy_id' in event['ResourceProperties'] else None
+                )
+            # deletion
+            elif event['RequestType'] == 'Delete':
+                workspaceManager.terminateCluster(physicalResourceId)
+    
     except Exception as e:
         reason = str(e)
         logging.exception(reason)

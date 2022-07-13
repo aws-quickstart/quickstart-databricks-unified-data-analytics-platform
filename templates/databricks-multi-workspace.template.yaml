@@ -31,6 +31,10 @@ Metadata:
         Parameters:
           - DeploymentName  
       - Label:
+          default: (Optional) Existing data storage
+        Parameters:
+          - ExistingDataBucketName
+      - Label:
           default: (Optional) Customer managed VPC configuration (requires the premium tier)
         Parameters:
           - VPCID
@@ -69,7 +73,9 @@ Metadata:
       IAMRole:
         default: Cross-account IAM role name
       BucketName:
-        default: Root S3 bucket name 
+        default: Root S3 bucket name
+      ExistingDataBucketName:
+        default: Existing S3 bucket for data. Setting this to a non empty value will trigger the creation of an instance profile
       VPCID:
         default: VPC ID
       SubnetIDs:
@@ -97,6 +103,10 @@ Outputs:
   CrossAccountRoleARN:
     Description: ARN of the cross-account IAM role
     Value: !GetAtt crossAccountAccessRole.Arn
+  DefaultInstanceProfileARN:
+    Condition: CreateDefaultInstanceProfile
+    Description: ARN of the default instance profile
+    Value: !GetAtt DefaultInstanceProfile.Arn
   S3BucketName:
     Description: Name of the S3 root bucket
     Value: !Ref assetsS3Bucket
@@ -183,6 +193,10 @@ Parameters:
     MaxLength: '63'
     Type: String
     ConstraintDescription: Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
+  ExistingDataBucketName:
+    Description: The name of an existing S3 bucket with your data
+    Type: String
+    Default: ''
   VPCID:
     Description: ID of your VPC in which to create the new workspace. Only enter a value if you use the customer managed VPC feature. The format is vpc-xxxxxxxxxxxxxxxx. If unspecified, Databricks creates a new workspace in a new VPC. For more information, see https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html.
     Type: String
@@ -257,6 +271,10 @@ Conditions:
   # Checks if the region supports 3 availability zones
   IsThirdAvailabilityZoneSupported: !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]
   CreateDBManagedVPCWithThreeAvailabilityZones: !And [!Equals [!Ref VPCID, ''], !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]]
+  # Checks whether it should create a default instance profile
+  CreateDefaultInstanceProfile: !Not [!Equals [!Ref ExistingDataBucketName, '']]
+  # Checks whether a HIPAA cluster policy should be created
+  ShouldCreateHipaaClusterPolicy: !Equals [!Ref HIPAAparm, 'Yes']
 
 Rules:
 # 1. Check whether the current AWS region is supported
@@ -685,6 +703,54 @@ Resources:
           - !If [IsThirdAvailabilityZoneSupported, !Ref PrivateSubnet3RouteTableAssociation, !Ref AWS::NoValue]
         - !Ref AWS::NoValue
   
+  # Data bucket role and instance profile
+  DefaultInstanceProfileRole:
+    Condition: CreateDefaultInstanceProfile
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${TagValue}-DefaultInstanceProfileRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              AWS:
+                - arn:aws:iam::790110701330:role/serverless-customer-resource-role
+            Action:
+              - sts:AssumeRole
+            Condition:
+              StringEquals:
+                sts:ExternalId:
+                  - !Sub "databricks-serverless-${createWorkspace}"
+      Path: "/"
+      Policies:
+        - PolicyName: !Sub ${TagValue}-DefaultInstanceProfilePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                  - s3:PutObjectAcl
+                Resource:
+                  - !Sub arn:aws:s3:::${ExistingDataBucketName}/*
+                  - !Sub arn:aws:s3:::${ExistingDataBucketName}
+  DefaultInstanceProfile:
+    Condition: CreateDefaultInstanceProfile
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub ${TagValue}-DefaultInstanceProfile
+      Path: "/"
+      Roles:
+        - Ref: DefaultInstanceProfileRole
+
   # Cross-account access role
   crossAccountAccessRole:
     Type: 'AWS::IAM::Role'
@@ -846,6 +912,13 @@ Resources:
                 Condition:
                   StringLike:
                     'iam:AWSServiceName': spot.amazonaws.com
+              - !If
+                - CreateDefaultInstanceProfile
+                - Sid: AllowPassRoleForDefaultInstanceProfile
+                  Effect: Allow
+                  Action: iam:PassRole
+                  Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/${TagValue}-DefaultInstanceProfileRole
+                - !Ref AWS::NoValue
             Version: 2012-10-17
           PolicyName: databricks-cross-account-iam-role-policy
       Tags:
@@ -1047,9 +1120,49 @@ Resources:
       private_access_settings_id: !If [IsPrivateLinkEnabled, !Ref PrivateAccessConfiguration, !Ref AWS::NoValue]
       managed_services_customer_managed_key_id: !If [IsKeyForManagedServicesUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       storage_customer_managed_key_id: !If [IsKeyForStorageUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
-      hipaa_parm: !Ref HIPAAparm
       user_agent: databricks-CloudFormation-provider
   
+  # Registers the instance profile
+  registerInstanceProfile:
+    Condition: CreateDefaultInstanceProfile
+    Type: Custom::RegisterInstanceProfile
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: REGISTER_INSTANCE_PROFILE
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      workspace_deployment_name: !GetAtt createWorkspace.DeploymentName
+      instance_profile_arn: !GetAtt DefaultInstanceProfile.Arn
+      user_agent: databricks-CloudFormation-provider
+
+  # Creates a HIPAA cluster policy
+  createHipaaClusterPolicy:
+    Condition: ShouldCreateHipaaClusterPolicy
+    Type: Custom::CreateHipaaClusterPolicy
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_HIPAA_CLUSTER_POLICY
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      workspace_deployment_name: !GetAtt createWorkspace.DeploymentName
+      user_agent: databricks-CloudFormation-provider
+  
+  # Creates a starter cluster
+  createStarterCluster:
+    Type: Custom::createStarterCluster
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_STARTER_CLUSTER
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      workspace_deployment_name: !GetAtt createWorkspace.DeploymentName
+      instance_profile_arn: !If [CreateDefaultInstanceProfile, !Ref registerInstanceProfile, !Ref AWS::NoValue]
+      policy_id: !If [ShouldCreateHipaaClusterPolicy, !Ref createHipaaClusterPolicy, !Ref AWS::NoValue]
+      user_agent: databricks-CloudFormation-provider
+
   # Customer managed Keys - Update Storage policy for S3 and EBS volumes 
   updateCustomManagedKeys:
     Condition: IsKMSKeyProvided
