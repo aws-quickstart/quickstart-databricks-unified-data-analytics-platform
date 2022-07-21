@@ -19,7 +19,6 @@ Metadata:
           - AccountId
           - Username
           - Password
-          - AWSRegion
           - HIPAAparm
       - Label:
           default: "IAM role and S3 bucket configuration"
@@ -58,8 +57,6 @@ Metadata:
         default: Workspace account password
       DeploymentName:
         default: Workspace deployment name
-      AWSRegion:
-        default: AWS Region of the Databricks workspace 
       HIPAAparm:
         default: HIPAA tier account
       TagValue:
@@ -152,24 +149,6 @@ Parameters:
     Description: "The deployment name defines part of the subdomain for the workspace. The workspace URL for web application and REST APIs is <deployment-name>.cloud.databricks.com. Accounts can have a deployment name prefix. Contact your Databricks representative to add an account deployment name prefix to your account. If your account has a non-empty deployment name prefix at workspace creation time, the workspace deployment name is updated so that it begins with the account prefix and a hyphen. If your account has a non-empty deployment name prefix and you set deployment_name to the reserved keyword EMPTY, deployment_name is the account prefix only. For more information, see https://docs.databricks.com/administration-guide/account-api/new-workspace.html#step-6-create-the-workspace"
     Type: String
     Default: ''
-  AWSRegion:
-    Description: "AWS Region where the workspace is created. Note that customer managed keys to encrypt notebooks are not supported in the us-west-1 and ap-northeast-2 regions."
-    MinLength: '9'
-    AllowedValues:
-       - ap-northeast-1
-       - ap-northeast-2
-       - ap-south-1
-       - ap-southeast-1
-       - ap-southeast-2
-       - ca-central-1
-       - eu-central-1
-       - eu-west-1
-       - eu-west-2
-       - us-east-1
-       - us-east-2
-       - us-west-1
-       - us-west-2
-    Type: String
   HIPAAparm:
     Description: 'Entering "Yes" creates a template for creating clusters in the HIPAA account.'
     AllowedValues:
@@ -253,19 +232,36 @@ Conditions:
   IsClusterVolumeSet: !Equals [!Ref KeyReuseForClusterVolumes, 'True']
   # Test for the OPTIONAL deployment name
   IsDeploymentNameSet: !Not [!Equals [!Ref DeploymentName, '']]
+  # Checks if the region supports 3 availability zones
+  IsThirdAvailabilityZoneSupported: !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]
+  CreateDBManagedVPCWithThreeAvailabilityZones: !And [!Equals [!Ref VPCID, ''], !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]]
 
 Rules:
-# 1. Validate the selected Region from drop-down matches the Region from the Console
-  RunningTemplateFromDifferentRegionThanDropDown:
+# 1. Check whether the current AWS region is supported
+  SupportedRegion:
     Assertions:
-    - Assert: !Equals [!Ref AWSRegion, !Ref 'AWS::Region']
-      AssertDescription: Region from the AWS Management Console must match the selected Region from the drop-down menu.
+    - Assert: !Contains
+      - - ap-northeast-1
+        - ap-northeast-2
+        - ap-south-1
+        - ap-southeast-1
+        - ap-southeast-2
+        - ca-central-1
+        - eu-central-1
+        - eu-west-1
+        - eu-west-2
+        - us-east-1
+        - us-east-2
+        - us-west-1
+        - us-west-2
+      - !Ref AWS::Region
+      AssertDescription: The current AWS region is not supported for E2 deployment. Switch to one of those listed under https://docs.databricks.com/administration-guide/cloud-configurations/aws/regions.html
 
 # 2. HIPAA supported regions, if HIPAA flaf is set
   SupportedHipaaRegions:
     RuleCondition: !Equals [!Ref HIPAAparm, 'Yes']
     Assertions:
-    - Assert: !Contains [['us-east-1', 'us-east-2', 'ca-central-1'], !Ref AWSRegion]
+    - Assert: !Contains [['us-east-1', 'us-east-2', 'ca-central-1'], !Ref AWS::Region]
       AssertDescription: Creates a workspace for only HIPAA tier accounts in the us-east-1, us-east-2, and ca-central-1 Regions.
 
 # 3. Optional section. Ensure that the SubnetIds and SecurityGroupIds are provided, if the user provides a customer managed VPC ID
@@ -349,6 +345,40 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${AWS::StackName}-DatabricksNatSubnet
+  # The subnets for the VPC Endpoints
+  DBSEndpointSubnet1:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.6.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksEndpointSubnet1
+  DBSEndpointSubnet2:
+    Condition: CreateDBManagedVPC
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.7.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksEndpointSubnet2
+  DBSEndpointSubnet3:
+    Condition: CreateDBManagedVPCWithThreeAvailabilityZones
+    Type: AWS::EC2::Subnet
+    Properties: 
+      VpcId: !Ref DBSVpc
+      CidrBlock: 10.52.8.0/24
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-DatabricksEndpointSubnet3
   # The private subnets for the Databricks clusters
   DBSClusterSubnet1:
     Condition: CreateDBManagedVPC
@@ -373,7 +403,7 @@ Resources:
         - Key: Name
           Value: !Sub ${AWS::StackName}-DatabricksClusterSubnet2
   DBSClusterSubnet3:
-    Condition: CreateDBManagedVPC
+    Condition: CreateDBManagedVPCWithThreeAvailabilityZones
     Type: AWS::EC2::Subnet
     Properties: 
       VpcId: !Ref DBSVpc
@@ -460,7 +490,7 @@ Resources:
       RouteTableId: !Ref DBSPrivateRouteTable
       SubnetId: !Ref DBSClusterSubnet2
   PrivateSubnet3RouteTableAssociation:
-    Condition: CreateDBManagedVPC
+    Condition: CreateDBManagedVPCWithThreeAvailabilityZones
     DependsOn: RouteToInternetInPrivateRouteTable
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -561,9 +591,9 @@ Resources:
       SecurityGroupIds:
         - !GetAtt DBSWorkspaceSecurityGroup.GroupId
       SubnetIds:
-        - !Ref DBSClusterSubnet1
-        - !Ref DBSClusterSubnet2
-        - !Ref DBSClusterSubnet3
+        - !Ref DBSEndpointSubnet1
+        - !Ref DBSEndpointSubnet2
+        - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -599,9 +629,9 @@ Resources:
       SecurityGroupIds:
         - !GetAtt DBSWorkspaceSecurityGroup.GroupId
       SubnetIds:
-        - !Ref DBSClusterSubnet1
-        - !Ref DBSClusterSubnet2
-        - !Ref DBSClusterSubnet3
+        - !Ref DBSEndpointSubnet1
+        - !Ref DBSEndpointSubnet2
+        - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -623,7 +653,7 @@ Resources:
         - - !Ref NatSubnetRouteTableAssociation
           - !Ref PrivateSubnet1RouteTableAssociation
           - !Ref PrivateSubnet2RouteTableAssociation
-          - !Ref PrivateSubnet3RouteTableAssociation
+          - !If [IsThirdAvailabilityZoneSupported, !Ref PrivateSubnet3RouteTableAssociation, !Ref AWS::NoValue]
         - !Ref AWS::NoValue
   
   # Cross-account access role
@@ -692,7 +722,7 @@ Resources:
                   - 'ec2:DisassociateIamInstanceProfile'
                   - 'ec2:ReplaceIamInstanceProfileAssociation'
                 Resource:
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/* 
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/* 
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'
@@ -701,8 +731,8 @@ Resources:
                 Action:
                   - 'ec2:RunInstances'
                 Resource:
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
                 Condition:
                   StringEquals:
                     'aws:RequestTag/Vendor': 'Databricks' 
@@ -711,7 +741,7 @@ Resources:
                 Action:
                   - 'ec2:RunInstances'
                 Resource:
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:image/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:image/*
                 Condition:
                   StringEquals:
                     'aws:ResourceTag/Vendor': 'Databricks'
@@ -720,32 +750,32 @@ Resources:
                 Action:
                   - 'ec2:RunInstances'
                 Resource:
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:network-interface/*
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:subnet/*
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:security-group/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:subnet/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
                 Condition:
                   StringEquals:
                     'ec2:vpc' : !If
                       - CreateDBManagedVPC
-                      - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${DBSVpc}
-                      - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${VPCID}
+                      - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${DBSVpc}
+                      - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:vpc/${VPCID}
               - Sid: AllowEc2RunInstanceOtherResources
                 Effect: Allow
                 Action:
                   - 'ec2:RunInstances'
                 NotResource:
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:image/* 
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:network-interface/*
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:subnet/*
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:security-group/*
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/* 
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:image/* 
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:subnet/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/* 
               - Sid: EC2TerminateInstancesTag
                 Effect: Allow
                 Action:
                   - 'ec2:TerminateInstances'
                 Resource:
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks' 
@@ -755,8 +785,8 @@ Resources:
                   - 'ec2:AttachVolume'
                   - 'ec2:DetachVolume'
                 Resource:
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:instance/* 
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/* 
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'
@@ -765,7 +795,7 @@ Resources:
                 Action:
                   - 'ec2:CreateVolume'
                 Resource:
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/* 
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/* 
                 Condition:
                   StringEquals:
                     'aws:RequestTag/Vendor': 'Databricks' 
@@ -774,7 +804,7 @@ Resources:
                 Action:
                   - 'ec2:DeleteVolume'
                 Resource:
-                  - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:volume/* 
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/* 
                 Condition:
                   StringEquals:
                     'ec2:ResourceTag/Vendor': 'Databricks'
@@ -787,23 +817,6 @@ Resources:
                 Condition:
                   StringLike:
                     'iam:AWSServiceName': spot.amazonaws.com
-              - Sid: VpcNonresourceSpecificActions
-                Effect: Allow
-                Action:
-                  - ec2:AuthorizeSecurityGroupEgress
-                  - ec2:AuthorizeSecurityGroupIngress
-                  - ec2:RevokeSecurityGroupEgress
-                  - ec2:RevokeSecurityGroupIngress
-                Resource: !If
-                  - CreateDBManagedVPC
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/${DBSWorkspaceSecurityGroup}
-                  - !Split [',', !GetAtt SecurityGroupArns.PrefixedListString]
-                Condition:
-                  StringEquals:
-                    'ec2:vpc' : !If
-                      - CreateDBManagedVPC
-                      - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${DBSVpc}
-                      - !Sub arn:${AWS::Partition}:ec2:${AWSRegion}:${AWS::AccountId}:vpc/${VPCID}
             Version: 2012-10-17
           PolicyName: databricks-cross-account-iam-role-policy
       Tags:
@@ -915,7 +928,10 @@ Resources:
       vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
       subnet_ids: !If
         - CreateDBManagedVPC
-        - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+        - !If
+          - IsThirdAvailabilityZoneSupported
+          - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}, ${DBSClusterSubnet3}
+          - !Sub ${DBSClusterSubnet1}, ${DBSClusterSubnet2}
         - !Ref SubnetIDs
       security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
       user_agent: 'databricks-CloudFormation-provider'
@@ -931,7 +947,7 @@ Resources:
       password: !Ref Password
       workspace_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-workspace', !Sub '${AWS::StackName}-workspace']
       deployment_name: !Ref DeploymentName
-      aws_region: !Ref AWSRegion
+      aws_region: !Ref AWS::Region
       credentials_id: !Ref createCredentials
       storage_config_id: !Ref createStorageConfiguration
       network_id: !Ref createNetworks

@@ -28,7 +28,6 @@ tests:
       Password: 'Override'
       PricingTier: 'ENTERPRISE'
       DeploymentName: 'qsdeploy'
-      AWSRegion: 'us-west-2'
       TagValue: 'qstest'
       IAMRole: 'qstest-iam'
       BucketName: db-$[taskcat_autobucket]
