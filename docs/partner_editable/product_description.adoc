@@ -6,6 +6,7 @@
 The Databricks platform helps cross-functional teams communicate securely. You can stay focused on data science, data analytics, and data engineering tasks while Databricks manages many of the backend services. 
 
 All Databricks architectures have two planes:
+
 * The control plane includes backend services that Databricks manages in its AWS account. 
 * The data plane, which your AWS account manages, is where your data resides and is processed. You can ingest data from external data sources (that is, sources outside of your AWS account), such as events, streaming, and Internet of Things (IoT). You can also connect to external data sources for storage by using Databricks connectors. Because your data resides in your AWS account in the data plane, you control it.
 
