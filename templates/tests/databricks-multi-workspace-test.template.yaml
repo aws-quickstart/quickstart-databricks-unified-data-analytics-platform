@@ -306,7 +306,7 @@ Rules:
 #      AssertDescription: The QSS3BucketName MUST be set to aws-quickstart
     - Assert: !Equals ['quickstart-databricks-unified-data-analytics-platform/', !Ref QSS3KeyPrefix]
       AssertDescription: "The QSS3KeyPrefix MUST be set to - quickstart-databricks-unified-data-analytics-platform/"
-  
+ 
 Resources:
   # The VPC
   DBSVpc:
@@ -645,7 +645,7 @@ Resources:
               - kinesis:PutRecord
               - kinesis:PutRecords
               - kinesis:DescribeStream
-            Resource: !Sub arn:aws:kinesis:${AWS::Region}:414351767826:stream/*
+            Resource: !Sub arn:${AWS::Partition}:kinesis:${AWS::Region}:414351767826:stream/*
 
   WaitForVpc:
     Type: AWS::CloudFormation::WaitConditionHandle

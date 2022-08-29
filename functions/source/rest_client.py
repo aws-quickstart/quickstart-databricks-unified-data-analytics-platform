@@ -34,8 +34,7 @@ def handler(event, context):
         'CREATE_CUSTOMER_MANAGED_KEY',
         'CREATE_NETWORKS',
         'CREATE_WORKSPACES',
-        'CREATE_WORKSPACE_VPC_ENPDPOINT',
-        'CREATE_BACKEND_VPC_ENPDPOINT',
+        'CREATE_VPC_ENDPOINT',
         'CREATE_PRIVATE_ACCESS_CONFIGURATION',
         'CREATE_HIPAA_CLUSTER_POLICY',
         'REGISTER_INSTANCE_PROFILE',
@@ -123,22 +122,15 @@ def handler(event, context):
                 keyManager.delete(physicalResourceId)
 
         # PrivateLink VPC endpoints
-        elif action in ('CREATE_WORKSPACE_VPC_ENPDPOINT', 'CREATE_BACKEND_VPC_ENPDPOINT'):
+        elif action == 'CREATE_VPC_ENDPOINT':
             endpointManager = VpcEndpointsManager(apiSession)
             # creation
             if event['RequestType'] == 'Create':
-                checkForMissingProperties(event, ['aws_region', 'endpoint_name', 'vpc_id', 'subnet_ids', 'security_group_ids'])
-                endpoint = None
-                endpointName = event['ResourceProperties']['endpoint_name']
-                aws_region = event['ResourceProperties']['aws_region']
-                vpcId = event['ResourceProperties']['vpc_id']
-                subnetIds = [i.strip() for i in event['ResourceProperties']['subnet_ids'].split(',')]
-                securityGroupIds = [i.strip() for i in event['ResourceProperties']['security_group_ids'].split(',')]
-                tags = {'Name': endpointName}
-                if action == 'CREATE_WORKSPACE_VPC_ENPDPOINT':
-                    endpoint = endpointManager.createForRestAccess(endpointName, aws_region, vpcId, subnetIds, securityGroupIds, tags)
-                else:
-                    endpoint = endpointManager.createForRelayAccess(endpointName, aws_region, vpcId, subnetIds, securityGroupIds, tags)
+                checkForMissingProperties(event, ['aws_region', 'endpoint_name', 'vpc_endpoint_id'])
+                endpoint = endpointManager.create(
+                    event['ResourceProperties']['endpoint_name'],
+                    event['ResourceProperties']['vpc_endpoint_id'],
+                    event['ResourceProperties']['aws_region'])
                 physicalResourceId = endpoint.id
             # deletion
             elif event['RequestType'] == 'Delete':

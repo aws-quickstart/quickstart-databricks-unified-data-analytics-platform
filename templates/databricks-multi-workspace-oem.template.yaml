@@ -382,6 +382,45 @@ Rules:
       - Assert: !Not [!Equals ['', !Ref PrivateLinkSubnetIds]]
         AssertDescription: PrivateLinkSubnetIds is required when VPCID is provided and PrivateLink is enabled
 
+Mappings:
+  DatabricksAddresses:
+    us-east-1:
+      "workspace": "com.amazonaws.vpce.us-east-1.vpce-svc-09143d1e626de2f04"
+      "backend": "com.amazonaws.vpce.us-east-1.vpce-svc-00018a8c3ff62ffdf"
+    us-east-2:
+      "workspace": "com.amazonaws.vpce.us-east-2.vpce-svc-041dc2b4d7796b8d3"
+      "backend": "com.amazonaws.vpce.us-east-2.vpce-svc-090a8fab0d73e39a6"
+    us-west-1:
+      "workspace": "UNSUPPORTED"
+      "backend": "UNSUPPORTED"
+    us-west-2:
+      "workspace": "com.amazonaws.vpce.us-west-2.vpce-svc-0129f463fcfbc46c5"
+      "backend": "com.amazonaws.vpce.us-west-2.vpce-svc-0158114c0c730c3bb"
+    eu-west-1:
+      "workspace": "com.amazonaws.vpce.eu-west-1.vpce-svc-0da6ebf1461278016"
+      "backend": "com.amazonaws.vpce.eu-west-1.vpce-svc-09b4eb2bc775f4e8c"
+    eu-west-2:
+      "workspace": "com.amazonaws.vpce.eu-west-2.vpce-svc-01148c7cdc1d1326c"
+      "backend": "com.amazonaws.vpce.eu-west-2.vpce-svc-05279412bf5353a45"
+    eu-central-1:
+      "workspace": "com.amazonaws.vpce.eu-central-1.vpce-svc-081f78503812597f7"
+      "backend": "com.amazonaws.vpce.eu-central-1.vpce-svc-08e5dfca9572c85c4"
+    ap-southeast-1:
+      "workspace": "com.amazonaws.vpce.ap-southeast-1.vpce-svc-02535b257fc253ff4"
+      "backend": "com.amazonaws.vpce.ap-southeast-1.vpce-svc-0557367c6fc1a0c5c"
+    ap-southeast-2:
+      "workspace": "com.amazonaws.vpce.ap-southeast-2.vpce-svc-0b87155ddd6954974"
+      "backend": "com.amazonaws.vpce.ap-southeast-2.vpce-svc-0b4a72e8f825495f6"
+    ap-northeast-1:
+      "workspace": "com.amazonaws.vpce.ap-northeast-1.vpce-svc-02691fd610d24fd64"
+      "backend": "com.amazonaws.vpce.ap-northeast-1.vpce-svc-02aa633bda3edbec0"
+    ap-south-1:
+      "workspace": "com.amazonaws.vpce.ap-south-1.vpce-svc-0dbfe5d9ee18d6411"
+      "backend": "com.amazonaws.vpce.ap-south-1.vpce-svc-03fd4d9b61414f3de"
+    ca-central-1:
+      "workspace": "com.amazonaws.vpce.ca-central-1.vpce-svc-0205f197ec0e28d65"
+      "backend": "com.amazonaws.vpce.ca-central-1.vpce-svc-0c4e25bdbcbfbb684"
+
 Resources:
   # The VPC
   DBSVpc:
@@ -720,7 +759,43 @@ Resources:
               - kinesis:PutRecord
               - kinesis:PutRecords
               - kinesis:DescribeStream
-            Resource: !Sub arn:aws:kinesis:${AWS::Region}:414351767826:stream/*
+            Resource: !Sub arn:${AWS::Partition}:kinesis:${AWS::Region}:414351767826:stream/*
+
+  # The Databricks REST API endpoint
+  DBSRestApiInterfaceEndpoint:
+    Condition: IsPrivateLinkEnabled
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !FindInMap [DatabricksAddresses, !Ref AWS::Region, workspace]
+      VpcEndpointType: Interface
+      VpcId: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
+      PrivateDnsEnabled: true
+      SecurityGroupIds: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
+      SubnetIds: !If
+        - CreateDBManagedVPC
+        - !If
+          - IsThirdAvailabilityZoneSupported
+          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
+          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
+        - !Ref PrivateLinkSubnetIds
+
+  # The Databricks REST API endpoint
+  DBSRelayInterfaceEndpoint:
+    Condition: IsPrivateLinkEnabled
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !FindInMap [DatabricksAddresses, !Ref AWS::Region, backend]
+      VpcEndpointType: Interface
+      VpcId: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
+      PrivateDnsEnabled: true
+      SecurityGroupIds: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
+      SubnetIds: !If
+        - CreateDBManagedVPC
+        - !If
+          - IsThirdAvailabilityZoneSupported
+          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
+          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
+        - !Ref PrivateLinkSubnetIds
 
   WaitForVpc:
     Type: AWS::CloudFormation::WaitConditionHandle
@@ -770,8 +845,8 @@ Resources:
                   - s3:DeleteObject
                   - s3:PutObjectAcl
                 Resource:
-                  - !Sub arn:aws:s3:::${ExistingDataBucketName}/*
-                  - !Sub arn:aws:s3:::${ExistingDataBucketName}
+                  - !Sub arn:${AWS::Partition}:s3:::${ExistingDataBucketName}/*
+                  - !Sub arn:${AWS::Partition}:s3:::${ExistingDataBucketName}
   DefaultInstanceProfile:
     Condition: CreateDefaultInstanceProfile
     Type: AWS::IAM::InstanceProfile
@@ -947,7 +1022,7 @@ Resources:
                 - Sid: AllowPassRoleForDefaultInstanceProfile
                   Effect: Allow
                   Action: iam:PassRole
-                  Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/${TagValue}-DefaultInstanceProfileRole
+                  Resource: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${TagValue}-DefaultInstanceProfileRole
                 - !Ref AWS::NoValue
             Version: 2012-10-17
           PolicyName: databricks-cross-account-iam-role-policy
@@ -1052,21 +1127,13 @@ Resources:
     Type: Custom::WorkspaceVpcEnpoint
     Properties:
       ServiceToken: !GetAtt databricksApiFunction.Arn
-      action: CREATE_WORKSPACE_VPC_ENPDPOINT
+      action: CREATE_VPC_ENDPOINT
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
       aws_region: !Ref AWS::Region
-      endpoint_name: !Sub ${TagValue}_workspaceVpcEndpoint
-      vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
-      subnet_ids: !If
-        - CreateDBManagedVPC
-        - !If
-          - IsThirdAvailabilityZoneSupported
-          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
-          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
-        - !Ref PrivateLinkSubnetIds
-      security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
+      endpoint_name: !Sub ${AWS::StackName}_workspaceVpcEndpoint
+      vpc_endpoint_id: !Ref DBSRestApiInterfaceEndpoint
       user_agent: 'databricks-CloudFormation-OEM-provider'
 
   # PrivateLink endpoint for the SCC Relay
@@ -1075,21 +1142,13 @@ Resources:
     Type: Custom::BackendVpcEnpoint
     Properties:
       ServiceToken: !GetAtt databricksApiFunction.Arn
-      action: CREATE_BACKEND_VPC_ENPDPOINT
+      action: CREATE_VPC_ENDPOINT
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
       aws_region: !Ref AWS::Region
-      endpoint_name: !Sub ${TagValue}_backendVpcEndpoint
-      vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
-      subnet_ids: !If
-        - CreateDBManagedVPC
-        - !If
-          - IsThirdAvailabilityZoneSupported
-          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
-          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
-        - !Ref PrivateLinkSubnetIds
-      security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
+      endpoint_name: !Sub ${AWS::StackName}_workspaceVpcEndpoint
+      vpc_endpoint_id: !Ref DBSRelayInterfaceEndpoint
       user_agent: 'databricks-CloudFormation-OEM-provider'
 
   # Databricks API for network configuration
@@ -1130,6 +1189,7 @@ Resources:
       private_access_settings_name:  !Sub ${TagValue}_privateAccessSettings
       public_access_enabled: true
       allowed_vpc_endpoint_ids: !Ref WorkspaceVpcEnpoint
+      user_agent: 'databricks-CloudFormation-OEM-provider'
 
   # Databricks API for workspace creation
   createWorkspace:
@@ -1152,7 +1212,7 @@ Resources:
       customer_name: !Ref CustomerName
       authoritative_user_email: !Ref AuthoritativeUserEmail
       authoritative_user_full_name: !Ref AuthoritativeUserFullName
-      user_agent: 'databricks-CloudFormation-provider'
+      user_agent: 'databricks-CloudFormation-OEM-provider'
   
   # Registers the instance profile
   registerInstanceProfile:
@@ -1166,7 +1226,7 @@ Resources:
       password: !Ref Password
       workspace_id: !Ref createWorkspace
       instance_profile_arn: !GetAtt DefaultInstanceProfile.Arn
-      user_agent: databricks-CloudFormation-provider
+      user_agent: 'databricks-CloudFormation-OEM-provider'
 
   # Creates a HIPAA cluster policy
   createHipaaClusterPolicy:
@@ -1179,7 +1239,7 @@ Resources:
       username: !Ref Username
       password: !Ref Password
       workspace_deployment_name: !GetAtt createWorkspace.DeploymentName
-      user_agent: databricks-CloudFormation-provider
+      user_agent: 'databricks-CloudFormation-OEM-provider'
   
   # Creates a starter cluster
   createStarterCluster:
@@ -1193,7 +1253,7 @@ Resources:
       workspace_deployment_name: !GetAtt createWorkspace.DeploymentName
       instance_profile_arn: !If [CreateDefaultInstanceProfile, !Ref registerInstanceProfile, !Ref AWS::NoValue]
       policy_id: !If [ShouldCreateHipaaClusterPolicy, !Ref createHipaaClusterPolicy, !Ref AWS::NoValue]
-      user_agent: databricks-CloudFormation-provider
+      user_agent: 'databricks-CloudFormation-OEM-provider'
 
   # Customer managed Keys - Update Storage policy for S3 and EBS volumes 
   updateCustomManagedKeys:
@@ -1266,39 +1326,6 @@ Resources:
                   - 'kms:GetKeyPolicy'
                   - 'kms:PutKeyPolicy'
                 Resource: '*'
-        - !If
-          - IsPrivateLinkEnabled
-          - PolicyName: PoliciesForPrivateLinkSetup
-            PolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                - Sid: AllowEndpointCreation
-                  Effect: Allow
-                  Action:
-                    - ec2:CreateVpcEndpoint
-                    - ec2:CreateTags
-                    - ec2:DeleteVpcEndpoints
-                    - ec2:ModifyVpcEndpoint
-                  Resource:
-                    - arn:aws:ec2:*:*:vpc/*
-                    - arn:aws:ec2:*:*:security-group/*
-                    - arn:aws:ec2:*:*:subnet/*
-                    - arn:aws:ec2:*:*:vpc-endpoint/*
-                - Sid: AllowDescribes
-                  Effect: Allow
-                  Action:
-                    - ec2:DescribeVpcEndpoints
-                    - ec2:DescribeVpcs
-                  Resource: '*'
-                - Sid: AllowVPCAssociationWithHostedZone
-                  Effect: Allow
-                  Action:
-                    - route53:AssociateVPCWithHostedZone
-                    - route53:DisassociateVPCFromHostedZone
-                  Resource:
-                    - arn:aws:route53:::hostedzone/*
-                    - arn:aws:ec2:*:*:vpc/*
-          - !Ref AWS::NoValue
       Tags:
         - Key: Name
           Value: !Sub ${TagValue}-IAMRole
