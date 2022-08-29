@@ -770,14 +770,16 @@ Resources:
       VpcEndpointType: Interface
       VpcId: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
       PrivateDnsEnabled: true
-      SecurityGroupIds: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
+      SecurityGroupIds: !If
+        - CreateDBManagedVPC
+        - - !Ref DBSWorkspaceSecurityGroup
+        - !GetAtt SecurityGroupList.List
       SubnetIds: !If
         - CreateDBManagedVPC
-        - !If
-          - IsThirdAvailabilityZoneSupported
-          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
-          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
-        - !Ref PrivateLinkSubnetIds
+        - - !Ref DBSEndpointSubnet1
+          - !Ref DBSEndpointSubnet2
+          - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
+        - !GetAtt SubnetIdList.List
 
   # The Databricks REST API endpoint
   DBSRelayInterfaceEndpoint:
@@ -788,14 +790,16 @@ Resources:
       VpcEndpointType: Interface
       VpcId: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
       PrivateDnsEnabled: true
-      SecurityGroupIds: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
+      SecurityGroupIds: !If
+        - CreateDBManagedVPC
+        - - !Ref DBSWorkspaceSecurityGroup
+        - !GetAtt SecurityGroupList.List
       SubnetIds: !If
         - CreateDBManagedVPC
-        - !If
-          - IsThirdAvailabilityZoneSupported
-          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
-          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
-        - !Ref PrivateLinkSubnetIds
+        - - !Ref DBSEndpointSubnet1
+          - !Ref DBSEndpointSubnet2
+          - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
+        - !GetAtt SubnetIdList.List
 
   WaitForVpc:
     Type: AWS::CloudFormation::WaitConditionHandle
@@ -1030,13 +1034,19 @@ Resources:
         - Key: Name
           Value: !Sub '${TagValue}-IAMRole'
 
-  SecurityGroupArns:
-    Type: Custom::SecurityGroupArns
+  SubnetIdList:
     Condition: CustomerManagedVPC
+    Type: Custom::SubnetIdList
     Properties:
-      ServiceToken: !GetAtt AppendPrefixToListFunction.Arn
-      Prefix: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:security-group/
-      List: !Ref SecurityGroupIDs
+      ServiceToken: !GetAtt StringToListFunction.Arn
+      String: !Ref PrivateLinkSubnetIds
+
+  SecurityGroupList:
+    Condition: CustomerManagedVPC
+    Type: Custom::SecurityGroupList
+    Properties:
+      ServiceToken: !GetAtt StringToListFunction.Arn
+      String: !Ref SecurityGroupIDs
 
   # S3 root bucket requirements
   assetsS3Bucket:
@@ -1375,10 +1385,11 @@ Resources:
         - Key: Name
           Value: !Sub ${TagValue}-IAMRole
 
-  AppendPrefixToListFunction:
+  StringToListFunction:
+    Condition: CustomerManagedVPC
     Type: AWS::Lambda::Function
     Properties:
-      Description: Appends a prefix to each element in a string of comma separated values
+      Description: Converts a string of comma-separated values to a list of strings
       Handler: index.handler
       Runtime: python3.8
       Role: !GetAtt CopyZipsRole.Arn
@@ -1387,10 +1398,8 @@ Resources:
         ZipFile: |
           import cfnresponse
           def handler(event, context):
-            prefix = event['ResourceProperties']['Prefix']
-            listString = event['ResourceProperties']['List']
-            result = ','.join([prefix+el.strip() for el in listString.split(',')])
-            cfnresponse.send(event, context, cfnresponse.SUCCESS, {'PrefixedListString':result}, None)
+            result = [i.strip() for i in event['ResourceProperties']['String'].split(',')]
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, {'List':result}, None)
 
   CopyZipsFunction:
     Type: AWS::Lambda::Function
