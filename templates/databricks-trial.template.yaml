@@ -449,6 +449,15 @@ Resources:
   # The STS VPC endpoint
   STSInterfaceEndpoint:
     Type: AWS::EC2::VPCEndpoint
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+            - EIAMAccountIDInPrincipal
+          ignore_reasons:
+            EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
+            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
     Properties: 
       ServiceName: !Sub com.amazonaws.${AWS::Region}.sts
       VpcEndpointType: Interface
@@ -486,6 +495,13 @@ Resources:
   # The Kinesis endpoint
   KinesisInterfaceEndpoint:
     Type: AWS::EC2::VPCEndpoint
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMAccountIDInPrincipal
+          ignore_reasons:
+            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
     Properties: 
       ServiceName: !Sub com.amazonaws.${AWS::Region}.kinesis-streams
       VpcEndpointType: Interface
