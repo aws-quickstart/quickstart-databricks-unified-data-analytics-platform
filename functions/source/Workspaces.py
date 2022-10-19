@@ -1,7 +1,5 @@
 from AccountApiSession import AccountApiSession
 import time
-import json
-import hipaa
 
 # The workspace object
 class Workspace:
@@ -20,7 +18,7 @@ class Workspace:
     self.clusterPolicyId = ''
 
 # The workspace manager
-class WorkspaceManager:
+class WorkspacesManager:
   def __init__(self, apiSession: AccountApiSession):
     self.__apiSession = apiSession
 
@@ -29,7 +27,6 @@ class WorkspaceManager:
   def create(self, name: str, region: str, credentialsId: str, storageConfigurationId: str,
     networkId: str = None, privateAccessSettingsId: str = None, deploymentName: str = None,
     storageCustomerManagedKeyId: str = None, managedServicesCustomerManagedKeyId: str = None,
-    hipaaEnabled: bool = False,
     oemCustomerName: str = None, oemAuthoritativeUserEmail: str = None, oemAuthoritativeUserFullName: str = None):
     postData = {
       "workspace_name": name,
@@ -56,16 +53,6 @@ class WorkspaceManager:
       time.sleep(5)
       workspaceObject = self.get(workspaceObject.id)
       if workspaceObject.status != 'PROVISIONING': break
-    
-    if workspaceObject.status == 'RUNNING' and hipaaEnabled:
-      # Eventually the following block should go into a ClusterPolicyManager class
-      workspaceApiSession = self.__apiSession.workspaceApiSession(workspaceObject.deploymentName)
-      workspacePostData = {
-        "name": "Default Cluster Policy (HIPAA)",
-        "definition": json.dumps(hipaa.clusterPolicy)
-      }
-      response = workspaceApiSession.post('/policies/clusters/create', workspacePostData)
-      workspaceObject.clusterPolicyId = response['policy_id']
 
     return workspaceObject
 

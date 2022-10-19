@@ -30,7 +30,11 @@ Metadata:
       - Label:
           default: (Optional) Recommended to provide a unique deployment name for your workspace.
         Parameters:
-          - DeploymentName     
+          - DeploymentName
+      - Label:
+          default: (Optional) Analysing existing data with your workspace
+        Parameters:
+          - ExistingInstanceProfileArn
       - Label:
           default: (Optional) Customer managed VPC configuration (premium tier required)
         Parameters:
@@ -71,6 +75,8 @@ Metadata:
         default: ARN of the existing IAM role with Lambda- and S3-access permissions
       BucketName:
         default: Root S3 bucket name
+      ExistingInstanceProfileArn:
+        default: Existing Instance Profile ARN 
       VPCID:
         default: VPC ID
       SubnetIDs:
@@ -184,6 +190,10 @@ Parameters:
     MaxLength: '63'
     Type: String
     ConstraintDescription: Name of workspace root bucket. This name can include numbers, lowercase letters, uppercase letters, and hyphens, but do not start or end with a hyphen (-)."
+  ExistingInstanceProfileArn:
+    Description: The ARN of an existing instance profile for Databricks to attach to the Spark cluster nodes and the SQL Warehouses.
+    Type: String
+    Default: ''
   VPCID:
     Description: "VPC ID for creating your workspace. Only enter a value if you use the customer managed VPC feature. The format is vpc-xxxxxxxxxxxxxxxx. For more information, see https://docs.databricks.com/administration-guide/cloud-configurations/aws/customer-managed-vpc.html. If unspecified, Databricks creates a new workspace in a new VPC."
     Type: String
@@ -257,6 +267,10 @@ Conditions:
   # Checks if the region supports 3 availability zones
   IsThirdAvailabilityZoneSupported: !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]
   CreateDBManagedVPCWithThreeAvailabilityZones: !And [!Equals [!Ref VPCID, ''], !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]]
+  # Checks whether it should register an instance profile
+  RegisterInstanceProfile: !Not [!Equals [!Ref ExistingInstanceProfileArn, '']]
+  # Checks whether a HIPAA cluster policy should be created
+  ShouldCreateHipaaClusterPolicy: !Equals [!Ref HIPAAparm, 'Yes']
 
 Rules:
 # 1. Check whether the current AWS region is supported
@@ -333,6 +347,45 @@ Rules:
     Assertions: 
       - Assert: !Not [!Equals ['', !Ref PrivateLinkSubnetIds]]
         AssertDescription: PrivateLinkSubnetIds is required when VPCID is provided and PrivateLink is enabled
+
+Mappings:
+  DatabricksAddresses:
+    us-east-1:
+      "workspace": "com.amazonaws.vpce.us-east-1.vpce-svc-09143d1e626de2f04"
+      "backend": "com.amazonaws.vpce.us-east-1.vpce-svc-00018a8c3ff62ffdf"
+    us-east-2:
+      "workspace": "com.amazonaws.vpce.us-east-2.vpce-svc-041dc2b4d7796b8d3"
+      "backend": "com.amazonaws.vpce.us-east-2.vpce-svc-090a8fab0d73e39a6"
+    us-west-1:
+      "workspace": "UNSUPPORTED"
+      "backend": "UNSUPPORTED"
+    us-west-2:
+      "workspace": "com.amazonaws.vpce.us-west-2.vpce-svc-0129f463fcfbc46c5"
+      "backend": "com.amazonaws.vpce.us-west-2.vpce-svc-0158114c0c730c3bb"
+    eu-west-1:
+      "workspace": "com.amazonaws.vpce.eu-west-1.vpce-svc-0da6ebf1461278016"
+      "backend": "com.amazonaws.vpce.eu-west-1.vpce-svc-09b4eb2bc775f4e8c"
+    eu-west-2:
+      "workspace": "com.amazonaws.vpce.eu-west-2.vpce-svc-01148c7cdc1d1326c"
+      "backend": "com.amazonaws.vpce.eu-west-2.vpce-svc-05279412bf5353a45"
+    eu-central-1:
+      "workspace": "com.amazonaws.vpce.eu-central-1.vpce-svc-081f78503812597f7"
+      "backend": "com.amazonaws.vpce.eu-central-1.vpce-svc-08e5dfca9572c85c4"
+    ap-southeast-1:
+      "workspace": "com.amazonaws.vpce.ap-southeast-1.vpce-svc-02535b257fc253ff4"
+      "backend": "com.amazonaws.vpce.ap-southeast-1.vpce-svc-0557367c6fc1a0c5c"
+    ap-southeast-2:
+      "workspace": "com.amazonaws.vpce.ap-southeast-2.vpce-svc-0b87155ddd6954974"
+      "backend": "com.amazonaws.vpce.ap-southeast-2.vpce-svc-0b4a72e8f825495f6"
+    ap-northeast-1:
+      "workspace": "com.amazonaws.vpce.ap-northeast-1.vpce-svc-02691fd610d24fd64"
+      "backend": "com.amazonaws.vpce.ap-northeast-1.vpce-svc-02aa633bda3edbec0"
+    ap-south-1:
+      "workspace": "com.amazonaws.vpce.ap-south-1.vpce-svc-0dbfe5d9ee18d6411"
+      "backend": "com.amazonaws.vpce.ap-south-1.vpce-svc-03fd4d9b61414f3de"
+    ca-central-1:
+      "workspace": "com.amazonaws.vpce.ca-central-1.vpce-svc-0205f197ec0e28d65"
+      "backend": "com.amazonaws.vpce.ca-central-1.vpce-svc-0c4e25bdbcbfbb684"
 
 Resources:
   # The VPC
@@ -612,6 +665,15 @@ Resources:
   STSInterfaceEndpoint:
     Condition: CreateDBManagedVPC
     Type: AWS::EC2::VPCEndpoint
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+            - EIAMAccountIDInPrincipal
+          ignore_reasons:
+            EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
+            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
     Properties: 
       ServiceName: !Sub com.amazonaws.${AWS::Region}.sts
       VpcEndpointType: Interface
@@ -650,6 +712,13 @@ Resources:
   KinesisInterfaceEndpoint:
     Condition: CreateDBManagedVPC
     Type: AWS::EC2::VPCEndpoint
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMAccountIDInPrincipal
+          ignore_reasons:
+            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
     Properties: 
       ServiceName: !Sub com.amazonaws.${AWS::Region}.kinesis-streams
       VpcEndpointType: Interface
@@ -672,7 +741,47 @@ Resources:
               - kinesis:PutRecord
               - kinesis:PutRecords
               - kinesis:DescribeStream
-            Resource: !Sub arn:aws:kinesis:${AWS::Region}:414351767826:stream/*
+            Resource: !Sub arn:${AWS::Partition}:kinesis:${AWS::Region}:414351767826:stream/*
+
+  # The Databricks REST API endpoint
+  DBSRestApiInterfaceEndpoint:
+    Condition: IsPrivateLinkEnabled
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !FindInMap [DatabricksAddresses, !Ref AWS::Region, workspace]
+      VpcEndpointType: Interface
+      VpcId: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
+      PrivateDnsEnabled: true
+      SecurityGroupIds: !If
+        - CreateDBManagedVPC
+        - - !Ref DBSWorkspaceSecurityGroup
+        - !GetAtt SecurityGroupList.List
+      SubnetIds: !If
+        - CreateDBManagedVPC
+        - - !Ref DBSEndpointSubnet1
+          - !Ref DBSEndpointSubnet2
+          - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
+        - !GetAtt SubnetIdList.List
+
+  # The Databricks REST API endpoint
+  DBSRelayInterfaceEndpoint:
+    Condition: IsPrivateLinkEnabled
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !FindInMap [DatabricksAddresses, !Ref AWS::Region, backend]
+      VpcEndpointType: Interface
+      VpcId: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
+      PrivateDnsEnabled: true
+      SecurityGroupIds: !If
+        - CreateDBManagedVPC
+        - - !Ref DBSWorkspaceSecurityGroup
+        - !GetAtt SecurityGroupList.List
+      SubnetIds: !If
+        - CreateDBManagedVPC
+        - - !Ref DBSEndpointSubnet1
+          - !Ref DBSEndpointSubnet2
+          - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
+        - !GetAtt SubnetIdList.List
 
   WaitForVpc:
     Type: AWS::CloudFormation::WaitConditionHandle
@@ -684,6 +793,20 @@ Resources:
           - !Ref PrivateSubnet2RouteTableAssociation
           - !If [IsThirdAvailabilityZoneSupported, !Ref PrivateSubnet3RouteTableAssociation, !Ref AWS::NoValue]
         - !Ref AWS::NoValue
+
+  SubnetIdList:
+    Condition: CustomerManagedVPC
+    Type: Custom::SubnetIdList
+    Properties:
+      ServiceToken: !GetAtt StringToListFunction.Arn
+      String: !Ref PrivateLinkSubnetIds
+
+  SecurityGroupList:
+    Condition: CustomerManagedVPC
+    Type: Custom::SecurityGroupList
+    Properties:
+      ServiceToken: !GetAtt StringToListFunction.Arn
+      String: !Ref SecurityGroupIDs
 
   # S3 root bucket requirements
   assetsS3Bucket:
@@ -774,21 +897,14 @@ Resources:
     Type: Custom::WorkspaceVpcEnpoint
     Properties:
       ServiceToken: !GetAtt databricksApiFunction.Arn
-      action: CREATE_WORKSPACE_VPC_ENPDPOINT
+      action: CREATE_VPC_ENDPOINT
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
       aws_region: !Ref AWS::Region
       endpoint_name: !Sub ${AWS::StackName}_workspaceVpcEndpoint
-      vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
-      subnet_ids: !If
-        - CreateDBManagedVPC
-        - !If
-          - IsThirdAvailabilityZoneSupported
-          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
-          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
-        - !Ref PrivateLinkSubnetIds
-      security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
+      vpc_endpoint_id: !Ref DBSRestApiInterfaceEndpoint
+      user_agent: databricks-CloudFormation-provider
 
   # PrivateLink endpoint for the SCC Relay
   BackendVpcEnpoint:
@@ -796,21 +912,14 @@ Resources:
     Type: Custom::BackendVpcEnpoint
     Properties:
       ServiceToken: !GetAtt databricksApiFunction.Arn
-      action: CREATE_BACKEND_VPC_ENPDPOINT
+      action: CREATE_VPC_ENDPOINT
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
       aws_region: !Ref AWS::Region
-      endpoint_name: !Sub ${AWS::StackName}_backendVpcEndpoint
-      vpc_id: !If [CreateDBManagedVPC, !Ref DBSVpc, !Ref VPCID]
-      subnet_ids: !If
-        - CreateDBManagedVPC
-        - !If
-          - IsThirdAvailabilityZoneSupported
-          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
-          - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
-        - !Ref PrivateLinkSubnetIds
-      security_group_ids: !If [CreateDBManagedVPC, !Ref DBSWorkspaceSecurityGroup, !Ref SecurityGroupIDs]
+      endpoint_name: !Sub ${AWS::StackName}_workspaceVpcEndpoint
+      vpc_endpoint_id: !Ref DBSRelayInterfaceEndpoint
+      user_agent: databricks-CloudFormation-provider
 
   # Databricks API for network configuration
   createNetworks:
@@ -869,8 +978,48 @@ Resources:
       private_access_settings_id: !If [IsPrivateLinkEnabled, !Ref PrivateAccessConfiguration, !Ref AWS::NoValue]
       managed_services_customer_managed_key_id: !If [IsKeyForManagedServicesUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
       storage_customer_managed_key_id: !If [IsKeyForStorageUseCase, !Ref createCustomerManagedKey, !Ref AWS::NoValue]
-      hipaa_parm: !Ref HIPAAparm
-      user_agent: 'databricks-CloudFormation-provider'
+      user_agent: databricks-CloudFormation-provider
+
+  # Registers the instance profile
+  registerInstanceProfile:
+    Condition: RegisterInstanceProfile
+    Type: Custom::RegisterInstanceProfile
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: REGISTER_INSTANCE_PROFILE
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      workspace_id: !Ref createWorkspace
+      instance_profile_arn: !Ref ExistingInstanceProfileArn
+      user_agent: databricks-CloudFormation-provider
+
+  # Creates a HIPAA cluster policy
+  createHipaaClusterPolicy:
+    Condition: ShouldCreateHipaaClusterPolicy
+    Type: Custom::CreateHipaaClusterPolicy
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_HIPAA_CLUSTER_POLICY
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      workspace_deployment_name: !GetAtt createWorkspace.DeploymentName
+      user_agent: databricks-CloudFormation-provider
+  
+  # Creates a starter cluster
+  createStarterCluster:
+    Type: Custom::createStarterCluster
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_STARTER_CLUSTER
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      workspace_deployment_name: !GetAtt createWorkspace.DeploymentName
+      instance_profile_arn: !If [RegisterInstanceProfile, !Ref ExistingInstanceProfileArn, !Ref AWS::NoValue]
+      policy_id: !If [ShouldCreateHipaaClusterPolicy, !Ref createHipaaClusterPolicy, !Ref AWS::NoValue]
+      user_agent: databricks-CloudFormation-provider
 
   # Customer managed Keys - Update policy for S3 and EBS volumes 
   updateCustomManagedKeys:
@@ -926,13 +1075,29 @@ Resources:
       Objects:
         - functions/packages/lambda.zip
 
+  StringToListFunction:
+    Condition: CustomerManagedVPC
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Converts a string of comma-separated values to a list of strings
+      Handler: index.handler
+      Runtime: python3.8
+      Role: !Ref IAMArnLambda
+      Timeout: 10
+      Code:
+        ZipFile: |
+          import cfnresponse
+          def handler(event, context):
+            result = [i.strip() for i in event['ResourceProperties']['String'].split(',')]
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, {'List':result}, None)
+
   CopyZipsFunction:
     Type: AWS::Lambda::Function
     Properties:
       Description: Copies objects from an S3 bucket to another destination.
       Handler: index.handler
       Runtime: python3.7
-      Role: !Ref 'IAMArnLambda'
+      Role: !Ref IAMArnLambda
       Timeout: 240
       Code:
         ZipFile: |

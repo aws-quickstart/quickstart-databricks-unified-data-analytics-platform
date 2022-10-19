@@ -23,6 +23,10 @@ Metadata:
           - IAMRole
           - BucketName
       - Label:
+          default: (Optional) Existing data storage
+        Parameters:
+          - ExistingDataBucketName
+      - Label:
           default: AWS PrivateLink Configuration
         Parameters:
           - PrivateLinkMode
@@ -38,7 +42,9 @@ Metadata:
       IAMRole:
         default: Cross-account IAM role name
       BucketName:
-        default: Root S3 bucket name   
+        default: Root S3 bucket name for the Databricks File System
+      ExistingDataBucketName:
+        default: Existing S3 bucket for data. Setting this to a non empty value will trigger the creation of an instance profile
       PrivateLinkMode:
         default: AWS PrivateLink mode
 
@@ -46,6 +52,10 @@ Outputs:
   DBManagedVPCIAMRoleARN:
     Description: ARN of the cross-account IAM role
     Value: !GetAtt accessRoleDBManagedVPC.Arn
+  DefaultInstanceProfileARN:
+    Condition: CreateDefaultInstanceProfile
+    Description: ARN of the default instance profile
+    Value: !GetAtt DefaultInstanceProfile.Arn
   S3BucketName:
     Description: Name of the S3 root bucket
     Value: !Ref assetsS3Bucket
@@ -107,6 +117,10 @@ Parameters:
     MaxLength: '63'
     Type: String
     ConstraintDescription: The Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).
+  ExistingDataBucketName:
+    Description: The name of an existing S3 bucket with your data
+    Type: String
+    Default: ''
   PrivateLinkMode:
     Description: "Specify whether endpoints should be set up for the Databricks VPC endpoint services"
     Type: String
@@ -120,6 +134,8 @@ Conditions:
   IsPrivateLinkEnabled: !Equals [!Ref PrivateLinkMode, 'Enabled']
   # Checks if the region supports 3 availability zones
   IsThirdAvailabilityZoneSupported: !Not [!Or [!Equals [!Ref AWS::Region, 'us-west-1'], !Equals [!Ref AWS::Region, 'sa-east-1']]]
+  # Checks whether it should create a default instance profile
+  CreateDefaultInstanceProfile: !Not [!Equals [!Ref ExistingDataBucketName, '']]
 
 Rules:
   # Check whether the current AWS region is supported
@@ -141,6 +157,45 @@ Rules:
         - us-west-2
       - !Ref AWS::Region
       AssertDescription: The current AWS region is not supported for E2 deployment. Switch to one of those listed under https://docs.databricks.com/administration-guide/cloud-configurations/aws/regions.html
+
+Mappings:
+  DatabricksAddresses:
+    us-east-1:
+      "workspace": "com.amazonaws.vpce.us-east-1.vpce-svc-09143d1e626de2f04"
+      "backend": "com.amazonaws.vpce.us-east-1.vpce-svc-00018a8c3ff62ffdf"
+    us-east-2:
+      "workspace": "com.amazonaws.vpce.us-east-2.vpce-svc-041dc2b4d7796b8d3"
+      "backend": "com.amazonaws.vpce.us-east-2.vpce-svc-090a8fab0d73e39a6"
+    us-west-1:
+      "workspace": "UNSUPPORTED"
+      "backend": "UNSUPPORTED"
+    us-west-2:
+      "workspace": "com.amazonaws.vpce.us-west-2.vpce-svc-0129f463fcfbc46c5"
+      "backend": "com.amazonaws.vpce.us-west-2.vpce-svc-0158114c0c730c3bb"
+    eu-west-1:
+      "workspace": "com.amazonaws.vpce.eu-west-1.vpce-svc-0da6ebf1461278016"
+      "backend": "com.amazonaws.vpce.eu-west-1.vpce-svc-09b4eb2bc775f4e8c"
+    eu-west-2:
+      "workspace": "com.amazonaws.vpce.eu-west-2.vpce-svc-01148c7cdc1d1326c"
+      "backend": "com.amazonaws.vpce.eu-west-2.vpce-svc-05279412bf5353a45"
+    eu-central-1:
+      "workspace": "com.amazonaws.vpce.eu-central-1.vpce-svc-081f78503812597f7"
+      "backend": "com.amazonaws.vpce.eu-central-1.vpce-svc-08e5dfca9572c85c4"
+    ap-southeast-1:
+      "workspace": "com.amazonaws.vpce.ap-southeast-1.vpce-svc-02535b257fc253ff4"
+      "backend": "com.amazonaws.vpce.ap-southeast-1.vpce-svc-0557367c6fc1a0c5c"
+    ap-southeast-2:
+      "workspace": "com.amazonaws.vpce.ap-southeast-2.vpce-svc-0b87155ddd6954974"
+      "backend": "com.amazonaws.vpce.ap-southeast-2.vpce-svc-0b4a72e8f825495f6"
+    ap-northeast-1:
+      "workspace": "com.amazonaws.vpce.ap-northeast-1.vpce-svc-02691fd610d24fd64"
+      "backend": "com.amazonaws.vpce.ap-northeast-1.vpce-svc-02aa633bda3edbec0"
+    ap-south-1:
+      "workspace": "com.amazonaws.vpce.ap-south-1.vpce-svc-0dbfe5d9ee18d6411"
+      "backend": "com.amazonaws.vpce.ap-south-1.vpce-svc-03fd4d9b61414f3de"
+    ca-central-1:
+      "workspace": "com.amazonaws.vpce.ca-central-1.vpce-svc-0205f197ec0e28d65"
+      "backend": "com.amazonaws.vpce.ca-central-1.vpce-svc-0c4e25bdbcbfbb684"
 
 Resources:
   # The VPC
@@ -394,6 +449,15 @@ Resources:
   # The STS VPC endpoint
   STSInterfaceEndpoint:
     Type: AWS::EC2::VPCEndpoint
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+            - EIAMAccountIDInPrincipal
+          ignore_reasons:
+            EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
+            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
     Properties: 
       ServiceName: !Sub com.amazonaws.${AWS::Region}.sts
       VpcEndpointType: Interface
@@ -431,6 +495,13 @@ Resources:
   # The Kinesis endpoint
   KinesisInterfaceEndpoint:
     Type: AWS::EC2::VPCEndpoint
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMAccountIDInPrincipal
+          ignore_reasons:
+            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
     Properties: 
       ServiceName: !Sub com.amazonaws.${AWS::Region}.kinesis-streams
       VpcEndpointType: Interface
@@ -453,7 +524,39 @@ Resources:
               - kinesis:PutRecord
               - kinesis:PutRecords
               - kinesis:DescribeStream
-            Resource: !Sub arn:aws:kinesis:${AWS::Region}:414351767826:stream/*
+            Resource: !Sub arn:${AWS::Partition}:kinesis:${AWS::Region}:414351767826:stream/*
+
+  # The Databricks REST API endpoint
+  DBSRestApiInterfaceEndpoint:
+    Condition: IsPrivateLinkEnabled
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !FindInMap [DatabricksAddresses, !Ref AWS::Region, workspace]
+      VpcEndpointType: Interface
+      VpcId: !Ref DBSVpc
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      SubnetIds:
+        - !Ref DBSEndpointSubnet1
+        - !Ref DBSEndpointSubnet2
+        - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
+
+  # The Databricks REST API endpoint
+  DBSRelayInterfaceEndpoint:
+    Condition: IsPrivateLinkEnabled
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      ServiceName: !FindInMap [DatabricksAddresses, !Ref AWS::Region, backend]
+      VpcEndpointType: Interface
+      VpcId: !Ref DBSVpc
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !GetAtt DBSWorkspaceSecurityGroup.GroupId
+      SubnetIds:
+        - !Ref DBSEndpointSubnet1
+        - !Ref DBSEndpointSubnet2
+        - !If [IsThirdAvailabilityZoneSupported, !Ref DBSEndpointSubnet3, !Ref AWS::NoValue]
 
   WaitForVpc:
     Type: AWS::CloudFormation::WaitConditionHandle
@@ -464,7 +567,62 @@ Resources:
         - !Ref PrivateSubnet2RouteTableAssociation
         - !If [IsThirdAvailabilityZoneSupported, !Ref PrivateSubnet3RouteTableAssociation, !Ref AWS::NoValue]
 
-  # Cross-account access role for Databricks-created and -managed VPC
+  # Data bucket role and instance profile
+  DefaultInstanceProfileRole:
+    Condition: CreateDefaultInstanceProfile
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMAccountIDInPrincipal
+          ignore_reasons:
+            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
+    Properties: 
+      RoleName: !Sub ${AWS::StackName}-DefaultInstanceProfileRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              AWS:
+                - arn:aws:iam::790110701330:role/serverless-customer-resource-role
+            Action:
+              - sts:AssumeRole
+            Condition:
+              StringEquals:
+                sts:ExternalId:
+                  - !Sub "databricks-serverless-${createWorkspace}"
+      Path: "/"
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-DefaultInstanceProfilePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                  - s3:PutObjectAcl
+                Resource:
+                  - !Sub arn:${AWS::Partition}:s3:::${ExistingDataBucketName}/*
+                  - !Sub arn:${AWS::Partition}:s3:::${ExistingDataBucketName}
+  DefaultInstanceProfile:
+    Condition: CreateDefaultInstanceProfile
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub ${AWS::StackName}-DefaultInstanceProfile
+      Path: "/"
+      Roles:
+        - Ref: DefaultInstanceProfileRole
+
+  # Cross-account access role for the Databricks Control Plane
   accessRoleDBManagedVPC:
     Type: 'AWS::IAM::Role'
     Metadata:
@@ -525,14 +683,14 @@ Resources:
                   - ec2:AssociateIamInstanceProfile
                   - ec2:DisassociateIamInstanceProfile
                   - ec2:ReplaceIamInstanceProfileAssociation
-                Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+                Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
                 Condition:
                   "StringEquals":
                     "ec2:ResourceTag/Vendor": "Databricks"
               - Sid: EC2TerminateInstancesTag
                 Effect: Allow
                 Action: ec2:TerminateInstances
-                Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+                Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
                 Condition:
                   "StringEquals":
                     "ec2:ResourceTag/Vendor": "Databricks"
@@ -542,22 +700,22 @@ Resources:
                   - ec2:AttachVolume
                   - ec2:DetachVolume
                 Resource:
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
-                  - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+                  - !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
                 Condition:
                   "StringEquals":
                     "ec2:ResourceTag/Vendor": "Databricks"
               - Sid: EC2CreateVolumeByTag
                 Effect: Allow
                 Action: ec2:CreateVolume
-                Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
+                Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
                 Condition:
                   "StringEquals":
                     "ec2:ResourceTag/Vendor": "Databricks"
               - Sid: EC2DeleteVolumeByTag
                 Effect: Allow
                 Action: ec2:DeleteVolume
-                Resource: !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
+                Resource: !Sub arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
                 Condition:
                   "StringEquals":
                     "ec2:ResourceTag/Vendor": "Databricks"
@@ -566,14 +724,20 @@ Resources:
                 Action:
                   - iam:CreateServiceLinkedRole
                   - iam:PutRolePolicy
-                Resource: arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
+                Resource: !Sub arn:${AWS::Partition}:iam::*:role/aws-service-role/spot.amazonaws.com/AWSServiceRoleForEC2Spot
                 Condition:
                   "StringLike":
                     "iam:AWSServiceName": spot.amazonaws.com
+              - !If
+                - CreateDefaultInstanceProfile
+                - Sid: AllowPassRoleForDefaultInstanceProfile
+                  Effect: Allow
+                  Action: iam:PassRole
+                  Resource: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${AWS::StackName}-DefaultInstanceProfileRole
+                - !Ref AWS::NoValue
           PolicyName: databricks-cross-account-iam-role-policy
       Tags: 
-        -
-          Key: Name
+        - Key: Name
           Value: 'databricks-trial-quickstart-cloud-formation'
 
   # S3 root bucket requirements
@@ -647,18 +811,13 @@ Resources:
     Type: Custom::WorkspaceVpcEnpoint
     Properties:
       ServiceToken: !GetAtt databricksApiFunction.Arn
-      action: CREATE_WORKSPACE_VPC_ENPDPOINT
+      action: CREATE_VPC_ENDPOINT
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
       aws_region: !Ref AWS::Region
       endpoint_name: !Sub ${AWS::StackName}_workspaceVpcEndpoint
-      vpc_id: !Ref DBSVpc
-      subnet_ids: !If
-        - IsThirdAvailabilityZoneSupported
-        - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
-        - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
-      security_group_ids: !Ref DBSWorkspaceSecurityGroup
+      vpc_endpoint_id: !Ref DBSRestApiInterfaceEndpoint
       user_agent: databricks-CloudFormation-Trial-provider
 
   BackendVpcEnpoint:
@@ -666,18 +825,13 @@ Resources:
     Type: Custom::BackendVpcEnpoint
     Properties:
       ServiceToken: !GetAtt databricksApiFunction.Arn
-      action: CREATE_BACKEND_VPC_ENPDPOINT
+      action: CREATE_VPC_ENDPOINT
       accountId: !Ref AccountId
       username: !Ref Username
       password: !Ref Password
       aws_region: !Ref AWS::Region
-      endpoint_name: !Sub ${AWS::StackName}_backendVpcEndpoint
-      vpc_id: !Ref DBSVpc
-      subnet_ids: !If
-        - IsThirdAvailabilityZoneSupported
-        - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}, ${DBSEndpointSubnet3}
-        - !Sub ${DBSEndpointSubnet1}, ${DBSEndpointSubnet2}
-      security_group_ids: !Ref DBSWorkspaceSecurityGroup
+      endpoint_name: !Sub ${AWS::StackName}_workspaceVpcEndpoint
+      vpc_endpoint_id: !Ref DBSRelayInterfaceEndpoint
       user_agent: databricks-CloudFormation-Trial-provider
 
   # Databricks API for network configuration
@@ -733,6 +887,34 @@ Resources:
       private_access_settings_id: !If [IsPrivateLinkEnabled, !Ref PrivateAccessConfiguration, !Ref AWS::NoValue]
       user_agent: databricks-CloudFormation-Trial-provider
 
+  # Registers the instance profile
+  registerInstanceProfile:
+    Condition: CreateDefaultInstanceProfile
+    Type: Custom::RegisterInstanceProfile
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: REGISTER_INSTANCE_PROFILE
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      workspace_id: !Ref createWorkspace
+      instance_profile_arn: !GetAtt DefaultInstanceProfile.Arn
+      user_agent: databricks-CloudFormation-Trial-provider
+
+  # Creates a starter cluster
+  createStarterCluster:
+    Type: Custom::createStarterCluster
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_STARTER_CLUSTER
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      workspace_deployment_name: !GetAtt createWorkspace.DeploymentName
+      instance_profile_arn: !If [CreateDefaultInstanceProfile, !Ref registerInstanceProfile, !Ref AWS::NoValue]
+      user_agent: databricks-CloudFormation-Trial-provider
+
+  # The Lambda for the custom resources
   databricksApiFunction:
     DependsOn: CopyZips
     Type: AWS::Lambda::Function
@@ -760,39 +942,6 @@ Resources:
       ManagedPolicyArns:
         - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole 
         - !Sub arn:${AWS::Partition}:iam::aws:policy/IAMFullAccess 
-      Policies: !If
-        - IsPrivateLinkEnabled
-        - - PolicyName: PoliciesForPrivateLinkSetup
-            PolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                - Sid: AllowEndpointCreation
-                  Effect: Allow
-                  Action:
-                    - ec2:CreateVpcEndpoint
-                    - ec2:CreateTags
-                    - ec2:DeleteVpcEndpoints
-                    - ec2:ModifyVpcEndpoint
-                  Resource:
-                    - arn:aws:ec2:*:*:vpc/*
-                    - arn:aws:ec2:*:*:security-group/*
-                    - arn:aws:ec2:*:*:subnet/*
-                    - arn:aws:ec2:*:*:vpc-endpoint/*
-                - Sid: AllowDescribes
-                  Effect: Allow
-                  Action:
-                    - ec2:DescribeVpcEndpoints
-                    - ec2:DescribeVpcs
-                  Resource: '*'
-                - Sid: AllowVPCAssociationWithHostedZone
-                  Effect: Allow
-                  Action:
-                    - route53:AssociateVPCWithHostedZone
-                    - route53:DisassociateVPCFromHostedZone
-                  Resource:
-                    - arn:aws:route53:::hostedzone/*
-                    - arn:aws:ec2:*:*:vpc/*
-        - !Ref AWS::NoValue
       Tags:
         - Key: Name
           Value: 'databricks-CloudFormation-Trial-provider'
@@ -803,9 +952,9 @@ Resources:
   CopyZips:
     Type: Custom::CopyZips
     Properties:
-      ServiceToken: !GetAtt 'CopyZipsFunction.Arn'
-      DestBucket: !Ref 'LambdaZipsBucket'
-      SourceBucket: 'aws-quickstart'
+      ServiceToken: !GetAtt CopyZipsFunction.Arn
+      DestBucket: !Ref LambdaZipsBucket
+      SourceBucket: aws-quickstart
       Prefix: 'quickstart-databricks-unified-data-analytics-platform/'
       Objects:
         - functions/packages/lambda.zip
@@ -839,8 +988,7 @@ Resources:
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:s3:::${LambdaZipsBucket}/quickstart-databricks-unified-data-analytics-platform/*' 
       Tags:
-        -
-          Key: Name
+        - Key: Name
           Value: 'databricks-CloudFormation-Trial-provider'
 
   CopyZipsFunction:
