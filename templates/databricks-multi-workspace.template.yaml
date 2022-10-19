@@ -802,6 +802,15 @@ Resources:
   DefaultInstanceProfileRole:
     Condition: CreateDefaultInstanceProfile
     Type: AWS::IAM::Role
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+            - EIAMAccountIDInPrincipal
+          ignore_reasons:
+            EIAMPolicyWildcardResource: "Need to manage databricks workspaces"
+            EIAMAccountIDInPrincipal: "Hardcoded account ID needed for configuration: https://docs.databricks.com/administration-guide/account-settings/aws-accounts.html#step-2-create-a-cross-account-role-and-an-access-policy"
     Properties:
       RoleName: !Sub ${TagValue}-DefaultInstanceProfileRole
       AssumeRolePolicyDocument:

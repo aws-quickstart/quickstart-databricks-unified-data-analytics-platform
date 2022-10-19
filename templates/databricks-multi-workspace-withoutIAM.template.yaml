@@ -712,7 +712,7 @@ Resources:
   KinesisInterfaceEndpoint:
     Condition: CreateDBManagedVPC
     Type: AWS::EC2::VPCEndpoint
-     Metadata:
+    Metadata:
       cfn-lint:
         config:
           ignore_checks:
