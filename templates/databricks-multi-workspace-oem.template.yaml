@@ -1287,6 +1287,18 @@ Resources:
       instance_profile_arn: !If [CreateDefaultInstanceProfile, !Ref registerInstanceProfile, !Ref AWS::NoValue]
       policy_id: !If [ShouldCreateHipaaClusterPolicy, !Ref createHipaaClusterPolicy, !Ref AWS::NoValue]
       user_agent: 'databricks-CloudFormation-OEM-provider'
+  
+  # Creates a starter warehouse cluster
+  createStarterWarehouseCluster:
+    Type: Custom::createStarterWarehouseCluster
+    Properties:
+      ServiceToken: !GetAtt databricksApiFunction.Arn
+      action: CREATE_STARTER_WAREHOUSE
+      accountId: !Ref AccountId
+      username: !Ref Username
+      password: !Ref Password
+      workspace_deployment_name: !GetAtt createWorkspace.DeploymentName
+      user_agent: 'databricks-CloudFormation-OEM-provider'
 
   # Customer managed Keys - Update Storage policy for S3 and EBS volumes 
   updateCustomManagedKeys:

@@ -57,3 +57,32 @@ class WorkspaceManager:
   # Terminates a cluster
   def terminateCluster(self, clusterId: str):
     _ = self.__workspaceApiSession.post('/clusters/permanent-delete', { "cluster_id": clusterId })
+
+  # Creates a starter SQL Warehouse
+  def createStarterWarehouseCluster(self):
+    warehouseData = {
+      "name": "[default]basic-starter-warehouse",
+      "cluster_size": "Medium",
+      "min_num_clusters": 1,
+      "max_num_clusters": 5,
+      "spot_instance_policy":"COST_OPTIMIZED",
+      "enable_photon": "true",
+      "enable_serverless_compute": "true",
+      "warehouse_type": "PRO",
+      "channel": {
+      "name": "CHANNEL_NAME_CURRENT"
+      },
+      "tags": {
+      "custom_tags": {
+          "ResourceClass": "SingleNode",
+          "DatabricksDefault": True,
+          "Origin": "AWSQuickstartCloudformationLambda"
+      }
+      }
+    }
+    response = self.__workspaceApiSession.post('/api/2.0/sql/warehouses', warehouseData)
+    return response['id']
+
+  # Terminates a cluster
+  def terminateWarehouseCluster(self, warehouseClusterId: str):
+    _ = self.__workspaceApiSession.delete('/api/2.0/sql/warehouses{}'.format(warehouseClusterId))

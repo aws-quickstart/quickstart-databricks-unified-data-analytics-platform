@@ -242,7 +242,17 @@ def handler(event, context):
             # deletion
             elif event['RequestType'] == 'Delete':
                 workspaceManager.terminateCluster(physicalResourceId)
-    
+
+        # Creating a Starter WarehouseCluster
+        elif action == 'CREATE_STARTER_WAREHOUSE':
+            checkForMissingProperties(event, ['workspace_deployment_name'])
+            workspaceManager = WorkspaceManager(apiSession, event['ResourceProperties']['workspace_deployment_name'])
+            if event['RequestType'] == 'Create':
+                physicalResourceId = workspaceManager.createStarterWarehouseCluster()
+            # deletion
+            elif event['RequestType'] == 'Delete':
+                workspaceManager.terminateWarehouseCluster(physicalResourceId)
+
     except Exception as e:
         reason = str(e)
         logging.exception(reason)
