@@ -11,18 +11,18 @@ image::../docs/deployment_guide/images/architecture_diagram.png[Architecture]
 
 As shown in <<architecture1>>, this Partner Solution sets up the following:
 
-* A highly available architecture that spans two Availability Zones.*
-* A virtual private cloud (VPC) configured with public and private subnets, according to AWS
-best practices, to provide you with your own virtual network on AWS.*
-* In the public subnets:
-** Managed network address translation (NAT) gateways to allow outbound
-internet access for resources in the private subnets.*
-** A Linux bastion host in an Auto Scaling group to allow inbound Secure
-Shell (SSH) access to Amazon Elastic Compute Cloud (Amazon EC2) instances in public and private subnets.*
+* A highly available architecture that spans at least three Availability Zones.
+* A VPC configured with public and private subnets, according to AWS best practices, to provide you with your own virtual network on AWS.*
 * In the private subnets:
-** <item>.
-** <item>.
-// Add bullet points for any additional components that are included in the deployment. Ensure that the additional components are shown in the architecture diagram. End each bullet with a period.
-* <describe any additional components>.
+** Databricks clusters of Amazon Elastic Compute Cloud (Amazon EC2) instances. 
+** One or more security groups for secure cluster connectivity.
+* In the public subnet:
+** A network address translation (NAT) gateway to allow outbound internet access.
+* Amazon CloudWatch for the Databricks workspace instance logs.
+* (Optional) A customer managed AWS KMS key to encrypt notebooks.
+* An Amazon Simple Storage Service (Amazon S3) bucket to store objects, such as cluster logs, notebook revisions, and job results.
+* AWS Security Token Service (AWS STS) for requesting temporary, least-privilege access for users.
+* A VPC endpoint for access to Amazon S3 artifacts and logs.
+* A cross-account AWS Identity and Access Management (IAM) role to deploy clusters in the VPC for the new workspace. Depending on the deployment option you choose, you either use an existing IAM role or create an IAM role during deployment.
 
 [.small]#* The template that deploys this Partner Solution into an existing VPC skips the components marked by asterisks and prompts you for your existing VPC configuration.#

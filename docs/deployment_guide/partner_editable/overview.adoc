@@ -1,7 +1,8 @@
-This guide covers the information you need to deploy the {partner-product-name} Partner Solution in the AWS Cloud.
+This Quick Start reference deployment guide provides step-by-step instructions for deploying {partner-product-name} workspaces on the AWS Cloud.
 
-// Fill in the info in <angle brackets> for use on the landing page only: 
-This Amazon Web Services (AWS) Partner Solution deploys [<product name>](<partner's marketing product page>) in the AWS Cloud so that <purpose>. This solution is for <target users> who want to <do what> so that <why>. For more information, refer to the [<product name> documentation](<URL>).
+Databricks is a unified data-analytics platform for data engineering, machine learning, and collaborative data science. A https://docs.databricks.com/workspace/index.html[Data Science & Engineering workspace^] is a software as a service (SaaS) environment for accessing all your Databricks assets. The workspace organizes objects (that is, notebooks, libraries, and experiments) in directories and provides access to data and computational resources, such as clusters and jobs.
+
+This Quick Start is for IT infrastructure architects, administrators, and DevOps professionals who want to use the Databricks API to create Databricks workspaces on the AWS Cloud. This Quick Start creates a new workspace in your AWS account and sets up the environment for deploying future workspaces.
 
 // Deploying this solution does not guarantee an organization’s compliance with any laws, certifications, policies, or other regulations. [Uncomment this statement only for solutions that relate to compliance. We'll add the corresponding reference part to the landing page and get legal approval before publishing.]
 
