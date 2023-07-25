@@ -1,0 +1,7 @@
+// Include any postdeployment steps here, such as steps necessary to test that the deployment was successful. If there are no postdeployment steps, leave this file empty.
+
+== Postdeployment steps
+
+. When the status is *CREATE_COMPLETE* for the AWS CloudFormation stack, check the `WorkspaceStatus` output key value. It should be *RUNNING*. For any other value, see https://docs.databricks.com/administration-guide/multiworkspace/new-workspace-aws.html#troubleshoot-a-workspace-that-failed-to-deploy[Troubleshoot a workspace that failed to deploy^].
+
+. Navigate to the workspace URL (for example, deployment-name.cloud.databricks.com), and log in to the web application.

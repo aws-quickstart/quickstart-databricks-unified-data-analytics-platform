@@ -1,0 +1,7 @@
+//Include any predeployment steps here, such as signing up for a Marketplace AMI or making any changes to a partner account. If there are no predeployment steps, leave this file empty.
+
+== Predeployment steps
+
+=== Prepare your {partner-company-name} account
+
+You must have a Databricks E2 account ID to launch this Quick Start. For more information, https://databricks.com/company/contact[Contact your Databricks representative^].
