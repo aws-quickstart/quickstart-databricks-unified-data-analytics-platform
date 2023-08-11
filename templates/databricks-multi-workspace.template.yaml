@@ -914,6 +914,18 @@ Resources:
                   - 'ec2:RequestSpotInstances'
                 Resource:
                   - '*'
+              - Sid: ModifySecurityGroupRules
+                Effect: Allow
+                Action:
+                  - 'ec2:RevokeSecurityGroupIngress'
+                  - 'ec2:AuthorizeSecurityGroupEgress'
+                  - 'ec2:AuthorizeSecurityGroupIngress'
+                  - 'ec2:UpdateSecurityGroupRuleDescriptionsEgress'
+                  - 'ec2:RevokeSecurityGroupEgress'
+                  - 'ec2:ModifySecurityGroupRules'
+                  - 'ec2:UpdateSecurityGroupRuleDescriptionsIngress'
+                Resource:
+                  - '*'
               - Sid: InstancePoolsSupport
                 Effect: Allow
                 Action:
@@ -1206,7 +1218,6 @@ Resources:
       username: !Ref Username
       password: !Ref Password
       workspace_name: !If [IsDeploymentNameSet, !Sub '${DeploymentName}-workspace', !Sub '${AWS::StackName}-workspace']
-      deployment_name: !Ref DeploymentName
       aws_region: !Ref AWS::Region
       credentials_id: !Ref createCredentials
       storage_config_id: !Ref createStorageConfiguration
