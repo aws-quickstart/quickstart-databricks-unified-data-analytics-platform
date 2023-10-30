@@ -33,7 +33,8 @@ class WorkspaceManager:
   def createStarterCluster(self, instanceProfileArn: str = None, policyId: str = None):
     clusterData = {
       "cluster_name": "[default]basic-starter-cluster",
-      "spark_version": "10.4.x-scala2.12",
+      "spark_version": "13.3.x-scala2.12",
+      "runtime_engine": "PHOTON",
       "node_type_id": "m5d.large",
       "num_workers": 0,
       "start_cluster": True,
