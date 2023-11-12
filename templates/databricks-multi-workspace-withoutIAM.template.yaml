@@ -286,6 +286,8 @@ Rules:
         - eu-central-1
         - eu-west-1
         - eu-west-2
+        - eu-west-3
+        - sa-east-1
         - us-east-1
         - us-east-2
         - us-west-1
@@ -368,6 +370,12 @@ Mappings:
     eu-west-2:
       "workspace": "com.amazonaws.vpce.eu-west-2.vpce-svc-01148c7cdc1d1326c"
       "backend": "com.amazonaws.vpce.eu-west-2.vpce-svc-05279412bf5353a45"
+    eu-west-3:
+      "workspace": "com.amazonaws.vpce.eu-west-3.vpce-svc-008b9368d1d011f37"
+      "backend": "com.amazonaws.vpce.eu-west-3.vpce-svc-005b039dd0b5f857d" 
+    sa-east-1:
+      "workspace": "com.amazonaws.vpce.sa-east-1.vpce-svc-0bafcea8cdfe11b66"
+      "backend": "com.amazonaws.vpce.sa-east-1.vpce-svc-0e61564963be1b43f"   
     eu-central-1:
       "workspace": "com.amazonaws.vpce.eu-central-1.vpce-svc-081f78503812597f7"
       "backend": "com.amazonaws.vpce.eu-central-1.vpce-svc-08e5dfca9572c85c4"

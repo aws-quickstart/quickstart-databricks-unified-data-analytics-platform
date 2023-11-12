@@ -310,6 +310,8 @@ Rules:
         - eu-central-1
         - eu-west-1
         - eu-west-2
+        - eu-west-3
+        - sa-east-1
         - us-east-1
         - us-east-2
         - us-west-1
@@ -402,6 +404,12 @@ Mappings:
     eu-west-2:
       "workspace": "com.amazonaws.vpce.eu-west-2.vpce-svc-01148c7cdc1d1326c"
       "backend": "com.amazonaws.vpce.eu-west-2.vpce-svc-05279412bf5353a45"
+    eu-west-3:
+      "workspace": "com.amazonaws.vpce.eu-west-3.vpce-svc-008b9368d1d011f37"
+      "backend": "com.amazonaws.vpce.eu-west-3.vpce-svc-005b039dd0b5f857d" 
+    sa-east-1:
+      "workspace": "com.amazonaws.vpce.sa-east-1.vpce-svc-0bafcea8cdfe11b66"
+      "backend": "com.amazonaws.vpce.sa-east-1.vpce-svc-0e61564963be1b43f"   
     eu-central-1:
       "workspace": "com.amazonaws.vpce.eu-central-1.vpce-svc-081f78503812597f7"
       "backend": "com.amazonaws.vpce.eu-central-1.vpce-svc-08e5dfca9572c85c4"
@@ -922,7 +930,6 @@ Resources:
                   - 'ec2:DescribeInternetGateways'
                   - 'ec2:DescribeNatGateways'
                   - 'ec2:DescribeNetworkAcls'
-                  - 'ec2:DescribePlacementGroups'
                   - 'ec2:DescribePrefixLists'
                   - 'ec2:DescribeReservedInstancesOfferings'
                   - 'ec2:DescribeRouteTables'
@@ -933,13 +940,23 @@ Resources:
                   - 'ec2:DescribeVolumes'
                   - 'ec2:DescribeVpcAttribute'
                   - 'ec2:DescribeVpcs'
-                  - 'ec2:CreatePlacementGroup'
-                  - 'ec2:DeletePlacementGroup'
-                  - 'ec2:CreateKeyPair'
-                  - 'ec2:DeleteKeyPair'
                   - 'ec2:CreateTags'
                   - 'ec2:DeleteTags'
                   - 'ec2:RequestSpotInstances'
+                  - 'ec2:DescribeFleetHistory'
+                  - 'ec2:ModifyFleet'
+                  - 'ec2:DeleteFleets'
+                  - 'ec2:DescribeFleetInstances'
+                  - 'ec2:DescribeFleets'
+                  - 'ec2:CreateFleet'
+                  - 'ec2:DeleteLaunchTemplate'
+                  - 'ec2:GetLaunchTemplateData'
+                  - 'ec2:CreateLaunchTemplate'
+                  - 'ec2:DescribeLaunchTemplates'
+                  - 'ec2:DescribeLaunchTemplateVersions'
+                  - 'ec2:ModifyLaunchTemplate'
+                  - 'ec2:DeleteLaunchTemplateVersions'
+                  - 'ec2:CreateLaunchTemplateVersion'
                 Resource:
                   - '*'
               - Sid: InstancePoolsSupport
